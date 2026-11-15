@@ -722,8 +722,9 @@ These are things that look like features in the UI but behave differently, or th
 7. **Whole-board export includes slide frames.** With a slide present the computed export size jumped to `5344 × 1656` because the whole-board bounds include the distant slide frame; “Slides (N)” is the intended scope for decks.
 8. **SVG ignores scale and embed.** Scale 1–4× and “Embed board” are PNG-only; SVG is intrinsic-size vector.
 9. **MP4 depends on WebCodecs.** The MP4 option is feature-detected (`avc` encoding at the target size); on unsupported browsers only GIF is offered, with the error “This browser can't encode MP4 at this size. Try GIF.”
-10. **Recording captures draw steps, not cursor motion.** It reconstructs elements frame-by-frame; it is not a screen/video capture. Step count = drawing actions, and replay timing comes from recorded timestamps.
-11. **Anonymous mode is one board.** No local board list; “My boards” is strictly a sign-in gate.
+10. **Recording captures draw steps, not cursor motion.** It reconstructs elements frame-by-frame; it is not a screen/video capture. Step count follows history entries (a single drag can produce create + resize), and replay timing comes from recorded timestamps.
+11. **Recordings are memory-only.** They never reach `localStorage` (the doc has no `recordings` field) or IndexedDB (only a `keys` store for AI credentials). Reloading the tab silently drops them — the rail returns to “Sands of Time — record what you draw”.
+12. **Anonymous mode is one board.** No local board list; “My boards” is strictly a sign-in gate.
 
 ---
 

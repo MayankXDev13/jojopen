@@ -3,8 +3,8 @@ const fs = require('fs');
 const SHOT = '/tmp/opencode/jojo/suite2';
 
 (async () => {
-  const b = await launch({ url: 'file:///home/mayank/Coding/jojopen/index.html' });
-  await sleep(1200);
+  const b = await launch({ url: 'http://127.0.0.1:5173/' });
+  await sleep(1800);
   const out = {};
   const clickSel = async (sel) => {
     const r = await b.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(sel)}); if(!e) return null; const r=e.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);
@@ -35,7 +35,7 @@ const SHOT = '/tmp/opencode/jojo/suite2';
   await key('ArrowRight', 'ArrowRight', 39); out.right3 = await pos();
   await key('ArrowLeft', 'ArrowLeft', 37); out.left1 = await pos();
   await key('Home', 'Home', 36); out.home = await pos();
-  await key(' ', 'Space', 32); await sleep(1200); out.spacePlay = await pos();
+  await key(' ', 'Space', 32); await sleep(1800); out.spacePlay = await pos();
   await key(' ', 'Space', 32); await sleep(300); out.spacePause = await pos();
   await key('End', 'End', 35); out.end = await pos();
   await b.shot(`${SHOT}/18-replay-keys.png`);

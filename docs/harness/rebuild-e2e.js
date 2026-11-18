@@ -24,8 +24,8 @@ function waitFile(dir, ext, timeout = 30000) {
 }
 
 (async () => {
-  const b = await launch({ url: 'file:///home/mayank/Coding/jojopen/index.html' });
-  await sleep(1200);
+  const b = await launch({ url: 'http://127.0.0.1:5173/' });
+  await sleep(1800);
   await b.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: DL }).catch(() => {});
   const out = {};
   const shot = (n) => b.shot(`${SHOT}/${n}.png`);
@@ -120,7 +120,7 @@ function waitFile(dir, ext, timeout = 30000) {
   await sleep(200);
   await shot('09-mermaid');
   out.mermaidConvert = await clickAct('mermaidConvert');
-  await sleep(1200);
+  await sleep(1800);
   out.mermaidResult = await b.evaluate(`(()=>{const els=Object.values(J.S.doc.elements);const d=els.find(e=>e.type==='diagram');return {diagrams:els.filter(e=>e.type==='diagram').length,title:d&&d.title,dsl:d&&d.dsl.slice(0,400),panel:J.S.panel,overlay:!!document.querySelector('#mermaidInput')}})()`);
   await shot('10-mermaid-diagram');
 
@@ -135,7 +135,7 @@ function waitFile(dir, ext, timeout = 30000) {
   out.buildsAfter = await b.evaluate(`(()=>{const s=J.S.doc.elements[Object.keys(J.S.doc.elements).find(id=>J.S.doc.elements[id].type==='slide')];return {builds:(s.builds||[]).length, checked:document.querySelector('[data-act="toggleBuilds"]')?.checked}})()`);
   await shot('11-slide-builds');
   out.buildReplay = await clickSel('[data-act="buildReplay"]');
-  await sleep(1200);
+  await sleep(1800);
   out.presentStart = await b.evaluate(`(()=>{const s=document.querySelector('.present-stage .scene');return {present:!!J.S.present, children:s?s.children.length:0, steps:J.S.present&&J.S.present.steps}})()`);
   await shot('12-build-replay-start');
   await b.key(' ', { code: 'Space', vk: 32 }); await sleep(900);

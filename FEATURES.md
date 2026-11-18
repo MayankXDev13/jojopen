@@ -2,7 +2,12 @@
 
 **Tested against:** <https://jojopen.com/> (production build `index-CBB3_Z2F.js`) on **14 Nov 2026**, driven live in headless Chrome via the DevTools Protocol at 1440×900.
 
-**Companion artifact:** [`index.html`](index.html) — the single-file reconstruction of this app, verified end-to-end on 15 Nov 2026 (see [§15.1](#151-reconstruction-checks-indexhtml)).
+**Current site (16 Nov 2026):** bundle `index-Dvu7dF-m.js` introduces a compact rounded
+chrome, hover key hints, a `system` theme, `Random colors`, `Size 1×` / `Clean it` in the
+context bar and a **Sign in** chip; cloud boards and share/profile links remain gated.
+The React port mirrors this visual refresh in `src/styles/newui.css`.
+
+**Companion artifact:** [`legacy/index.html`](legacy/index.html) — the original single-file reconstruction of this app, verified end-to-end on 15 Nov 2026 (see [§15.1](#151-reconstruction-checks)). The app now ships as a Vite + React project; see [docs/MIGRATION.md](docs/MIGRATION.md) for the source layout and [docs/AUDIT.md](docs/AUDIT.md) for the audit.
 
 ---
 
@@ -55,7 +60,7 @@ node docs/harness/recording-replay.js  # record → stop → replay
 node docs/harness/recording-persistence.js  # prove recordings do not survive reload
 ```
 
-Rebuild checks (run against `file://…/index.html`, same driver):
+Rebuild checks (run against the Vite dev server at `http://127.0.0.1:5173/`, same driver):
 
 ```bash
 node docs/harness/rebuild-e2e.js    # record → replay → GIF/MP4 → Mermaid → builds
@@ -68,7 +73,7 @@ Each script writes PNGs to `/tmp/opencode/jojo/suite/`. `lib.js` expects Google 
 
 ### Reconstruction coverage
 
-[`index.html`](index.html) is a single file with **no network requests at all** (CSS, JS, icons and the Inter/Kalam webfonts are inlined). It implements every anonymous feature in this document — canvas, tools, styles, selection, diagram DSL + Mermaid import, slides/builds/presenter, export, icons, frames, zen mode, assistant scaffolding, and the complete **Sands of Time** record → replay → GIF/MP4 loop. Two deliberate deviations, both noted inline:
+[`legacy/index.html`](legacy/index.html) is a single file with **no network requests at all** (CSS, JS, icons and the Inter/Kalam webfonts are inlined). It implements every anonymous feature in this document — canvas, tools, styles, selection, diagram DSL + Mermaid import, slides/builds/presenter, export, icons, frames, zen mode, assistant scaffolding, and the complete **Sands of Time** record → replay → GIF/MP4 loop. Two deliberate deviations, both noted inline:
 
 - recordings are persisted in the board document (the original keeps them in memory and loses them on reload);
 - replay plays in a focused overlay instead of over the undimmed canvas.
@@ -689,7 +694,7 @@ All checks were executed against the live site. **0 console errors, 0 failed req
 
 Additional verified behaviours not pictured: undo/redo, duplicate, grouping, snapping, fit/zoom, text editing, sticky inline editor, freehand and eraser, image tool opening the file picker, board title/URL routing for guests (`/`), and localStorage/IndexedDB keys.
 
-### 15.1 Reconstruction checks (`index.html`)
+### 15.1 Reconstruction checks (`legacy/index.html`)
 
 The single-file rebuild is driven by the same CDP harness. Every run finished with **0 console errors and 0 failed requests**.
 
@@ -814,4 +819,4 @@ These are things that look like features in the UI but behave differently, or th
 
 ---
 
-*Screenshots and measurements come from the live production site; no source code was copied. This document is an independent behavioural specification for the reconstruction in [`index.html`](index.html).*
+*Screenshots and measurements come from the live production site; no source code was copied. This document is an independent behavioural specification for the reconstruction in [`legacy/index.html`](legacy/index.html) and its React port in [`src/`](src/).*

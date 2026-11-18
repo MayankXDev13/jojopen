@@ -18,7 +18,7 @@ The system SHALL create a freehand stroke on drag with a live preview and SHALL 
 - **THEN** it appears as one continuous solid stroke without dotted or faint gaps
 
 ### Requirement: Arrow tool creates connected arrows
-The system SHALL create an arrow on drag, SHALL anchor endpoints to elements when released over them, and SHALL keep routing, labels, and selection working.
+The system SHALL create arrows with anchor bindings, SHALL show a suggested-binding highlight while dragging, SHALL allow endpoint/midpoint re-binding, and SHALL keep labels draggable and persistent.
 
 #### Scenario: Drag creates an arrow
 - **WHEN** the user drags with the arrow tool between two points
@@ -35,3 +35,19 @@ The system SHALL create an arrow on drag, SHALL anchor endpoints to elements whe
 #### Scenario: Deleting keeps graph clean
 - **WHEN** a connected element is deleted
 - **THEN** attached arrow endpoints detach without orphan references
+
+#### Scenario: Hover shows binding target
+- **WHEN** an arrow endpoint hovers a bindable shape while drawing or dragging
+- **THEN** the target highlights as the suggested binding
+
+#### Scenario: Release binds with anchor
+- **WHEN** the user releases an endpoint over a highlighted shape
+- **THEN** the binding stores normalized anchor, exact/precise flags, and snap mode
+
+#### Scenario: Endpoints re-bind after creation
+- **WHEN** the user drags an existing endpoint or midpoint handle
+- **THEN** waypoints update, elbow re-routes, and binding re-attaches or clears
+
+#### Scenario: Label stays on path
+- **WHEN** an arrow with a label moves or re-routes
+- **THEN** the label remains centered on the path and editable inline

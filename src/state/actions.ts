@@ -10,7 +10,7 @@ import { MAKE, SLIDE_H, SLIDE_W, blankDoc, normalizeDoc } from '../lib/model';
 import { COLOR_KEYS } from '../lib/palette';
 import { callAI, currentAI, extractJSON, loadAIConfig, saveAIConfig, AI_META } from '../lib/ai';
 import { mermaidToDSL } from '../lib/mermaid';
-import { resolveIcon, iconDataURL } from '../lib/iconLibrary';
+import { resolveIcon, iconDataURL, loadIconLibrary, onIconLibraryLoaded } from '../lib/iconLibrary';
 import { AI_SUGGESTIONS, SLIDE_TITLES, TEMPLATES, estimateTextHeight, slideGeometry } from '../lib/templates';
 import {
   exportSVG as renderExportSVG,
@@ -19,6 +19,10 @@ import {
   svgToDataURL,
   type ExportEnv,
 } from '../lib/exportSvg';
+
+onIconLibraryLoaded(() => {
+  notify();
+});
 import {
   S,
   addElement,
@@ -90,6 +94,7 @@ export function openPalette() {
   notify();
 }
 export function openExport() {
+  loadIconLibrary().then(() => notify());
   useBoardStore.setState({ exportOpen: true } as any);
   notify();
 }
@@ -98,6 +103,7 @@ export function openConnect() {
   notify();
 }
 export function openIconSearch() {
+  loadIconLibrary().then(() => notify());
   useBoardStore.setState({ iconSearch: true } as any);
   useBoardStore.setState({ iconQuery: '' } as any);
   useBoardStore.setState({ iconCursor: 0 } as any);

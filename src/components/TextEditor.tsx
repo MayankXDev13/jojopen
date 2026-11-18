@@ -1,9 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { elementBounds } from '../lib/geometry';
 import { S, fontFor, notify } from '../state/store';
+import { useBoardStore } from '../state/boardStore';
 import { commitEdit } from '../state/actions';
+import { useVersion } from '../state/boardStore';
 
 export function TextEditor() {
+  useVersion();
   const ref = useRef<HTMLTextAreaElement>(null);
   const done = useRef(false);
   const el = S.editingId ? S.doc.elements[S.editingId] : null;
@@ -12,8 +15,9 @@ export function TextEditor() {
     done.current = false;
     const ta = ref.current;
     if (!ta) return;
-    ta.focus();
+    ta.focus({ preventScroll: true });
     ta.select();
+    grow(ta);
   }, [S.editingId]);
 
   if (!el) return null;
@@ -21,14 +25,19 @@ export function TextEditor() {
   const b = elementBounds(el);
   const z = S.camera.zoom;
   const isText = el.type === 'text';
-  const fs = isText ? el.fontSize || 18 : el.type === 'sticky' ? 16 : 14;
+  const fs = (isText ? el.fontSize || 18 : el.type === 'sticky' ? 16 : 14) * (isText ? 1 : el.textScale ?? 1);
 
-  const finish = (cancel: boolean) => {
-    if (done.current) return;
+  /* Excalidraw-style: the box grows to its text instead of scrolling. */
+  const grow = (ta: HTMLTextAreaElement) => {
+    ta.style.height = 'auto';
+    ta.style.height = `${Math.max(28, ta.scrollHeight)}px`;
+  };
+
+  const finish = (cancel: boolean) => {    if (done.current) return;
     done.current = true;
     const v = ref.current?.value ?? '';
     if (cancel) {
-      S.editingId = null;
+      useBoardStore.setState({ editingId: null } as any);
       notify();
       return;
     }
@@ -55,17 +64,34 @@ export function TextEditor() {
         background: el.type === 'sticky' ? '#fff3b8' : undefined,
       }}
       onBlur={() => finish(false)}
+      onInput={(e) => {
+        const ta = e.currentTarget;
+        /* Normalize newlines so metrics and rendering agree. */
+        if (/\r/.test(ta.value)) {
+          const pos = ta.selectionStart;
+          ta.value = ta.value.replace(/\r\n?/g, '\n');
+          ta.selectionStart = ta.selectionEnd = Math.min(pos, ta.value.length);
+        }
+        grow(ta);
+      }}
       onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === 'Escape') {
           e.preventDefault();
           finish(true);
         }
-        if (e.key === 'Enter' && !e.shiftKey && el.type !== 'text') {
+        if (e.key === 'Tab') {
+          /* Excalidraw-style: indent inside the editor, never leave it. */
           e.preventDefault();
-          finish(false);
+          const ta = e.currentTarget;
+          const { selectionStart: s, selectionEnd: t, value } = ta;
+          ta.value = `${value.slice(0, s)}  ${value.slice(t)}`;
+          ta.selectionStart = ta.selectionEnd = s + 2;
+          grow(ta);
         }
-        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        /* Plain Enter commits for every type (board text included);
+           Shift+Enter keeps the newline for multiline text. */
+        if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           finish(false);
         }

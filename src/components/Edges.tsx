@@ -1,8 +1,10 @@
 import type { BoardElement } from '../lib/model';
 import { arrowGeom, arrowHead } from '../lib/geometry';
-import { S, sortedElements, theme } from '../state/store';
+import { S, colorFor, sortedElements, theme } from '../state/store';
+import { useVersion } from '../state/boardStore';
 
 export function Edges() {
+  useVersion();
   const th = theme();
   const list = sortedElements();
   return (
@@ -16,15 +18,17 @@ export function Edges() {
       {list.map((el) => {
         if (el.type === 'freehand') {
           const pts = (el.points || []).map((p) => `${el.x + p.x},${el.y + p.y}`).join(' ');
+          const paint = colorFor(el);
           return (
             <g key={el.id}>
               <polyline
                 points={pts}
                 fill="none"
-                stroke={th.ink}
+                stroke={paint.stroke}
                 strokeWidth={el.strokeWidth || 2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                opacity={1}
                 data-id={el.id}
               />
               <polyline

@@ -4,6 +4,7 @@ import { esc } from './dom';
 import type { BoardElement } from './model';
 import type { ArrowGeom } from './geometry';
 import { arrowHead } from './geometry';
+import { iconInner, resolveIcon } from './iconLibrary';
 import { nodeIconMarkup, shapeMarkup, type DiagramRender, type Paint } from './diagram';
 import { SLIDE_H, SLIDE_W } from './model';
 import type { Theme } from './palette';
@@ -28,16 +29,35 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
   const c = env.colorFor(e);
   switch (e.type) {
     case 'shape': {
-      const lines = wrapText(e.label || '', e.width - (e.icon ? 54 : 24), 13);
+      const edge = !!e.icon && !!e.iconEdge && !!resolveIcon(e.icon || '');
+      const lines = wrapText(e.label || '', e.width - (e.icon && !edge ? 54 : 24), 13);
       const lh = 15;
       const total = lines.length * lh;
       const startY = e.height / 2 - total / 2 + 12;
-      const cx = e.icon ? e.width / 2 + 10 : e.width / 2;
+      const cx = e.icon && !edge ? e.width / 2 + 10 : e.width / 2;
+      const ink = e.noFill ? c.stroke : c.text;
+      const fs = 13 * (e.textScale ?? 1);
+      let defs = '';
+      let shapeStr = shapeMarkup(e.shape, e.width, e.height, e.noFill ? 'none' : c.fill, c.stroke, filter);
+      let edgeGlyph = '';
+      if (edge) {
+        const def = resolveIcon(e.icon!)!;
+        const esize = clean ? 24 : 31;
+        const gap = Math.round(esize * 0.3);
+        const ex = Math.round(esize * 1.3);
+        const ey = -esize / 2;
+        defs = `<mask id="edge-${e.id}" maskUnits="userSpaceOnUse" x="-40" y="${-40 - esize}" width="${e.width + 80}" height="${e.height + 80 + esize}"><rect x="-40" y="${-40 - esize}" width="${e.width + 80}" height="${e.height + 80 + esize}" fill="#fff"/><rect x="${ex - gap}" y="${-esize}" width="${esize + gap * 2}" height="${esize * 2}" fill="#000"/></mask>`;
+        shapeStr = `<g mask="url(#edge-${e.id})">${shapeStr}</g>`;
+        const inner = def.brand ? iconInner(e.icon!, { brandFill: c.stroke }) : iconInner(e.icon!);
+        edgeGlyph = `<g transform="translate(${ex} ${ey}) scale(${esize / 24})" fill="none" stroke="${c.stroke}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${inner}</g>`;
+      }
       let s = `<g transform="translate(${e.x} ${e.y})">`;
-      s += shapeMarkup(e.shape, e.width, e.height, e.noFill ? 'none' : c.fill, c.stroke, filter);
-      if (e.icon) s += nodeIconMarkup({ icon: e.icon }, 16, e.height / 2 - 9, 18, e.noFill ? c.stroke : c.text);
+      if (defs) s += `<defs>${defs}</defs>`;
+      s += shapeStr;
+      if (e.icon && !edge) s += nodeIconMarkup({ icon: e.icon }, 16, e.height / 2 - 9, 18, ink);
+      s += edgeGlyph;
       lines.forEach((ln, i) => {
-        s += `<text x="${cx}" y="${startY + i * lh + (lines.length === 1 ? -2 : 0)}" text-anchor="middle" font-family="${clean ? 'Inter,system-ui,sans-serif' : "Kalam,'Comic Neue',cursive"}" font-size="13" fill="${e.noFill ? c.stroke : c.text}">${esc(ln)}</text>`;
+        s += `<text x="${cx}" y="${startY + i * lh + (lines.length === 1 ? -2 : 0)}" text-anchor="middle" font-family="${clean ? 'Inter,system-ui,sans-serif' : "Kalam,'Comic Neue',cursive"}" font-size="${fs}" fill="${ink}">${esc(ln)}</text>`;
       });
       return s + '</g>';
     }
@@ -55,9 +75,10 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
     }
     case 'sticky': {
       const lines = wrapText(e.text || '', e.width - 28, 16);
+      const sfs = 16 * (e.textScale ?? 1);
       let s = `<g><rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="3" fill="${th.sticky}"/><path d="M${e.x + e.width - 20} ${e.y + e.height} l20 -20 v20 z" fill="rgba(0,0,0,.12)"/>`;
       lines.forEach((ln, i) => {
-        s += `<text x="${e.x + 14}" y="${e.y + 26 + i * 19}" font-family="Kalam,'Comic Neue',cursive" font-size="16" fill="${th.stickyInk}">${esc(ln)}</text>`;
+        s += `<text x="${e.x + 14}" y="${e.y + 26 + i * 19}" font-family="Kalam,'Comic Neue',cursive" font-size="${sfs}" fill="${th.stickyInk}">${esc(ln)}</text>`;
       });
       return s + '</g>';
     }
@@ -77,7 +98,7 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
     }
     case 'freehand': {
       const pts = (e.points || []).map((p) => `${e.x + p.x},${e.y + p.y}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="${th.ink}" stroke-width="${e.strokeWidth || 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      return `<polyline points="${pts}" fill="none" stroke="${env.colorFor(e).stroke}" stroke-width="${e.strokeWidth || 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
     case 'arrow': {
       const g = env.arrowGeom(e);

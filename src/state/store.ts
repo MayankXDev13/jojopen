@@ -12,11 +12,12 @@ import {
   type BoardDoc,
   type BoardElement,
 } from '../lib/model';
-import { COLOR_TO_ROLE, ROLE_COLORS, THEME, type Palette, type StyleKey, type Theme } from '../lib/palette';
+import { COLOR_KEYS, COLOR_TO_ROLE, ROLE_COLORS, THEME, type Palette, type StyleKey, type Theme } from '../lib/palette';
 import { inferRole } from '../lib/roles';
 import { diagramFor, type DiagramEnv, type DiagramRender } from '../lib/diagram';
 import { loadAIConfig } from '../lib/ai';
 import { boundsOf, elementBounds, pointInElement } from '../lib/geometry';
+import { useBoardStore } from './boardStore';
 
 export const KEY_DOC = 'jojopen.doc.v1';
 export const KEY_BOARDS = 'jojopen.boards.v1';
@@ -25,69 +26,29 @@ export const KEY_AI = 'jojopen.ai.v1';
 
 export type PanelName = 'none' | 'slides' | 'code' | 'assistant' | 'boards';
 
-export const S: any = {
-  doc: blankDoc(),
-  camera: { x: 80, y: 80, zoom: 1 },
-  tool: 'select',
-  selection: new Set<string>(),
-  editingId: null,
+/* ---------- Zustand-backed state + legacy facade ----------
+   The Zustand store in `./boardStore` is the single source of truth.
+   `S` remains as a compatibility facade so existing readers keep working
+   while call sites migrate to hooks and explicit `setState` updates:
+   - reads forward to the store snapshot,
+   - top-level writes forward to `setState` (and notify),
+   - nested mutations (e.g. `S.doc.name = …`, `S.selection.add(…)`) act on
+     the live state object exactly as before; every legacy flow calls
+     `notify()` afterwards, which wakes both legacy and Zustand subscribers. */
 
-  panel: 'none',
-  zen: false,
-  themePref: 'system' as 'system' | 'light' | 'dark',
-
-  toast: null as string | null,
-  toastTimer: 0,
-
-  drag: null,
-  marquee: null,
-  space: false,
-  panning: false,
-
-  palette: false,
-  help: false,
-  shortcuts: false,
-  exportOpen: false,
-  connectOpen: false,
-  iconSearch: false,
-  boardsOpen: false,
-  renameOpen: false,
-  mermaidOpen: false,
-  layerPop: false,
-
-  startOpen: false,
-  present: null,
-  replay: null,
-  rec: null,
-  sot: { listOpen: false, replay: null },
-
-  history: [] as { json: string; label: string }[],
-  future: [] as { json: string; label: string }[],
-  timeline: [] as { json: string; label: string; at: number }[],
-
-  lastSaved: null as number | null,
-  paletteIndex: 0,
-  paletteQ: '',
-  iconQuery: '',
-  iconCursor: 0,
-  boardQuery: '',
-  layoutPicker: false,
-  colorPop: false,
-
-  codeFor: null as string | null,
-  codeDraft: null as string | null,
-  mermaidText: '',
-  mermaidError: '',
-
-  exportOpts: null,
-  connectProvider: null as string | null,
-  connectModel: null as string | null,
-
-  assistant: { messages: [] as any[], busy: false, provider: 'anthropic', model: 'claude-sonnet-4-20250514', abort: null as AbortController | null },
-  clipboard: null as any,
-  _shift: false,
-  _space: false,
-};
+export const S: any = new Proxy({} as any, {
+  get: (_t, prop) => (useBoardStore.getState() as any)[prop],
+  set: (_t, prop, value) => {
+    useBoardStore.setState({ [prop]: value } as any);
+    return true;
+  },
+  has: (_t, prop) => prop in useBoardStore.getState(),
+  ownKeys: () => Reflect.ownKeys(useBoardStore.getState()),
+  getOwnPropertyDescriptor: (_t, prop) => {
+    const v = (useBoardStore.getState() as any)[prop];
+    return v === undefined ? undefined : { configurable: true, enumerable: true, value: v };
+  },
+});
 
 /* ---------- subscription ---------- */
 
@@ -104,6 +65,8 @@ export const getVersion = () => version;
 
 export function notify() {
   version++;
+  /* Wake Zustand subscribers via the store version (shallow merge keeps refs). */
+  useBoardStore.getState().bump();
   for (const fn of [...listeners]) fn();
 }
 
@@ -411,6 +374,13 @@ export function fitSelection() {
 /* ---------- element helpers ---------- */
 
 export function addElement(el: BoardElement, opts: { noClamp?: boolean } = {}) {
+  /* Persistent random-color mode: new shapes/arrows without an explicit
+     color auto-receive a palette color (pasted/duplicated elements keep
+     their locked colors). */
+  if (useBoardStore.getState().randomMode && (el.type === 'shape' || el.type === 'arrow') && !el.colorLocked) {
+    el.color = COLOR_KEYS[Math.floor(Math.random() * COLOR_KEYS.length)];
+    el.colorLocked = true;
+  }
   const max = nextIndex();
   el.index = el.index ?? max;
   S.doc.elements[el.id] = el;

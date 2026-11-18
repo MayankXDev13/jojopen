@@ -1,14 +1,15 @@
 /* User-level actions. Components call these directly; they mutate the store,
    persist and notify as needed. */
 
-import { deep, download, plural, slug, uid } from '../lib/dom';
+import { clamp, deep, download, plural, slug, uid } from '../lib/dom';
 import { boundsOf, arrowGeom } from '../lib/geometry';
-import { layoutDiagram } from '../lib/layout';
+import { layoutDiagram, wrapText } from '../lib/layout';
 import { parseDSL } from '../lib/dsl';
 import { MAKE, SLIDE_H, SLIDE_W, blankDoc, normalizeDoc } from '../lib/model';
 import { COLOR_KEYS } from '../lib/palette';
 import { callAI, currentAI, extractJSON, loadAIConfig, saveAIConfig, AI_META } from '../lib/ai';
 import { mermaidToDSL } from '../lib/mermaid';
+import { resolveIcon, iconDataURL } from '../lib/iconLibrary';
 import { AI_SUGGESTIONS, SLIDE_TITLES, TEMPLATES, estimateTextHeight, slideGeometry } from '../lib/templates';
 import {
   exportSVG as renderExportSVG,
@@ -44,7 +45,8 @@ import {
   nextSlideOrder,
   KEY_BOARDS,
   roleColor,
-} from './store';
+} from './store';import { useBoardStore } from './boardStore';
+
 import { sotToggle, sotCloseReplay } from './sot';
 
 export { AI_SUGGESTIONS };
@@ -52,63 +54,66 @@ export { AI_SUGGESTIONS };
 /* ---------- panels + overlays ---------- */
 
 export function closeOverlays() {
-  S.help = false;
-  S.shortcuts = false;
-  S.palette = false;
-  S.exportOpen = false;
-  S.connectOpen = false;
-  S.iconSearch = false;
-  S.renameOpen = false;
-  S.mermaidOpen = false;
-  S.paletteQ = '';
+  useBoardStore.setState({ help: false } as any);
+  useBoardStore.setState({ shortcuts: false } as any);
+  useBoardStore.setState({ palette: false } as any);
+  useBoardStore.setState({ exportOpen: false } as any);
+  useBoardStore.setState({ connectOpen: false } as any);
+  useBoardStore.setState({ iconSearch: false } as any);
+  useBoardStore.setState({ renameOpen: false } as any);
+  useBoardStore.setState({ mermaidOpen: false } as any);
+  useBoardStore.setState({ paletteQ: '' } as any);
   notify();
 }
 
 export function setPanel(name: Exclude<any, 'none'> | any) {
-  S.panel = S.panel === name ? 'none' : name;
-  S.colorPop = false;
+  const st = useBoardStore.getState();
+  useBoardStore.setState({ panel: st.panel === name ? 'none' : name } as any);
+  useBoardStore.setState({ colorPop: false } as any);
   notify();
 }
 
 export function openMenu() {
-  S.help = !S.help;
+  useBoardStore.setState({ help: !S.help } as any);
   notify();
 }
 export function openShortcuts() {
-  S.shortcuts = true;
+  useBoardStore.setState({ shortcuts: true } as any);
   notify();
 }
 export function openPalette() {
-  S.palette = true;
-  S.paletteQ = '';
-  S.paletteIndex = 0;
+  useBoardStore.setState({ palette: true } as any);
+  useBoardStore.setState({ paletteQ: '' } as any);
+  useBoardStore.setState({ paletteIndex: 0 } as any);
   notify();
 }
 export function openExport() {
-  S.exportOpen = true;
+  useBoardStore.setState({ exportOpen: true } as any);
   notify();
 }
 export function openConnect() {
-  S.connectOpen = true;
+  useBoardStore.setState({ connectOpen: true } as any);
   notify();
 }
 export function openIconSearch() {
-  S.iconSearch = true;
-  S.iconQuery = '';
-  S.iconCursor = 0;
+  useBoardStore.setState({ iconSearch: true } as any);
+  useBoardStore.setState({ iconQuery: '' } as any);
+  useBoardStore.setState({ iconCursor: 0 } as any);
   notify();
 }
 export function openRename() {
-  S.renameOpen = true;
+  useBoardStore.setState({ renameOpen: true } as any);
   notify();
 }
 export function openMermaid() {
-  S.mermaidOpen = true;
-  if (!S.mermaidText) {
-    S.mermaidText =
-      'flowchart LR\n  Browser[Browser] --> CDN[CDN]\n  CDN --> API(API gateway)\n  API --> DB[(URL database)]\n  API --> Cache[(Redis cache)]\n  API -.-> Queue[Kafka queue]';
+  useBoardStore.setState({ mermaidOpen: true } as any);
+  if (!useBoardStore.getState().mermaidText) {
+    useBoardStore.setState({
+      mermaidText:
+        'flowchart LR\n  Browser[Browser] --> CDN[CDN]\n  CDN --> API(API gateway)\n  API --> DB[(URL database)]\n  API --> Cache[(Redis cache)]\n  API -.-> Queue[Kafka queue]',
+    } as any);
   }
-  S.mermaidError = '';
+  useBoardStore.setState({ mermaidError: '' } as any);
   notify();
 }
 
@@ -116,9 +121,9 @@ export function openMermaid() {
 
 export function setTool(tool: string) {
   if (tool === 'image') return pickImage();
-  S.tool = tool;
-  S.colorPop = false;
-  if (S.panel === 'none' && tool !== 'select') S.startOpen = true;
+  useBoardStore.setState({ tool: tool } as any);
+  useBoardStore.setState({ colorPop: false } as any);
+  if (S.panel === 'none' && tool !== 'select') useBoardStore.setState({ startOpen: true } as any);
   notify();
 }
 
@@ -173,7 +178,7 @@ export function addSlide(layout = 'blank', opts: any = {}) {
     );
     void r;
   }
-  S.selection = new Set([slide.id]);
+  useBoardStore.setState({ selection: new Set([slide.id]) } as any);
   persist();
   notify();
   return slide;
@@ -195,7 +200,7 @@ export function duplicateSlide(id: string) {
     c.y = copy.y + (e.y - sl.y);
     addElement(c);
   }
-  S.selection = new Set([copy.id]);
+  useBoardStore.setState({ selection: new Set([copy.id]) } as any);
   notify();
   persist();
 }
@@ -236,7 +241,7 @@ export function selectionToSlide() {
     c.y = slide.y + area.y + (e.y - b.minY) * scale;
   }
   removeElements(list.map((e) => e.id));
-  S.selection = new Set([slide.id]);
+  useBoardStore.setState({ selection: new Set([slide.id]) } as any);
   persist();
   notify();
   toast('Moved selection to a slide');
@@ -325,13 +330,13 @@ export function setNotes(id: string, notes: string) {
 export function present(index = 0) {
   const list = slides();
   if (!list.length) return toast('Add a slide first');
-  S.present = { index: Math.max(0, Math.min(index, list.length - 1)), steps: 0, chrome: true, laser: false };
+  useBoardStore.setState({ present: { index: Math.max(0, Math.min(index, list.length - 1)), steps: 0, chrome: true, laser: false } } as any);
   notify();
   document.documentElement.requestFullscreen?.().catch(() => {});
 }
 
 export function exitPresent() {
-  S.present = null;
+  useBoardStore.setState({ present: null } as any);
   if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
   notify();
 }
@@ -378,13 +383,13 @@ export function codeTarget() {
 export function syncCodeDraft() {
   const target = codeTarget();
   if (S.codeDraft == null || S.codeFor !== (target?.id || null)) {
-    S.codeFor = target?.id || null;
-    S.codeDraft = target?.dsl || TEMPLATES.demo;
+    useBoardStore.setState({ codeFor: target?.id || null } as any);
+    useBoardStore.setState({ codeDraft: target?.dsl || TEMPLATES.demo } as any);
   }
 }
 
 export function setCodeDraft(v: string) {
-  S.codeDraft = v;
+  useBoardStore.setState({ codeDraft: v } as any);
   notify();
 }
 
@@ -405,7 +410,7 @@ export function applyCode() {
       target.width = layout.width;
       target.height = layout.height;
     }
-    S.selection = new Set([target.id]);
+    useBoardStore.setState({ selection: new Set([target.id]) } as any);
   } else {
     const c = viewportCenter();
     const el = MAKE.diagram({
@@ -417,8 +422,8 @@ export function applyCode() {
       dsl: src,
     });
     addElement(el);
-    S.selection = new Set([el.id]);
-    S.codeFor = el.id;
+    useBoardStore.setState({ selection: new Set([el.id]) } as any);
+    useBoardStore.setState({ codeFor: el.id } as any);
   }
   persist();
   notify();
@@ -432,9 +437,10 @@ export function validateCode() {
 }
 
 export function newDiagram() {
-  S.selection.clear();
-  S.codeFor = null;
-  S.codeDraft = `title: New diagram
+  useBoardStore.getState().selection.clear();
+  useBoardStore.setState({ codeFor: null } as any);
+  useBoardStore.setState({
+    codeDraft: `title: New diagram
 direction: right
 
 Client [actor]
@@ -442,14 +448,15 @@ API [compute]
 Database [data]
 
 Client -> API: request
-API -> Database: read`;
-  S.panel = 'code';
+API -> Database: read`,
+  } as any);
+  useBoardStore.setState({ panel: 'code' } as any);
   notify();
   toast('New diagram — edit the code, then Apply');
 }
 
 export function exampleCode() {
-  S.codeDraft = TEMPLATES.demo;
+  useBoardStore.setState({ codeDraft: TEMPLATES.demo } as any);
   notify();
 }
 
@@ -457,16 +464,16 @@ export function mermaidConvert() {
   const src = S.mermaidText || '';
   const res = mermaidToDSL(src);
   if (res.error) {
-    S.mermaidError = res.error;
+    useBoardStore.setState({ mermaidError: res.error } as any);
     notify();
     return;
   }
-  S.mermaidError = '';
-  S.mermaidOpen = false;
+  useBoardStore.setState({ mermaidError: '' } as any);
+  useBoardStore.setState({ mermaidOpen: false } as any);
   pushHistory('import mermaid');
   S.selection.clear();
-  S.codeFor = null;
-  S.codeDraft = res.dsl!;
+  useBoardStore.setState({ codeFor: null } as any);
+  useBoardStore.setState({ codeDraft: res.dsl! } as any);
   const parsed = parseDSL(res.dsl!);
   const layout = layoutDiagram(parsed);
   const el = MAKE.diagram({
@@ -478,8 +485,8 @@ export function mermaidConvert() {
     dsl: res.dsl!,
   });
   addElement(el);
-  S.selection = new Set([el.id]);
-  S.codeFor = el.id;
+  useBoardStore.setState({ selection: new Set([el.id]) } as any);
+  useBoardStore.setState({ codeFor: el.id } as any);
   notify();
   persist();
   fitAll();
@@ -560,7 +567,7 @@ export function addDiagramFromAI(dsl: string, title?: string) {
     dsl,
   });
   addElement(el);
-  S.selection = new Set([el.id]);
+  useBoardStore.setState({ selection: new Set([el.id]) } as any);
   persist();
   notify();
 }
@@ -586,9 +593,9 @@ export function saveAIKey(provider: string, key: string, model: string, baseUrl:
   cfg.baseUrl = baseUrl;
   cfg.keys = { ...(cfg.keys || {}), [provider]: key };
   saveAIConfig(cfg);
-  S.connectOpen = false;
-  S.connectProvider = null;
-  S.connectModel = null;
+  useBoardStore.setState({ connectOpen: false } as any);
+  useBoardStore.setState({ connectProvider: null } as any);
+  useBoardStore.setState({ connectModel: null } as any);
   notify();
   toast('AI connected');
 }
@@ -607,10 +614,10 @@ export function forgetKey() {
 export function saveRename(name: string) {
   const v = name.trim();
   if (v) {
-    S.doc.name = v;
+    useBoardStore.setState({ doc: { ...useBoardStore.getState().doc, name: v } } as any);
     persist(true);
   }
-  S.renameOpen = false;
+  useBoardStore.setState({ renameOpen: false } as any);
   notify();
 }
 
@@ -622,14 +629,14 @@ export function copyBoardLink() {
 
 export function newBoard() {
   saveBoardCopy();
-  S.doc = blankDoc('Untitled board');
+  useBoardStore.setState({ doc: blankDoc('Untitled board') } as any);
   S.selection.clear();
-  S.history = [];
-  S.future = [];
-  S.timeline = [];
-  S.camera = { x: 80, y: 80, zoom: 1 };
-  S.startOpen = false;
-  S.panel = 'none';
+  useBoardStore.setState({ history: [] } as any);
+  useBoardStore.setState({ future: [] } as any);
+  useBoardStore.setState({ timeline: [] } as any);
+  useBoardStore.setState({ camera: { x: 80, y: 80, zoom: 1 } } as any);
+  useBoardStore.setState({ startOpen: false } as any);
+  useBoardStore.setState({ panel: 'none' } as any);
   location.hash = '';
   notify();
   persist(true);
@@ -640,12 +647,12 @@ export function openBoard(id: string) {
   try {
     const raw = localStorage.getItem('jojopen.board.' + id) || (S.doc.id === id ? JSON.stringify(S.doc) : null);
     if (!raw) return toast('Board not found');
-    S.doc = normalizeDoc(JSON.parse(raw));
+    useBoardStore.setState({ doc: normalizeDoc(JSON.parse(raw)) } as any);
     S.selection.clear();
-    S.history = [];
-    S.future = [];
-    S.timeline = [];
-    S.camera = { x: 0, y: 0, zoom: 1 };
+    useBoardStore.setState({ history: [] } as any);
+    useBoardStore.setState({ future: [] } as any);
+    useBoardStore.setState({ timeline: [] } as any);
+    useBoardStore.setState({ camera: { x: 0, y: 0, zoom: 1 } } as any);
     history.replaceState(null, '', '#/b/' + id);
     notify();
     persist();
@@ -681,12 +688,12 @@ export function importJSON() {
       const doc = j.doc || j;
       if (!doc.elements) throw new Error('Not a JojoPen file');
       saveBoardCopy();
-      S.doc = normalizeDoc({ ...doc, id: uid(), name: doc.name || f.name.replace(/\.json$/, '') });
+      useBoardStore.setState({ doc: normalizeDoc({ ...doc, id: uid(), name: doc.name || f.name.replace(/\.json$/, '') }) } as any);
       S.selection.clear();
-      S.history = [];
-      S.future = [];
-      S.timeline = [];
-      S.camera = { x: 0, y: 0, zoom: 1 };
+      useBoardStore.setState({ history: [] } as any);
+      useBoardStore.setState({ future: [] } as any);
+      useBoardStore.setState({ timeline: [] } as any);
+      useBoardStore.setState({ camera: { x: 0, y: 0, zoom: 1 } } as any);
       notify();
       persist(true);
       fitAll();
@@ -699,7 +706,7 @@ export function importJSON() {
 }
 
 export function applyTemplate(id: string) {
-  S.startOpen = true;
+  useBoardStore.setState({ startOpen: true } as any);
   if (id === 'system' || id === 'flow') {
     pushHistory('template');
     const dsl = id === 'system' ? TEMPLATES.system : TEMPLATES.flow;
@@ -714,15 +721,15 @@ export function applyTemplate(id: string) {
       dsl,
     });
     addElement(el);
-    S.doc.name = id === 'system' ? 'URL shortener' : 'Sign-up flow';
-    S.selection = new Set([el.id]);
+    useBoardStore.setState({ doc: { ...useBoardStore.getState().doc, name: id === 'system' ? 'URL shortener' : 'Sign-up flow' } } as any);
+    useBoardStore.setState({ selection: new Set([el.id]) } as any);
     notify();
     persist(true);
     fitAll();
     return toast('Added ' + el.title);
   }
   if (id === 'deck') {
-    S.doc.name = 'Slide deck';
+    useBoardStore.setState({ doc: { ...useBoardStore.getState().doc, name: 'Slide deck' } } as any);
     addSlide('title', { title: 'Your talk title', texts: ['Your talk title', 'A short subtitle'] });
     addSlide('bullets', { title: 'Agenda', texts: ['Agenda', '•  The problem\n•  How it works\n•  What we learned'] });
     addSlide('diagram-bullets', {
@@ -742,7 +749,7 @@ export function applyTemplate(id: string) {
 export function copySelection() {
   const list = selectionElements();
   if (!list.length) return toast('Select something first');
-  S.clipboard = { elements: deep(list), files: {} };
+  useBoardStore.setState({ clipboard: { elements: deep(list), files: {} } } as any);
   for (const e of list) if (e.type === 'image' && S.doc.files[e.fileId]) S.clipboard.files[e.fileId] = S.doc.files[e.fileId];
   toast(`${plural(list.length, 'element')} copied`);
 }
@@ -773,7 +780,7 @@ export function pasteClipboard() {
     S.doc.elements[e.id] = e;
     ids.push(e.id);
   }
-  S.selection = new Set(ids);
+  useBoardStore.setState({ selection: new Set(ids) } as any);
   notify();
   persist();
   toast('Pasted');
@@ -800,7 +807,7 @@ export function deleteSelection() {
 }
 
 export function selectAll() {
-  S.selection = new Set(elements().map((e) => e.id));
+  useBoardStore.setState({ selection: new Set(elements().map((e) => e.id)) } as any);
   notify();
 }
 
@@ -830,7 +837,7 @@ export function nudge(dx: number, dy: number) {
 export function beginEdit(id: string) {
   const el = S.doc.elements[id];
   if (!el || el.locked) return;
-  S.editingId = id;
+  useBoardStore.setState({ editingId: id } as any);
   notify();
 }
 
@@ -839,8 +846,8 @@ export function editLabel() {
   const e = selectionElements()[0];
   if (!e || e.locked) return;
   if (e.type === 'diagram') {
-    S.codeFor = e.id;
-    S.codeDraft = e.dsl;
+    useBoardStore.setState({ codeFor: e.id } as any);
+    useBoardStore.setState({ codeDraft: e.dsl } as any);
     setPanel('code');
     return;
   }
@@ -851,7 +858,7 @@ export function editLabel() {
 /** Commit the inline text editor's value back into the element. */
 export function commitEdit(id: string, value: string) {
   const el = S.doc.elements[id];
-  S.editingId = null;
+  useBoardStore.setState({ editingId: null } as any);
   if (!el) {
     notify();
     return;
@@ -859,12 +866,31 @@ export function commitEdit(id: string, value: string) {
   pushHistory('edit text');
   if (el.type === 'arrow') el.label = value.trim();
   else if (el.type === 'text') {
-    if (value.trim()) el.text = value;
-    else removeElements([id]);
+    if (value.trim()) {
+      el.text = value;
+      /* Autofit to content using renderer-matched metrics (see exportSvg):
+         width fits the longest wrapped line, height fits all lines. */
+      const fs = el.fontSize || 18;
+      const lines = wrapText(value, el.width, fs);
+      const longest = Math.max(...lines.map((l) => l.length), 1);
+      el.width = Math.max(60, Math.ceil(longest * fs * 0.56 + 16));
+      el.height = Math.max(28, Math.ceil(lines.length * fs * 1.28 + 12));
+    } else {
+      removeElements([id]);
+      S.selection.delete(id);
+    }
   } else if (el.type === 'sticky') {
     /* Legacy wrote sticky edits to `label`, which the sticky renderer never
        read. Notes render `text`, so commit there. */
     el.text = value;
+    /* Grow-only autofit to wrapped lines (renderer: width-28 at 16px, lh 19). */
+    const lines = wrapText(value, Math.max(60, el.width - 28), 16);
+    el.height = Math.max(el.height, Math.ceil(lines.length * 19 + 34));
+  } else if (el.type === 'shape' && el.shape !== undefined) {
+    el.label = value;
+    /* Grow-only autofit (renderer: width-24 at 13px, lh 15). */
+    const lines = wrapText(value, Math.max(60, el.width - 24), 13);
+    el.height = Math.max(el.height, Math.ceil(lines.length * 15 + 24));
   } else el.label = value;
   notify();
   persist();
@@ -928,7 +954,8 @@ export function toggleLock() {
 }
 
 export function toggleTheme() {
-  S.themePref = S.themePref === 'system' ? 'dark' : S.themePref === 'dark' ? 'light' : 'system';
+  const t = useBoardStore.getState().themePref;
+  useBoardStore.setState({ themePref: t === 'system' ? 'dark' : t === 'dark' ? 'light' : 'system' } as any);
   notify();
   persist();
 }
@@ -953,7 +980,7 @@ export function toggleGrid() {
 }
 
 export function toggleZen() {
-  S.zen = !S.zen;
+  useBoardStore.setState({ zen: !S.zen } as any);
   notify();
 }
 
@@ -990,7 +1017,6 @@ export function applyColor(color: string) {
   });
   persist();
   notify();
-  toast(color.startsWith('#') ? 'Custom color' : 'Color');
 }
 
 export function autoColor() {
@@ -1003,6 +1029,16 @@ export function autoColor() {
 }
 
 export function randomColors() {
+  /* Persistent mode: first activation repaints everything (one undoable
+     step, existing behavior) and stays active so new shapes/arrows
+     auto-receive palette colors; activating again toggles it off. */
+  if (useBoardStore.getState().randomMode) {
+    useBoardStore.setState({ randomMode: false } as any);
+    notify();
+    persist();
+    toast('Random colors off');
+    return;
+  }
   pushHistory('random colors');
   if (!paletteOn()) settings().palette = 'roles';
   /* Store colour keys, not resolved paints: `colorFor()` maps them through
@@ -1014,6 +1050,7 @@ export function randomColors() {
       e.color = keys[i % keys.length];
       e.colorLocked = true;
     });
+  useBoardStore.setState({ randomMode: true } as any);
   persist();
   notify();
   toast('Random colors');
@@ -1049,27 +1086,119 @@ export function setRoute(route: string) {
   notify();
 }
 
+/* Live text-size step scales (see live bundle `Uj`/`Bj`). */
+export const TEXT_STEPS = [12, 14, 16, 18, 22, 28, 36, 48, 64, 80, 96];
+export const TEXT_SCALES = [0.75, 1, 1.25, 1.5, 2, 2.5, 3];
+
+/** Display value for the A-/A+ control: px for text, × factor otherwise. */
+export function textSizeLabel(e: { type: string; fontSize?: number; textScale?: number }): string {
+  return e.type === 'text' ? `${e.fontSize ?? 18}px` : `${e.textScale ?? 1}×`;
+}
+
 export function bumpText(delta: number) {
-  pushHistory('text size');
+  /* Live parity (`Im`): A-/A+ change text size only, never the box.
+     Text elements step fontSize (box follows proportionally); shapes and
+     stickies step a textScale factor applied to the label. */
+  pushHistory(delta > 0 ? 'bigger text' : 'smaller text');
+  const stepUp = (scale: number[], cur: number) => scale.find((v) => v > cur + 1e-6) ?? scale[scale.length - 1];
+  const stepDown = (scale: number[], cur: number) => [...scale].reverse().find((v) => v < cur - 1e-6) ?? scale[0];
+  const step = (scale: number[], cur: number) => (delta > 0 ? stepUp(scale, cur) : stepDown(scale, cur));
   selectionElements().forEach((e) => {
-    if (e.type === 'text') e.fontSize = Math.max(8, Math.min(160, e.fontSize + delta));
+    if (e.locked) return;
+    if (e.type === 'text') {
+      const next = step(TEXT_STEPS, e.fontSize ?? 18);
+      if (next === (e.fontSize ?? 18)) return;
+      const k = next / (e.fontSize ?? 18);
+      e.fontSize = next;
+      e.width = Math.max(16, Math.round(e.width * k));
+      e.height = Math.max(16, Math.round(e.height * k));
+      return;
+    }
+    if (e.type === 'shape' || e.type === 'sticky') {
+      e.textScale = step(TEXT_SCALES, e.textScale ?? 1);
+    }
   });
   notify();
 }
 
-export function insertIcon(icon: string) {
-  pushHistory('add icon');
-  const c = viewportCenter();
-  const label = icon
-    .split('-')
-    .map((s) => s[0].toUpperCase() + s.slice(1))
-    .join(' ');
-  const el = MAKE.shape({ x: Math.round(c.x - 80), y: Math.round(c.y - 32), width: 170, height: 64, icon, label, shape: 'rounded' });
-  addElement(el);
-  S.selection = new Set([el.id]);
-  S.iconSearch = false;
+/** Scale the selection by an exact multiplier (2x = double size). */
+export function scaleSelection(factor: number) {
+  pushHistory('scale');
+  selectionElements().forEach((e) => {
+    if (e.locked) return;
+    if (e.type === 'text') {
+      e.fontSize = clamp(Math.round((e.fontSize ?? 18) * factor), 8, 160);
+      return;
+    }
+    if (['shape', 'sticky', 'container', 'image', 'diagram'].includes(e.type)) {
+      e.width = Math.max(16, Math.round(e.width * factor));
+      e.height = Math.max(16, Math.round(e.height * factor));
+      if (typeof e.fontSize === 'number') e.fontSize = clamp(Math.round(e.fontSize * factor), 8, 160);
+    }
+  });
   notify();
   persist();
+}
+
+export type IconInsertMode = 'box' | 'icon';
+
+const ICON_MODE_KEY = 'jojopen:iconInsertMode';
+
+export function getIconMode(): IconInsertMode {
+  try {
+    return localStorage.getItem(ICON_MODE_KEY) === 'box' ? 'box' : 'icon';
+  } catch {
+    return 'icon';
+  }
+}
+
+export function setIconMode(mode: IconInsertMode) {
+  try {
+    localStorage.setItem(ICON_MODE_KEY, mode);
+  } catch { /* ignore */ }
+  notify();
+}
+
+/** Box mode: an empty outline box with the icon on its edge (press Enter on it to type). */
+export function insertIconBox(icon: string) {
+  if (!resolveIcon(icon)) return;
+  pushHistory('add icon box');
+  const c = viewportCenter();
+  const el = MAKE.shape({ x: Math.round(c.x - 100), y: Math.round(c.y - 36), width: 200, height: 72, icon, iconEdge: true, label: '', shape: 'rounded', noFill: true });
+  addElement(el);
+  useBoardStore.setState({ selection: new Set([el.id]) } as any);
+  useBoardStore.setState({ iconSearch: false } as any);
+  useBoardStore.setState({ tool: 'select' } as any);
+  notify();
+  persist();
+}
+
+/** Icon-only mode: just the icon as a standalone square image. */
+export function insertIconOnly(icon: string) {
+  const def = resolveIcon(icon);
+  if (!def) return;
+  pushHistory('add icon');
+  const c = viewportCenter();
+  const dark = document.querySelector?.('.app[data-theme="dark"]') != null;
+  const ink = theme().ink || (dark ? '#ededec' : '#1c1b19');
+  const dataUrl = iconDataURL(icon, ink, dark);
+  if (!dataUrl) return;
+  const fileId = `icon-${def.id}-ink`;
+  S.doc.files[fileId] = dataUrl;
+  const size = 96;
+  const el = MAKE.image({ x: Math.round(c.x - size / 2), y: Math.round(c.y - size / 2), width: size, height: size, fileId });
+  el.meta = { ...(el.meta || {}), icon: def.id };
+  addElement(el);
+  useBoardStore.setState({ selection: new Set([el.id]) } as any);
+  useBoardStore.setState({ iconSearch: false } as any);
+  useBoardStore.setState({ tool: 'select' } as any);
+  notify();
+  persist();
+}
+
+export function insertIcon(icon: string) {
+  if (getIconMode() === 'box') return insertIconBox(icon);
+  return insertIconOnly(icon);
 }
 
 /* ---------- images ---------- */
@@ -1086,7 +1215,7 @@ export function placeImage(dataUrl: string, naturalW: number, naturalH: number) 
   pushHistory('add image');
   const el = MAKE.image({ x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2), width: Math.round(w), height: Math.round(h), fileId });
   addElement(el);
-  S.selection = new Set([el.id]);
+  useBoardStore.setState({ selection: new Set([el.id]) } as any);
   notify();
   persist();
 }
@@ -1116,7 +1245,7 @@ export function exportState() {
 }
 
 export function setExportOpts(patch: any) {
-  S.exportOpts = { ...exportState(), ...patch };
+  useBoardStore.setState({ exportOpts: { ...exportState(), ...patch } } as any);
   if (patch.scope === 'slides') S.exportOpts.format = 'pdf';
   notify();
 }
@@ -1124,12 +1253,12 @@ export function setExportOpts(patch: any) {
 function withExportTheme<T>(fn: () => T): T {
   const prevTheme = S.themePref;
   const prevPal = S.doc.settings.palette;
-  if (S.exportOpts?.dark) S.themePref = 'dark';
+  if (S.exportOpts?.dark) useBoardStore.setState({ themePref: 'dark' } as any);
   if (S.exportOpts?.palette === 'mono') S.doc.settings.palette = 'mono';
   try {
     return fn();
   } finally {
-    S.themePref = prevTheme;
+    useBoardStore.setState({ themePref: prevTheme } as any);
     S.doc.settings.palette = prevPal;
   }
 }

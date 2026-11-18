@@ -5,34 +5,22 @@ import { COMMANDS, filteredCommands, filteredIcons, prettyKey } from '../state/c
 import {
   S,
   notify,
-  persist,
-  settings,
   slides,
   toast,
 } from '../state/store';
 import {
-  applyTemplate,
   closeOverlays,
   copyExport,
   doExport,
-  downloadJSON,
   exportPreview,
   exportSizeLabel,
   exportState,
-  importJSON,
   insertIcon,
   mermaidConvert,
-  newBoard,
-  openExport,
-  openShortcuts,
   saveAIKey,
   saveRename,
-  setPanel,
   setExportOpts,
-  toggleBw,
-  toggleTheme,
 } from '../state/actions';
-import { sotToggle } from '../state/sot';
 import { Icon } from './Icon';
 
 function Scrim({ children, align }: { children: React.ReactNode; align?: string }) {
@@ -58,7 +46,6 @@ function Sheet({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function Overlays() {
-  if (S.help) return <MenuSheet />;
   if (S.shortcuts) return <ShortcutsSheet />;
   if (S.palette) return <CommandPalette />;
   if (S.exportOpen) return <ExportDialog />;
@@ -67,109 +54,6 @@ export function Overlays() {
   if (S.iconSearch) return <IconSearch />;
   if (S.renameOpen) return <BoardSettings />;
   return null;
-}
-
-function MenuSheet() {
-  const pickPanel = (name: string) => {
-    closeOverlays();
-    setPanel(name);
-  };
-  return (
-    <Scrim>
-      <Sheet label="Main menu">
-        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
-          <h2 style={{ margin: 0 }}>Main menu</h2>
-          <button className="iconbtn" data-act="closeOverlay" onClick={closeOverlays}>
-            <Icon name="close" size={18} />
-          </button>
-        </div>
-        <div className="row" style={{ gap: 8, marginBottom: 6 }}>
-          <button className="primary" onClick={() => { closeOverlays(); newBoard(); }}>
-            <Icon name="plus" size={14} sw={2} /> New board
-          </button>
-          <button className="secondary" onClick={() => pickPanel('boards')}>
-            <Icon name="docshape" size={14} /> My boards
-          </button>
-          <button className="secondary" onClick={() => { closeOverlays(); importJSON(); }}>
-            <Icon name="upload" size={14} /> Import JSON
-          </button>
-          <button className="secondary" onClick={downloadJSON}>
-            <Icon name="download" size={14} /> Backup JSON
-          </button>
-        </div>
-        <div className="section-label">Templates</div>
-        <div className="start-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-          <button className="start-card" onClick={() => { closeOverlays(); applyTemplate('system'); }}>
-            <span className="start-icon"><Icon name="cylinder" size={18} /></span>
-            <span className="start-title">System design</span>
-            <span className="start-blurb">URL shortener architecture.</span>
-          </button>
-          <button className="start-card" onClick={() => { closeOverlays(); applyTemplate('flow'); }}>
-            <span className="start-icon"><Icon name="diamond" size={18} /></span>
-            <span className="start-title">Flowchart</span>
-            <span className="start-blurb">Sign-up flow, top to bottom.</span>
-          </button>
-          <button className="start-card" onClick={() => { closeOverlays(); applyTemplate('deck'); }}>
-            <span className="start-icon"><Icon name="slides" size={18} /></span>
-            <span className="start-title">Slide deck</span>
-            <span className="start-blurb">Title, agenda, diagram slide.</span>
-          </button>
-        </div>
-        <div className="section-label">Workspace</div>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="secondary" onClick={() => pickPanel('assistant')}>
-            <Icon name="sparkles" size={14} /> Assistant
-          </button>
-          <button className="secondary" onClick={() => pickPanel('code')}>
-            <Icon name="code" size={14} /> Diagram code
-          </button>
-          <button className="secondary" onClick={() => pickPanel('slides')}>
-            <Icon name="slides" size={14} /> Slides
-          </button>
-          <button className="secondary" onClick={() => { closeOverlays(); sotToggle(); }}>
-            <Icon name="hourglass" size={14} /> Sands of Time
-          </button>
-          <button className="secondary" onClick={() => { closeOverlays(); openShortcuts(); }}>
-            <Icon name="help" size={14} /> Keyboard shortcuts
-          </button>
-          <button className="secondary" onClick={() => { closeOverlays(); openExport(); }}>
-            <Icon name="download" size={14} /> Export
-          </button>
-        </div>
-        <div className="section-label">Style</div>
-        <div className="row" style={{ gap: 8 }}>
-          {(['sketch', 'clean', 'chalkboard'] as const).map((style) => (
-            <button
-              key={style}
-              className="secondary"
-              onClick={() => {
-                settings().style = style;
-                persist();
-                notify();
-              }}
-            >
-              {style === 'sketch' ? 'Sketch' : style === 'clean' ? 'Clean' : 'Chalkboard'}
-            </button>
-          ))}
-          <button className="secondary" onClick={toggleTheme}>
-            <Icon name="moon" size={14} /> Light / dark
-          </button>
-          <button className="secondary" onClick={toggleBw}>
-            <Icon name="contrast" size={14} /> Black &amp; white
-          </button>
-        </div>
-        <p className="sheet-foot">
-          JojoPen is an infinite whiteboard with slides and a diagram language. Everything here is saved on this device. Your AI key, if you
-          connect one, never leaves your browser except to call the provider you chose.
-        </p>
-        <div className="row end" style={{ marginTop: 14 }}>
-          <button className="secondary" onClick={closeOverlays}>
-            Close
-          </button>
-        </div>
-      </Sheet>
-    </Scrim>
-  );
 }
 
 function ShortcutsSheet() {

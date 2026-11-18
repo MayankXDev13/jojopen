@@ -99,3 +99,13 @@ The migration was checked with the existing CDP harness plus new interaction run
 
 Known pre-existing deviations, kept for parity: recordings live in the board document
 (so they survive reloads), and replay is a dimmed overlay rather than an undimmed canvas.
+
+## 7. Live parity (restore-live-parity change, 18 Nov 2026)
+
+The React port was compared against the live site (`index-AUJ3ngSu.js`,
+`index-CLwQeLoE.css`) and brought to parity for the anonymous surfaces. Full
+evidence, per-surface status and the intentional differences (Escape closes the
+menu, port storage keys, no OAuth flow, local assistant for Connect AI) live in
+[`docs/PARITY.md`](PARITY.md); after-screenshots are under
+[`docs/img/parity/after-2026-11-18/`](img/parity/after-2026-11-18/manifest.json).
+Every surface in that report has a status — none is left unmarked.

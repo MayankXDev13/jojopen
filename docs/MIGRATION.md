@@ -128,6 +128,36 @@ The Sands of Time card is anchored inside its own host so it stays on screen und
 new absolute-positioned card styles. All legacy `data-act` hooks were kept, so the CDP
 harness still passes against the refreshed UI.
 
+### Collapse and reveal
+
+The four floating clusters (`.toolbar`, `.rail`, `.topright`, `.bottomleft`) start
+collapsed, as on the live site. Secondary controls carry the `more` class and are hidden
+with zero width/height, `opacity: 0` and `visibility: hidden`. The cluster's own
+`:hover` or `:focus-within` reveals them, and the hide transition uses
+`transition-delay: var(--cp-linger, 1.2s)`, so the cluster lingers for about 1.2 seconds
+after the pointer or focus leaves instead of snapping shut. No JavaScript timer is
+involved; staying inside the cluster keeps it open indefinitely.
+
+The collapsed toolbar shows a 14×3 px `.peekhint` bar at its foot and removes it while
+revealed. Touch devices (`@media (hover: none) and (pointer: coarse)`) keep every
+control visible and hide the hint. The media query is deliberately scoped to coarse
+pointers because headless Chrome reports `hover: none` with a fine pointer; without the
+`pointer` condition the desktop collapse would disappear in the parity harness.
+
+`docs/harness/chrome-reveal.js` asserts the initial count, reveal on hover, a 3 second
+open state, the linger, the post-linger hide, and the peek hint for all four clusters.
+
+### First-run demo and live-storage import
+
+On boot with no port board (`bootStore` in `src/state/store.ts`, builders in
+`src/lib/firstRun.ts`), the app prefers the live site's `jojopen:scratch:v2` record when it
+parses with elements — normalised through `normalizeDoc` and never written back — and
+otherwise seeds the URL-shortener demo from `TEMPLATES.system` (diagram plus a “301s are
+cacheable” sticky note), persisting immediately to the port's own keys
+(`jojopen.doc.v1`, `jojopen.boards.v1`, `jojopen.current.v1`). An existing port board,
+even an empty one, is respected and the live record ignored. Malformed live JSON is logged
+once and treated as absent. See [`FEATURES.md`](../FEATURES.md) §12.1 for the boot order.
+
 Everything else matches [`FEATURES.md`](../FEATURES.md), including the two documented
 deviations from the production site: recordings persist in the board document, and replay
 uses a dimmed overlay.

@@ -377,7 +377,7 @@ export function addElement(el: BoardElement, opts: { noClamp?: boolean } = {}) {
   /* Persistent random-color mode: new shapes/arrows without an explicit
      color auto-receive a palette color (pasted/duplicated elements keep
      their locked colors). */
-  if (useBoardStore.getState().randomMode && (el.type === 'shape' || el.type === 'arrow') && !el.colorLocked) {
+  if (useBoardStore.getState().randomMode && (el.type === 'shape' || el.type === 'container' || el.type === 'arrow' || el.type === 'freehand') && !el.colorLocked) {
     el.color = COLOR_KEYS[Math.floor(Math.random() * COLOR_KEYS.length)];
     el.colorLocked = true;
   }

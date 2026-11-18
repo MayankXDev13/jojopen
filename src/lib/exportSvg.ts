@@ -102,10 +102,11 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
     }
     case 'arrow': {
       const g = env.arrowGeom(e);
+      const paint = env.colorFor(e);
       const dash = e.kind === 'async' ? '7 5' : e.kind === 'optional' ? '2 5' : e.dash === 'dashed' ? '7 5' : e.dash === 'dotted' ? '2 5' : '';
-      let s = `<path d="${g.d}" fill="none" stroke="${th.arrow}" stroke-width="${e.dash === 'thick' ? 2.6 : 1.7}" stroke-linecap="round" stroke-linejoin="round" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`;
-      if (e.kind !== 'line') s += arrowHead(g, 'end', th.arrow);
-      if (e.kind === 'bidirectional') s += arrowHead(g, 'start', th.arrow);
+      let s = `<path d="${g.d}" fill="none" stroke="${paint.stroke}" stroke-width="${e.dash === 'thick' ? 2.6 : 1.7}" stroke-linecap="round" stroke-linejoin="round" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`;
+      if (e.kind !== 'line') s += arrowHead(g, 'end', paint.stroke);
+      if (e.kind === 'bidirectional') s += arrowHead(g, 'start', paint.stroke);
       if (e.label) {
         const w = Math.max(28, e.label.length * 6.4 + 14);
         s += `<g><rect x="${g.labelPoint.x - w / 2}" y="${g.labelPoint.y - 10}" width="${w}" height="20" rx="5" fill="${th.labelPill}" stroke="${th.slideEdge}" stroke-width=".8"/><text x="${g.labelPoint.x}" y="${g.labelPoint.y + 4}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="${th.muted}">${esc(e.label)}</text></g>`;

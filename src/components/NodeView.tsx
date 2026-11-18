@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { BoardDoc, BoardElement } from '../lib/model';
 import { shapeMarkup } from '../lib/diagram';
 import { edgeIconPos, edgeIconSize, resolveIcon } from '../lib/iconLibrary';
-import { S, colorFor, diagram, fontFor, settings, theme } from '../state/store';
+import { S, colorFor, diagram, fontFor, settings } from '../state/store';
 import { Icon, LibraryIcon } from './Icon';
 import { useVersion } from '../state/boardStore';
 
@@ -20,7 +20,6 @@ export type NodeViewProps = {
 
 export function NodeView({ el, doc, selected, thumb, ox = 0, oy = 0, slideNumber }: NodeViewProps) {
   useVersion();
-  const th = theme();
   const c = colorFor(el);
   const filter = settings().style === 'clean' ? '' : 'url(#rough)';
   const files = doc?.files || S.doc.files;
@@ -70,13 +69,13 @@ export function NodeView({ el, doc, selected, thumb, ox = 0, oy = 0, slideNumber
     );
   } else if (el.type === 'text') {
     body = (
-      <div className={`lbl ${el.align === 'center' ? 'center' : ''}`} style={{ fontSize: el.fontSize, color: th.ink, fontFamily: fontFor(el) }}>
+      <div className={`lbl ${el.align === 'center' ? 'center' : ''}`} style={{ fontSize: el.fontSize, color: c.text, fontFamily: fontFor(el) }}>
         {el.text}
       </div>
     );
   } else if (el.type === 'sticky') {
     body = (
-      <div className="lbl" style={{ fontFamily: fontFor(el), fontSize: 16 * (el.textScale ?? 1) }}>
+      <div className="lbl" style={{ fontFamily: fontFor(el), fontSize: 16 * (el.textScale ?? 1), textAlign: (el.align as any) || 'left', color: c.text }}>
         {el.text}
       </div>
     );

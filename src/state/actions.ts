@@ -3,7 +3,8 @@
 
 import { clamp, deep, download, plural, slug, uid } from '../lib/dom';
 import { boundsOf, arrowGeom } from '../lib/geometry';
-import { layoutDiagram, wrapText } from '../lib/layout';
+import { layoutDiagram } from '../lib/layout';
+import { fitTextBox, wrapMeasured } from '../lib/textMeasure';
 import { parseDSL } from '../lib/dsl';
 import { MAKE, SLIDE_H, SLIDE_W, blankDoc, normalizeDoc } from '../lib/model';
 import { COLOR_KEYS } from '../lib/palette';
@@ -26,6 +27,7 @@ import {
   diagram,
   elements,
   fitAll,
+  fontFor,
   notify,
   paletteOn,
   persist,
@@ -855,7 +857,8 @@ export function editLabel() {
   beginEdit(e.id);
 }
 
-/** Commit the inline text editor's value back into the element. */
+/** Commit the inline text editor's value back into the element (original xA).
+    Single trailing-trim; Escape/blur/Cmd+Enter all commit, never discard. */
 export function commitEdit(id: string, value: string) {
   const el = S.doc.elements[id];
   useBoardStore.setState({ editingId: null } as any);
@@ -864,36 +867,63 @@ export function commitEdit(id: string, value: string) {
     return;
   }
   pushHistory('edit text');
-  if (el.type === 'arrow') el.label = value.trim();
-  else if (el.type === 'text') {
-    if (value.trim()) {
-      el.text = value;
-      /* Autofit to content using renderer-matched metrics (see exportSvg):
-         width fits the longest wrapped line, height fits all lines. */
-      const fs = el.fontSize || 18;
-      const lines = wrapText(value, el.width, fs);
-      const longest = Math.max(...lines.map((l) => l.length), 1);
-      el.width = Math.max(60, Math.ceil(longest * fs * 0.56 + 16));
-      el.height = Math.max(28, Math.ceil(lines.length * fs * 1.28 + 12));
-    } else {
+  const v = value.replace(/\s+$/, '');
+  if (el.type === 'arrow') {
+    el.label = v;
+    el.originalText = v;
+  } else if (el.type === 'text') {
+    if (!v) {
       removeElements([id]);
       S.selection.delete(id);
+    } else {
+      el.text = v;
+      el.originalText = v;
+      // Measured fit: autoSize grows width, fixed-width grows height only.
+      const clean = settings().style === 'clean';
+      const family = clean ? 'Inter,system-ui,sans-serif' : fontFor(el);
+      const box = fitTextBox({
+        text: v,
+        fontSize: el.fontSize || 18,
+        fontFamily: family,
+        autoSize: el.autoSize !== false,
+        fixedWidth: el.width,
+        zoom: 1,
+      });
+      if (el.autoSize !== false) el.width = box.width;
+      el.height = box.height;
     }
   } else if (el.type === 'sticky') {
-    /* Legacy wrote sticky edits to `label`, which the sticky renderer never
-       read. Notes render `text`, so commit there. */
-    el.text = value;
-    /* Grow-only autofit to wrapped lines (renderer: width-28 at 16px, lh 19). */
-    const lines = wrapText(value, Math.max(60, el.width - 28), 16);
-    el.height = Math.max(el.height, Math.ceil(lines.length * 19 + 34));
+    // Original stores text only; the fixed note never resizes on commit.
+    el.text = v;
+    el.originalText = v;
   } else if (el.type === 'shape' && el.shape !== undefined) {
-    el.label = value;
-    /* Grow-only autofit (renderer: width-24 at 13px, lh 15). */
-    const lines = wrapText(value, Math.max(60, el.width - 24), 13);
-    el.height = Math.max(el.height, Math.ceil(lines.length * 15 + 24));
-  } else el.label = value;
+    // Original Dj: grow-only box to fit the label (width to longest word).
+    el.label = v;
+    el.originalText = v;
+    const fs = 14 * (el.textScale ?? 1);
+    const words = v.split(/\s+/).filter(Boolean);
+    const longest = measureWordWidth(words, `500 ${fs}px Inter,system-ui,sans-serif`);
+    const grid = Math.max(1, settings().gridSize || 16);
+    const quant = (n: number) => Math.ceil(n / grid) * grid;
+    const newW = Math.max(el.width, 120, quant(longest + 48));
+    const lines = wrapMeasured(v, Math.max(60, newW - 24), `${fs}px Inter,system-ui,sans-serif`);
+    el.width = newW;
+    el.height = Math.max(el.height, 48, quant(lines.length * fs * 1.25 + 24));
+  } else el.label = v;
   notify();
   persist();
+}
+
+/** Widest word in px via canvas measure (original Ft width). */
+function measureWordWidth(words: string[], font: string): number {
+  try {
+    const c = document.createElement('canvas').getContext('2d');
+    if (!c) return Math.max(...words.map((w) => w.length * 8), 0);
+    c.font = font;
+    return Math.max(0, ...words.map((w) => c.measureText(w).width));
+  } catch {
+    return Math.max(...words.map((w) => w.length * 8), 0);
+  }
 }
 
 export function groupSelection() {
@@ -1045,7 +1075,8 @@ export function randomColors() {
      COLOR_TO_ROLE so the colours follow the active theme. */
   const keys = [...COLOR_KEYS].sort(() => Math.random() - 0.5);
   elements()
-    .filter((e) => e.type === 'shape' || e.type === 'arrow')
+    // Original random set: shapes, containers, arrows and freehand (text excluded).
+    .filter((e) => e.type === 'shape' || e.type === 'container' || e.type === 'arrow' || e.type === 'freehand')
     .forEach((e, i) => {
       e.color = keys[i % keys.length];
       e.colorLocked = true;
@@ -1082,8 +1113,33 @@ export function setRoute(route: string) {
     .filter((e) => e.type === 'arrow')
     .forEach((e) => {
       e.routeMode = route;
+      // Switching modes returns to automatic routing (original: route auto).
+      e.route = 'auto';
     });
   notify();
+  persist();
+}
+
+/** Forget hand-made bends and route automatically around boxes (original Re-route). */
+export function rerouteSelection() {
+  const list = selectionElements().filter((e) => e.type === 'arrow' && !e.locked);
+  if (!list.length) return;
+  pushHistory('re-route');
+  for (const e of list) {
+    const pts = (e.points || []).map((p) => ({ x: e.x + p.x, y: e.y + p.y }));
+    if (pts.length < 2) continue;
+    const a = pts[0];
+    const b = pts[pts.length - 1];
+    e.x = a.x;
+    e.y = a.y;
+    e.points = [
+      { x: 0, y: 0 },
+      { x: b.x - a.x, y: b.y - a.y },
+    ];
+    e.route = 'auto';
+  }
+  notify();
+  persist();
 }
 
 /* Live text-size step scales (see live bundle `Uj`/`Bj`). */

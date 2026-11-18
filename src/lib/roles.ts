@@ -26,7 +26,9 @@ export const ICON_ROLE: Record<string, string> = {
 };
 
 export function inferRole(label: string, icon?: string | null, shape?: string): string {
-  const s = (label || '').toLowerCase();
+  // Normalize all whitespace (sticky/text notes are multiline) so word
+  // matching works across line breaks like the original.
+  const s = (label || '').toLowerCase().replace(/\s+/g, ' ').trim();
   const ic = (icon || '').toLowerCase();
   if (ic) {
     const iconRole = ICON_ROLE[ic];

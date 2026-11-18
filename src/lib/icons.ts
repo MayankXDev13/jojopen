@@ -2,21 +2,21 @@
 
 export const ICONS: Record<string, string> = {
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
-  select: '<path d="m5 3 14 8.5-6.2 1.4L10 20z"/>',
-  hand: '<path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11m0-1.5V5a1.5 1.5 0 0 1 3 0v5m0-1V6.5a1.5 1.5 0 0 1 3 0V13m-9 0-1.4-2.2a1.6 1.6 0 0 0-2.7 1.7L8 18a5 5 0 0 0 4.3 3H14a6 6 0 0 0 6-6v-3"/>',
-  rectangle: '<rect x="3" y="5" width="18" height="14" rx="3"/>',
-  ellipse: '<ellipse cx="12" cy="12" rx="9" ry="7"/>',
-  diamond: '<path d="M12 3 21 12l-9 9-9-9z"/>',
-  cylinder: '<ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13"/><path d="M5 18.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/>',
-  arrow: '<path d="M4 12h15M13 6l6 6-6 6"/>',
-  line: '<path d="M5 19 19 5"/>',
-  text: '<path d="M5 5h14M12 5v14M8.5 19h7"/>',
-  pen: '<path d="m4 20 4-1 11-11a2.5 2.5 0 0 0-3.5-3.5L4.5 15.5z"/><path d="m13.5 6.5 4 4"/>',
-  sticky: '<path d="M5 4h14v10l-5 6H5z"/><path d="M14 20v-6h5"/>',
-  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/>',
-  frame: '<path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3"/><rect x="7" y="7" width="10" height="10" rx="1"/>',
-  eraser: '<path d="m4 15 6-6 7 7-3 3H8z"/><path d="M10 9 7 6l3-3 7 7-3 3"/>',
-  laser: '<circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+  select: '<path d="M5 3l10 6-4.5 1.5L9 15z"/>',
+  hand: '<path d="M7 10V4.5a1.2 1.2 0 0 1 2.4 0V9M9.4 8.5v-5a1.2 1.2 0 0 1 2.4 0V9M11.8 8.8v-4a1.2 1.2 0 0 1 2.4 0V11c0 3-2 5-5 5H9c-2 0-3-1-4-2.5l-1.8-2.9a1.2 1.2 0 0 1 2-1.3L7 11.5"/>',
+  rectangle: '<path d="M6 3.5h8a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 14V6A2.5 2.5 0 0 1 6 3.5z"/>',
+  ellipse: '<path d="M10 3.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13z"/>',
+  diamond: '<path d="M10 3l7 7-7 7-7-7z"/>',
+  cylinder: '<path d="M4 5.5c0-1.4 2.7-2.5 6-2.5s6 1.1 6 2.5v9c0 1.4-2.7 2.5-6 2.5s-6-1.1-6-2.5zM4 5.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5"/>',
+  arrow: '<path d="M4 16L16 4M8 4h8v8"/>',
+  line: '<path d="M4 16L16 4"/>',
+  text: '<path d="M5 5h10M10 5v11"/>',
+  pen: '<path d="M13.5 3.5l3 3L7 16H4v-3z"/>',
+  sticky: '<path d="M4 4h12v8l-4 4H4zM12 16v-4h4"/>',
+  image: '<path d="M5 4h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM17 13l-4-4-7 7M7.5 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/>',
+  frame: '<path d="M6 3v14M14 3v14M3 6h14M3 14h14"/>',
+  eraser: '<path d="M8 16h8M3.5 12.5l7-7a2 2 0 0 1 2.8 0l1.7 1.7a2 2 0 0 1 0 2.8L10 15H6z"/>',
+  laser: '<path d="M3 17l7-7M12.5 7.5a2.5 2.5 0 1 1 0.01 0M15 3.5l.8 1.6M17.5 6l-1.6.8M16.5 2.5l-.5 1"/>',
   slides: '<rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M12 18v3"/>',
   code: '<path d="m9 8-4 4 4 4M15 8l4 4-4 4"/>',
   docshape: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4"/>',
@@ -49,6 +49,8 @@ export const ICONS: Record<string, string> = {
   back: '<rect x="4" y="4" width="12" height="12" rx="2"/><path d="M20 8v12H8"/>',
   forward: '<path d="M12 3v14M7 12l5 5 5-5"/>',
   backward: '<path d="M12 21V7M7 12l5-5 5 5"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/>',
+  redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5 5.5 5.5 0 0 0 9.5 20H13"/>',
   grid: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M15 4v16M4 9h16M4 15h16"/>',
   palette: '<path d="M12 3a9 9 0 1 0 0 18c1.3 0 2-1 2-2 0-1.6-1.5-2-1.5-3.2 0-1 .8-1.8 1.8-1.8H16a5 5 0 0 0 5-5C21 5.7 17 3 12 3z"/><circle cx="7.5" cy="10" r="1"/><circle cx="9.5" cy="6.5" r="1"/><circle cx="14" cy="6.5" r="1"/><circle cx="17" cy="10" r="1"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/>',
@@ -86,14 +88,20 @@ export const ICONS: Record<string, string> = {
   refresh: '<path d="M20 11a8 8 0 1 0-2 6"/><path d="M20 5v6h-6"/>',
 };
 
-/** Icons offered by the icon-search palette. */
-export const ICON_LIST = Object.keys(ICONS).filter(
-  (k) => !['close', 'chevron', 'chevdown', 'menu', 'dots3'].includes(k),
-);
+/** Old hand-made palette removed — `/` search now uses only the imported
+ * jojopen.com library (src/lib/iconLibrary.ts: 164 sketch + 279 brand icons).
+ * ICONS below stays for toolbar / UI chrome only. */
 
 export const iconPath = (name: string) => ICONS[name] || ICONS.info;
 
 /** Inline SVG markup for an icon, matching the original `ico()` helper. */
-export function ico(name: string, size = 18, sw = 1.7): string {
-  return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconPath(name)}</svg>`;
+export function ico(name: string, size = 18, sw?: number): string {
+  const isTool =
+    name === 'select' || name === 'hand' || name === 'rectangle' || name === 'ellipse' ||
+    name === 'diamond' || name === 'cylinder' || name === 'arrow' || name === 'line' ||
+    name === 'text' || name === 'pen' || name === 'sticky' || name === 'image' ||
+    name === 'frame' || name === 'eraser' || name === 'laser';
+  const stroke = sw ?? (isTool ? 1.75 : 1.7);
+  const vb = isTool ? '0 0 20 20' : '0 0 24 24';
+  return `<svg class="ic" width="${size}" height="${size}" viewBox="${vb}" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconPath(name)}</svg>`;
 }

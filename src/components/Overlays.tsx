@@ -15,13 +15,17 @@ import {
   exportPreview,
   exportSizeLabel,
   exportState,
+  getIconMode,
   insertIcon,
   mermaidConvert,
   saveAIKey,
   saveRename,
   setExportOpts,
+  setIconMode,
 } from '../state/actions';
-import { Icon } from './Icon';
+import { Icon, LibraryIcon } from './Icon';
+import { resolveIcon } from '../lib/iconLibrary';
+import { useVersion } from '../state/boardStore';
 
 function Scrim({ children, align }: { children: React.ReactNode; align?: string }) {
   return (
@@ -46,6 +50,7 @@ function Sheet({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function Overlays() {
+  useVersion();
   if (S.shortcuts) return <ShortcutsSheet />;
   if (S.palette) return <CommandPalette />;
   if (S.exportOpen) return <ExportDialog />;
@@ -57,6 +62,7 @@ export function Overlays() {
 }
 
 function ShortcutsSheet() {
+  useVersion();
   return (
     <Scrim>
       <Sheet label="Keyboard shortcuts">
@@ -95,6 +101,7 @@ function ShortcutsSheet() {
 }
 
 function CommandPalette() {
+  useVersion();
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => ref.current?.focus(), []);
   const list = filteredCommands();
@@ -139,6 +146,7 @@ function CommandPalette() {
 }
 
 function ExportDialog() {
+  useVersion();
   const o = exportState();
   const hasSel = S.selection.size > 0;
   const deck = slides().length;
@@ -225,6 +233,7 @@ function ExportDialog() {
 }
 
 function ConnectDialog() {
+  useVersion();
   const cfg = loadAIConfig();
   const [provider, setProvider] = useState(S.connectProvider || cfg.provider || 'anthropic');
   const [model, setModel] = useState((S.connectModel ?? (cfg.provider === (S.connectProvider || cfg.provider) ? cfg.model : '')) || AI_META[provider].model);
@@ -300,6 +309,7 @@ function ConnectDialog() {
 }
 
 function MermaidDialog() {
+  useVersion();
   return (
     <Scrim>
       <div className="modal wide" role="dialog" aria-label="Import Mermaid">
@@ -347,19 +357,31 @@ function MermaidDialog() {
 }
 
 function IconSearch() {
+  useVersion();
   const ref = useRef<HTMLInputElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   useEffect(() => ref.current?.focus(), []);
   const list = filteredIcons();
   const cur = Math.max(0, Math.min(S.iconCursor || 0, list.length - 1));
+  const mode = getIconMode();
+  useEffect(() => {
+    gridRef.current?.querySelector(`[data-i="${cur}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [cur]);
   return (
     <Scrim align="10vh">
       <div className="iconsearch" role="dialog" aria-label="Insert icon">
         <div className="iconsearch-field">
-          <Icon name="search" size={17} />
+          <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            <path d="m13.2 13.2 3.6 3.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
           <input
             ref={ref}
             id="iconSearchInput"
-            placeholder="Search icons — server, database, cache, user…"
+            placeholder="Search icons: user, database, postgres, queue…"
+            aria-label="Search icons"
+            spellCheck={false}
+            autoComplete="off"
             value={S.iconQuery || ''}
             onChange={(e) => {
               S.iconQuery = e.target.value;
@@ -367,23 +389,70 @@ function IconSearch() {
               notify();
             }}
           />
+          <kbd>esc</kbd>
         </div>
-        <div className="iconsearch-grid" id="iconGrid">
+        <div className="iconsearch-grid" id="iconGrid" ref={gridRef} role="listbox" aria-label="Icons">
           {list.length ? (
-            list.map((k, i) => (
-              <button key={k} className={`iconsearch-glyph${i === cur ? ' is-cursor' : ''}`} title={k} onClick={() => insertIcon(k)}>
-                <Icon name={k} size={22} />
-                <small>{k}</small>
-              </button>
-            ))
+            list.map((k, i) => {
+              const def = resolveIcon(k);
+              return (
+                <button
+                  key={k}
+                  data-i={i}
+                  role="option"
+                  aria-selected={i === cur}
+                  className={`iconsearch-glyph${i === cur ? ' is-active' : ''}`}
+                  title={def?.name || k}
+                  onMouseEnter={() => {
+                    S.iconCursor = i;
+                    notify();
+                  }}
+                  onClick={() => insertIcon(k)}
+                >
+                  <span className="iconsearch-glyphicon">
+                    <LibraryIcon name={k} size={26} />
+                  </span>
+                  <span className="iconsearch-name">{def?.name || k}</span>
+                </button>
+              );
+            })
           ) : (
-            <div className="iconsearch-empty">No icons match “{S.iconQuery || ''}”.</div>
+            <div className="iconsearch-empty">No icon matches “{S.iconQuery || ''}”.</div>
           )}
         </div>
         <div className="iconsearch-foot">
-          <span>Click to insert as a shape</span>
-          <span>
-            <kbd>Esc</kbd> close
+          <div className="iconsearch-mode" role="radiogroup" aria-label="Add as">
+            <button
+              role="radio"
+              aria-checked={mode === 'box'}
+              className={mode === 'box' ? 'is-on' : undefined}
+              onClick={() => setIconMode('box')}
+              title="An empty box with the icon on its edge; press Enter on it to type"
+            >
+              <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true">
+                <rect x="2" y="5" width="16" height="10" rx="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <circle cx="6.5" cy="10" r="1.6" fill="currentColor" />
+              </svg>
+              Box
+            </button>
+            <button
+              role="radio"
+              aria-checked={mode === 'icon'}
+              className={mode === 'icon' ? 'is-on' : undefined}
+              onClick={() => setIconMode('icon')}
+              title="Just the icon"
+            >
+              <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true">
+                <circle cx="10" cy="10" r="4" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              Icon only
+            </button>
+          </div>
+          <span className="iconsearch-hint">
+            <kbd>tab</kbd> switch
+          </span>
+          <span className="iconsearch-hint">
+            <kbd>↵</kbd> add{mode === 'box' ? ', then ↵ to type' : ''}
           </span>
         </div>
       </div>
@@ -392,6 +461,7 @@ function IconSearch() {
 }
 
 function BoardSettings() {
+  useVersion();
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     ref.current?.focus();

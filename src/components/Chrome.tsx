@@ -10,12 +10,14 @@ import {
   persist,
   redo,
   resolvedTheme,
+  roleColor,
   roleOf,
   setZoom,
   settings,
   undo,
   zoomAt,
 } from '../state/store';
+import { COLOR_TO_ROLE } from '../lib/palette';
 import {
   applyColor,
   autoColor,
@@ -32,20 +34,25 @@ import {
   openShortcuts,
   orderSelection,
   randomColors,
+  scaleSelection,
   setPanel,
   setRoute,
   setShape,
   setTool,
+  textSizeLabel,
   toggleBw,
   toggleFont,
   toggleGrid,
   toggleLock,
+  toggleNoFill,
   toggleSnap,
   toggleTheme,
   applyTemplate,
+  COLOR_KEYS,
 } from '../state/actions';
 import { sotDelete, sotFmtMs, sotOpenReplay, sotRecList, sotStart, sotStepWord, sotToggle } from '../state/sot';
 import { Icon } from './Icon';
+import { useVersion } from '../state/boardStore';
 
 const KEY_HINT: Record<string, string> = {
   select: 'V', hand: 'H', rectangle: 'R', ellipse: 'O', diamond: 'D', cylinder: 'C',
@@ -56,6 +63,7 @@ const KEY_HINT: Record<string, string> = {
 /* The live main menu: a 230 px popover anchored at 16,66 below the hamburger.
    It closes on outside click and on the trigger; Escape is kept as an extra. */
 function MainMenu() {
+  useVersion();
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -110,6 +118,7 @@ function MainMenu() {
 }
 
 export function TopBar() {
+  useVersion();
   if (S.zen) return null;
   return (
     <>
@@ -182,6 +191,7 @@ export function TopBar() {
 }
 
 export function Toolbar() {
+  useVersion();
   if (S.zen) return null;
   return (
     <div className="toolbar collapsible" id="toolbar" role="toolbar" aria-label="Tools">
@@ -210,6 +220,7 @@ export function Toolbar() {
 }
 
 export function Rail() {
+  useVersion();
   if (S.zen) return null;
   const recs = (S.doc.recordings || []).length;
   const items = [
@@ -270,8 +281,9 @@ type BottomItem = {
 };
 
 /* Live order at 1440x900: zoom out, zoom label, zoom in, Fit, Snap, Dots,
-   Random colors, then Undo/Redo in a second group. The zoom label is the only
-   control that stays visible while the cluster is collapsed. */
+   Random colors, then Undo/Redo in a second group. Zooming stays on the
+   "-" / "+" buttons; the label just resets to 100%. */
+
 function bottomItems(): BottomItem[] {
   return [
     { id: 'zoomout', group: 0, kind: 'icon', icon: 'minus', title: 'Zoom out (Ctrl+-)', act: 'zoomout', run: () => zoomAt(innerWidth / 2, innerHeight / 2, 1 / 1.2) },
@@ -282,13 +294,14 @@ function bottomItems(): BottomItem[] {
     { id: 'sep-fit', group: 0, kind: 'sep', title: '' },
     { id: 'snap', group: 0, kind: 'text', icon: 'dots', label: 'Snap', title: "Snap to dots — hold Alt to place freely (Ctrl+')", act: 'snap', run: toggleSnap, active: !!settings().snapToGrid },
     { id: 'dots', group: 0, kind: 'text', label: 'Dots', title: "Show background dots (Ctrl+Shift+')", act: 'dots', run: toggleGrid, active: !!settings().showGrid },
-    { id: 'random', group: 0, kind: 'text', label: 'Random colors', title: 'Random colors — every shape and arrow gets its own color', act: 'random', run: randomColors },
-    { id: 'undo', group: 1, kind: 'icon', icon: 'backward', title: 'Undo (Ctrl+Z)', act: 'undo', run: undo, disabled: !S.history.length },
-    { id: 'redo', group: 1, kind: 'icon', icon: 'forward', title: 'Redo (Ctrl+Shift+Z)', act: 'redo', run: redo, disabled: !S.future.length },
+    { id: 'random', group: 0, kind: 'text', label: 'Random colors', title: 'Random colors — every shape and arrow gets its own color', act: 'random', run: randomColors, active: !!S.randomMode },
+    { id: 'undo', group: 1, kind: 'icon', icon: 'undo', title: 'Undo (Ctrl+Z)', act: 'undo', run: undo, disabled: !S.history.length },
+    { id: 'redo', group: 1, kind: 'icon', icon: 'redo', title: 'Redo (Ctrl+Shift+Z)', act: 'redo', run: redo, disabled: !S.future.length },
   ];
 }
 
 function BottomIcon({ item }: { item: BottomItem }) {
+  useVersion();
   if (item.id === 'random') {
     return (
       <svg aria-hidden="true" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M5.5 3.5h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zM7.25 7.25h.01M12.75 7.25h.01M10 10h.01M7.25 12.75h.01M12.75 12.75h.01"/></svg>
@@ -298,8 +311,10 @@ function BottomIcon({ item }: { item: BottomItem }) {
 }
 
 export function BottomBar() {
+  useVersion();
   if (S.zen) return null;
   const items = bottomItems();
+  const curZoom = S.camera.zoom;
   return (
     <div className="bottomleft collapsible">
       {([0, 1] as const).map((group) => (
@@ -310,17 +325,18 @@ export function BottomBar() {
               if (item.kind === 'sep') return <span className="vsep more" key={item.id} />;
               if (item.kind === 'zoom') {
                 return (
-                  <button
-                    key={item.id}
-                    className="zoomlabel"
-                    id="zoomLabel"
-                    data-act={item.act}
-                    type="button"
-                    onClick={item.run}
-                    title={item.title}
-                  >
-                    {Math.round(S.camera.zoom * 100)}%
-                  </button>
+                  <span className="zoomwrap" key={item.id} style={{ position: 'relative' }}>
+                    <button
+                      className="zoomlabel"
+                      id="zoomLabel"
+                      data-act={item.act}
+                      type="button"
+                      onClick={item.run}
+                      title={item.title}
+                    >
+                      {Math.round(curZoom * 100)}%
+                    </button>
+                  </span>
                 );
               }
               const cls =
@@ -351,6 +367,7 @@ export function BottomBar() {
 }
 
 export function ContextBar() {
+  useVersion();
   const list = selectionElementsSafe();
   if (!list.length) return null;
   const el = list[0];
@@ -361,7 +378,6 @@ export function ContextBar() {
     ['ellipse', 'ellipse', 'Ellipse'],
     ['diamond', 'diamond', 'Diamond (decision)'],
     ['cylinder', 'cylinder', 'Cylinder (data)'],
-    ['person', 'user', 'Pill (person / actor)'],
     ['document', 'note', 'Document'],
   ];
   const layer = (kind: string) => {
@@ -379,14 +395,58 @@ export function ContextBar() {
           <span className="muted">· {roleOf(el)}</span>
         </button>
       ) : null}
-      <label
-        className="colordot"
-        title="Color"
-        aria-label="Color"
-        style={{ background: c.fill === 'transparent' ? '#fff' : c.fill, borderColor: c.stroke }}
-      >
-        <input type="color" value={toHex(c.stroke)} onChange={(e) => applyColor(e.target.value)} aria-label="Color" />
-      </label>
+      <span className="colorwrap">
+        <button
+          className="colordot"
+          type="button"
+          title="Color"
+          aria-label="Color"
+          aria-expanded={!!S.colorPop}
+          style={{ background: c.fill === 'transparent' ? '#fff' : c.fill, borderColor: c.stroke }}
+          onClick={() => { S.colorPop = !S.colorPop; notify(); }}
+        />
+        {S.colorPop ? (
+          <span className="colorpop" role="menu" aria-label="Colors">
+            <button
+              className={`palchip${!el.colorLocked ? ' is-active' : ''}`}
+              type="button"
+              onClick={() => { S.colorPop = false; autoColor(); }}
+              title="Automatic color"
+              data-act="color-auto"
+            >
+              Auto
+            </button>
+            {COLOR_KEYS.map((k) => {
+              const paint = k === 'ink' ? roleColor('ink') : roleColor(COLOR_TO_ROLE[k] || 'neutral');
+              const active = !!el.colorLocked && el.color === k;
+              return (
+                <button
+                  key={k}
+                  className={`paldot${active ? ' is-active' : ''}`}
+                  type="button"
+                  style={{ background: paint.stroke }}
+                  onClick={() => { S.colorPop = false; applyColor(k); }}
+                  title={k}
+                  aria-label={k}
+                  aria-pressed={active}
+                  data-act="color"
+                  data-color={k}
+                />
+              );
+            })}
+            {list.some((e) => e.type === 'shape' && !e.locked) ? (
+              <button
+                className={`paldot nofill${list.filter((e) => e.type === 'shape').every((e) => e.noFill) ? ' is-active' : ''}`}
+                type="button"
+                onClick={() => { S.colorPop = false; toggleNoFill(); }}
+                title="No fill — outline only, see through"
+                aria-label="No fill"
+                data-act="color-nofill"
+              />
+            ) : null}
+          </span>
+        ) : null}
+      </span>
       {list.some((e) => e.type === 'shape') ? (
         <>
           <span className="vsep more" />
@@ -407,13 +467,34 @@ export function ContextBar() {
         </>
       ) : null}
       <span className="vsep more" />
-      <button className="iconbtn" onClick={() => bumpText(-2)} title={`Smaller text (now ${el.fontSize ?? 18}px)`} aria-label="Smaller text">
-        <Icon name="minus" size={14} />
+      <button className="iconbtn textsize" onClick={() => bumpText(-1)} title={`Smaller text (now ${textSizeLabel(el)})`} aria-label="Smaller text">
+        <span style={{ fontSize: 11 }}>A</span>
+        <span className="textsize-sign">−</span>
       </button>
-      <button className="iconbtn" onClick={() => bumpText(2)} title={`Bigger text (now ${el.fontSize ?? 18}px)`} aria-label="Bigger text">
-        <Icon name="plus" size={14} />
+      <button className="iconbtn textsize" onClick={() => bumpText(1)} title={`Bigger text (now ${textSizeLabel(el)})`} aria-label="Bigger text">
+        <span style={{ fontSize: 15 }}>A</span>
+        <span className="textsize-sign">+</span>
       </button>
-      <button className="chip sizelabel" title="Size of this item only">Size 1×</button>
+      <span className="layerwrap">
+        <button
+          className="textbtn"
+          onClick={() => { S.sizePop = !S.sizePop; notify(); }}
+          title="Scale selection — 2x doubles the size"
+          aria-label="Scale selection"
+          aria-expanded={!!S.sizePop}
+        >
+          <span>Size</span>
+        </button>
+        {S.sizePop ? (
+          <div className="layerpop" role="menu" aria-label="Scale selection">
+            {[0.75, 0.9, 1, 1.25, 1.5, 1.75, 2].map((p) => (
+              <button key={p} type="button" onClick={() => { S.sizePop = false; scaleSelection(p); }} title={p === 1 ? 'Keep current size' : `Scale selection to ${p}x`}>
+                <span>{p}x</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </span>
       <span className="vsep more" />
       <span className="layerwrap">
         <button className="iconbtn" onClick={() => { S.layerPop = !S.layerPop; notify(); }} title="Layer order" aria-label="Layer order" aria-expanded={!!S.layerPop}>
@@ -441,20 +522,12 @@ export function ContextBar() {
   );
 }
 
-/** `<input type="color">` only accepts `#rrggbb`; paints may be rgb() or color-mix(). */
-function toHex(color: string): string {
-  if (/^#[0-9a-f]{6}$/i.test(color)) return color.toLowerCase();
-  if (/^#[0-9a-f]{3}$/i.test(color)) return '#' + color.slice(1).split('').map((ch) => ch + ch).join('');
-  const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-  if (m) return '#' + [1, 2, 3].map((i) => Number(m[i]).toString(16).padStart(2, '0')).join('');
-  return '#808080';
-}
-
 function selectionElementsSafe() {
   return [...S.selection].map((id) => S.doc.elements[id]).filter(Boolean) as any[];
 }
 
 export function StartCard() {
+  useVersion();
   const show = elements().length === 0 && S.panel === 'none' && !S.present && !S.replay && !S.zen && !S.startOpen;
   if (!show) return null;
   return (
@@ -502,11 +575,13 @@ export function StartCard() {
 }
 
 export function Toast() {
+  useVersion();
   if (!S.toast) return null;
   return <div className="toast">{S.toast}</div>;
 }
 
 export function SotCard() {
+  useVersion();
   if (!S.sot.listOpen || S.rec || S.sot.replay) return null;
   const list = [...sotRecList()].reverse();
   return (

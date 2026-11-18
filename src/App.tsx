@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { Canvas } from './components/Canvas';
 import { BottomBar, ContextBar, Rail, SotCard, StartCard, Toast, Toolbar, TopBar } from './components/Chrome';
@@ -19,18 +19,17 @@ import {
   bootStore,
   elements,
   fitAll,
-  getVersion,
   notify,
   persist,
   resolvedTheme,
   settings,
-  subscribe,
   theme,
   toast,
 } from './state/store';
+import { useVersion } from './state/boardStore';
 
 export function App() {
-  const version = useSyncExternalStore(subscribe, getVersion, getVersion);
+  const version = useVersion();
 
   /* one-time boot: load the document, fit it, bind keyboard + unload save */
   useEffect(() => {

@@ -47,6 +47,8 @@ export interface BoardElement {
   text?: string;
   fontSize?: number;
   align?: string;
+  /* label text scale for shapes/stickies (A-/A+); box size untouched */
+  textScale?: number;
   /* freehand */
   points?: Point[];
   strokeWidth?: number;

@@ -18,7 +18,7 @@ input,textarea,select{font:inherit;color:inherit}
 /* board */
 .canvas{position:absolute;inset:0;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;cursor:default;background:var(--board,#fafaf7)}
 .canvas.tool-hand{cursor:grab}.canvas.tool-hand.panning{cursor:grabbing}
-.canvas.tool-shape{cursor:crosshair}.canvas.tool-text{cursor:text}.canvas.tool-pen{cursor:crosshair}
+.canvas.tool-shape{cursor:crosshair}.canvas.tool-text{cursor:text}.canvas.tool-pen{cursor:crosshair}.canvas.tool-laser{cursor:none}
 .canvas.tool-eraser{cursor:cell}
 .grid{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .15s}
 .grid.on{opacity:1}
@@ -36,7 +36,7 @@ input,textarea,select{font:inherit;color:inherit}
 .node.text .lbl.center{justify-content:center;text-align:center}
 .node.sticky{background:linear-gradient(160deg,#ffe680,#ffe066);box-shadow:0 8px 16px -8px rgba(63,54,6,.38);border-radius:3px}
 .node.sticky .lbl{align-items:flex-start;justify-content:flex-start;text-align:left;padding:14px 14px 20px;white-space:pre-wrap;font-family:var(--hand);font-size:16px;color:#3f3606}
-.node.sticky:after{content:"";position:absolute;right:0;bottom:0;width:20px;height:20px;background:linear-gradient(135deg,rgba(0,0,0,.10),transparent 62%);border-bottom-left-radius:2px}
+.node.sticky:after{content:"";position:absolute;right:0;bottom:0;width:26px;height:26px;background:linear-gradient(to top left,rgba(63,54,6,.30) 0%,rgba(63,54,6,.10) 46%,transparent 56%),linear-gradient(to top left,#fff7cf 48%,transparent 50%);clip-path:polygon(100% 0,18% 100%,100% 100%);border-bottom-right-radius:3px}
 .node.container .frame{position:absolute;inset:0;border:1.5px dashed var(--frame,#d4d0c7);border-radius:12px;background:rgba(127,127,127,.02)}
 .node.container .clabel{position:absolute;left:14px;top:-11px;padding:0 6px;background:var(--board,#fafaf7);font-size:12px;color:var(--frameText,#67645e);font-weight:500;letter-spacing:.02em}
 .node.slide{background:var(--slide,#fff);border:1px solid var(--slideEdge,#e2ded4);border-radius:3px;box-shadow:0 2px 14px rgba(28,27,25,.10)}
@@ -63,6 +63,7 @@ input,textarea,select{font:inherit;color:inherit}
 .marquee{position:absolute;display:none;border:1px dashed var(--select);background:rgba(76,111,255,.07);z-index:19;pointer-events:none}
 .marquee.on{display:block}
 .laser{position:absolute;inset:0;pointer-events:none;z-index:15}
+.texteditor{position:absolute;z-index:30;margin:0;border:0;outline:none;resize:none;overflow:hidden;background:transparent;white-space:pre-wrap;word-break:break-word}
 
 /* chrome */
 .topleft{position:absolute;left:16px;top:16px;display:flex;gap:8px;z-index:5}
@@ -217,16 +218,34 @@ kbd{font-family:ui-monospace,Menlo,monospace;font-size:10px;padding:2px 5px;bord
 .palette-item .g{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .palette-empty{padding:22px;color:var(--muted);text-align:center}
 
-/* icon search */
-.iconsearch{width:min(680px,100%);background:var(--chrome);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;max-height:78vh}
-.iconsearch-field{height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border)}
-.iconsearch-field input{flex:1;height:100%;border:0;outline:none;background:transparent;font-size:14px}
-.iconsearch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;padding:12px;overflow:auto}
-.iconsearch-glyph{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:0;border-radius:8px;background:transparent;cursor:pointer;color:var(--text)}
-.iconsearch-glyph:hover,.iconsearch-glyph.is-cursor{background:var(--raised)}
-.iconsearch-glyph small{font-size:10px;color:var(--muted);text-align:center;line-height:1.2}
-.iconsearch-empty{padding:28px;text-align:center;color:var(--muted)}
-.iconsearch-foot{padding:9px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+/* icon search (mirrors live palette) */
+.iconsearch{width:min(680px,calc(100vw - 32px));background:var(--chrome);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;max-height:78vh}
+.iconsearch-field{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border);color:var(--muted)}
+.iconsearch-field input{flex:1;height:100%;border:0;outline:none;background:transparent;font-size:14px;color:var(--text);min-width:0}
+.iconsearch-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:12px;overflow:auto}
+.iconsearch-glyph{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border:0;border-radius:10px;background:transparent;cursor:pointer;color:var(--text);min-width:0}
+.iconsearch-glyph:hover,.iconsearch-glyph.is-active{background:var(--raised)}
+.iconsearch-glyphicon{display:flex;align-items:center;justify-content:center;height:26px}
+.iconsearch-name{font-size:11px;color:var(--muted);text-align:center;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.iconsearch-glyph.is-active .iconsearch-name{color:var(--text)}
+.iconsearch-empty{padding:28px;text-align:center;color:var(--muted);grid-column:1/-1}
+.iconsearch-foot{padding:9px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:14px}
+.iconsearch-mode{display:flex;gap:4px;margin-right:auto}
+.iconsearch-mode button{display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;font-size:11px}
+.iconsearch-mode button.is-on{background:var(--raised);color:var(--text);border-color:var(--border)}
+.iconsearch-hint{display:flex;align-items:center;gap:5px;white-space:nowrap}
+
+/* A-/A+ text-size buttons (live parity) */
+.iconbtn.textsize{display:inline-flex;align-items:center;justify-content:center;gap:2px;font-weight:600}
+.textsize-sign{font-size:12px;color:var(--muted)}
+
+/* no-fill option in the color popup: empty slashed circle */
+.colorpop .paldot.nofill{background:transparent;border:2px solid var(--muted);position:relative}
+.colorpop .paldot.nofill::after{content:"";position:absolute;left:1px;right:1px;top:50%;height:2px;margin-top:-1px;background:var(--muted);transform:rotate(-45deg);border-radius:1px}
+
+/* bare glyph straddling the box top edge (no badge) — takes the box stroke color */
+.node .iconedge{position:absolute;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1}
+.node .iconedge .ic{display:block}
 
 /* export */
 .export-body{display:flex;gap:18px;padding:16px 18px}

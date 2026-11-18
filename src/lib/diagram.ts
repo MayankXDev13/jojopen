@@ -4,6 +4,7 @@
 
 import { esc } from './dom';
 import { ICONS } from './icons';
+import { brandFill, iconInner, resolveIcon } from './iconLibrary';
 import { COLOR_TO_ROLE, ROLE_COLORS, type StyleKey, type Theme } from './palette';
 import { inferRole } from './roles';
 import { layoutDiagram, wrapText, type Layout } from './layout';
@@ -60,6 +61,15 @@ export function shapeMarkup(
 }
 
 export function nodeIconMarkup(n: { icon?: string | null }, x: number, y: number, size: number, color: string): string {
+  const lib = resolveIcon(n.icon || '');
+  if (lib) {
+    if (lib.brand) {
+      const inner = iconInner(lib.id, { brandFill: brandFill(lib, false) });
+      return `<g transform="translate(${x} ${y}) scale(${size / 24})">${inner}</g>`;
+    }
+    const inner = iconInner(lib.id);
+    return `<g transform="translate(${x} ${y}) scale(${size / 24})" fill="none" stroke="${color}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${inner}</g>`;
+  }
   const p = ICONS[n.icon || ''];
   if (!p) return '';
   return `<g transform="translate(${x} ${y}) scale(${size / 24})" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</g>`;

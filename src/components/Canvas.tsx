@@ -21,9 +21,12 @@ import { beginEdit, placeImage, present, setPanel, setTool } from '../state/acti
 import { Edges } from './Edges';
 import { NodeView } from './NodeView';
 import { TextEditor } from './TextEditor';
+import { useVersion } from '../state/boardStore';
 
 const SHAPE_TOOLS = ['rectangle', 'ellipse', 'diamond', 'cylinder', 'frame'];
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+/* Element types whose label can be edited in place (see commitEdit). */
+const TEXT_EDITABLE = ['text', 'shape', 'sticky', 'container'];
 
 function capture(el: Element | null, id: number) {
   try {
@@ -32,11 +35,15 @@ function capture(el: Element | null, id: number) {
 }
 
 export function Canvas() {
+  useVersion();
   const ref = useRef<HTMLDivElement>(null);
   const laserRef = useRef<HTMLCanvasElement>(null);
   const laserPoints = useRef<{ x: number; y: number; t: number; life: number }[]>([]);
   const laserRAF = useRef<number | null>(null);
   const laserTimer = useRef<number | undefined>(undefined);
+  /* Hover position while the laser tool is active (button not held):
+     renders the red dot cursor so no OS arrow is ever needed. */
+  const laserHover = useRef<{ x: number; y: number } | null>(null);
 
   /* ---------- laser ---------- */
   const laserDraw = () => {
@@ -51,29 +58,80 @@ export function Canvas() {
     ctx.clearRect(0, 0, innerWidth, innerHeight);
     const now = performance.now();
     const pts = laserPoints.current;
-    for (let i = pts.length - 1; i >= 0; i--) if (now - pts[i].t > pts[i].life) pts.splice(i, 1);
-    for (const p of pts) {
-      const k = 1 - (now - p.t) / p.life;
+    /* While held, refresh timestamps so the trail persists for the hold. */
+    const held = (S.drag as any)?.mode === 'laser';
+    for (let i = pts.length - 1; i >= 0; i--) {
+      if (held) pts[i].t = now;
+      else if (now - pts[i].t > pts[i].life) pts.splice(i, 1);
+    }
+    /* Red line trail: one segment per step so older parts fade out. */
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      const k = Math.max(0, 1 - (now - b.t) / b.life);
+      if (k <= 0) continue;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 8 * k + 2, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(240,86,86,${0.55 * k})`;
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = `rgba(240,70,70,${0.9 * k})`;
+      ctx.lineWidth = 1.5 + 3.5 * k;
+      ctx.stroke();
+    }
+    const head = pts[pts.length - 1];
+    if (head) {
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(240,70,70,.9)';
+      ctx.fill();
+    } else if (!held && laserHover.current) {
+      /* Laser tool active, nothing held: red dot cursor in place of the
+         hidden OS arrow. */
+      const p = laserHover.current;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(240,70,70,.9)';
       ctx.fill();
     }
     laserRAF.current = pts.length ? requestAnimationFrame(laserDraw) : null;
   };
 
-  const laserAdd = (x: number, y: number) => {
+  const laserEnsure = () => {
     const c = laserRef.current;
-    if (!c) return;
+    if (!c) return false;
     const dpr = devicePixelRatio;
     if (c.width !== innerWidth * dpr) {
       c.width = innerWidth * dpr;
       c.height = innerHeight * dpr;
-      c.style.width = innerWidth + 'px';
-      c.style.height = innerHeight + 'px';
+      c.style.width = `${innerWidth}px`;
+      c.style.height = `${innerHeight}px`;
     }
+    return true;
+  };
+
+  const laserClear = () => {
+    laserPoints.current = [];
+    const c = laserRef.current;
+    if (c) {
+      const dpr = devicePixelRatio;
+      c.getContext('2d')!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.getContext('2d')!.clearRect(0, 0, innerWidth, innerHeight);
+    }
+    if (laserRAF.current) {
+      cancelAnimationFrame(laserRAF.current);
+      laserRAF.current = null;
+    }
+    clearTimeout(laserTimer.current);
+  };
+
+  const laserAdd = (x: number, y: number) => {
+    if (!laserEnsure()) return;
+    const c = laserRef.current!;
     laserPoints.current.push({ x, y, t: performance.now(), life: 650 });
-    if (laserPoints.current.length > 90) laserPoints.current.shift();
+    /* Generous cap: big laser drawings must persist whole while held
+       (release clears everything anyway). */
+    if (laserPoints.current.length > 2000) laserPoints.current.shift();
     if (!laserRAF.current) laserRAF.current = requestAnimationFrame(laserDraw);
     clearTimeout(laserTimer.current);
     laserTimer.current = window.setTimeout(() => {
@@ -152,7 +210,7 @@ export function Canvas() {
     notify();
   };
 
-  const startMove = (e: React.PointerEvent) => {
+  const startMove = (e: React.PointerEvent, editId: string | null = null) => {
     const list = selectionElements().filter((x) => !x.locked);
     if (!list.length) return;
     const positions = new Map<string, { x: number; y: number }>();
@@ -162,7 +220,7 @@ export function Canvas() {
         for (const c of sortedElements().filter((x) => x.frameId === el.id)) if (!positions.has(c.id)) positions.set(c.id, { x: c.x, y: c.y });
     }
     pushHistory('move');
-    S.drag = { mode: 'move', start: { x: e.clientX, y: e.clientY }, positions, moved: false };
+    S.drag = { mode: 'move', start: { x: e.clientX, y: e.clientY }, positions, moved: false, editId };
     capture(ref.current, e.pointerId);
   };
 
@@ -217,6 +275,7 @@ export function Canvas() {
     if (!el) return;
     e.stopPropagation();
     if (S.tool === 'eraser') return startErase(e);
+    if (S.tool === 'pen') return startPen(e, toWorld(e.clientX, e.clientY));
     if (S.tool === 'arrow' || S.tool === 'line') {
       const w = toWorld(e.clientX, e.clientY);
       return startArrow(e, w, el);
@@ -225,6 +284,7 @@ export function Canvas() {
     const groupIds = el.groupIds || [];
     let ids = [el.id];
     if (groupIds.length) ids = elements().filter((x) => x.groupIds?.some((g) => groupIds.includes(g))).map((x) => x.id);
+    const wasSelected = S.selection.has(el.id);
     if (e.shiftKey) {
       if (S.selection.has(el.id)) ids.forEach((i) => S.selection.delete(i));
       else ids.forEach((i) => S.selection.add(i));
@@ -232,7 +292,10 @@ export function Canvas() {
       S.selection = new Set(ids);
     }
     notify();
-    if (!el.locked) startMove(e);
+    /* Click (no drag) on an already-selected text-capable element enters
+       in-place edit; dragging still moves. Double-click also edits. */
+    const editId = !e.shiftKey && wasSelected && ids.length === 1 && !el.locked && TEXT_EDITABLE.includes(el.type) ? el.id : null;
+    if (!el.locked) startMove(e, editId);
   };
 
   const onEdgeDown = (e: React.PointerEvent, edgeEl: Element) => {
@@ -241,6 +304,7 @@ export function Canvas() {
     if (!el) return;
     e.stopPropagation();
     if (S.tool === 'eraser') return startErase(e);
+    if (S.tool === 'pen') return startPen(e, toWorld(e.clientX, e.clientY));
     if (S.tool !== 'select') setTool('select');
     if (e.shiftKey) {
       if (S.selection.has(el.id)) S.selection.delete(el.id);
@@ -260,7 +324,15 @@ export function Canvas() {
     const edgeEl = target.closest?.('.edges [data-id]') as Element | null;
     if (S.space || S.tool === 'hand' || e.button === 1) return startPan(e);
     if (S.tool === 'eraser') return startErase(e);
-    if (S.tool === 'laser') return laserAdd(e.clientX, e.clientY);
+    if (S.tool === 'laser') {
+      /* Press-and-hold activation: hover alone draws nothing. */
+      if (e.button !== 0) return;
+      S.drag = { mode: 'laser' };
+      laserAdd(e.clientX, e.clientY);
+      capture(ref.current, e.pointerId);
+      notify();
+      return;
+    }
     if (nodeEl) return onNodeDown(e, nodeEl);
     if (edgeEl) return onEdgeDown(e, edgeEl);
     const w = toWorld(e.clientX, e.clientY);
@@ -286,11 +358,22 @@ export function Canvas() {
   const onPointerMove = (e: React.PointerEvent | PointerEvent) => {
     if (S.replay || S.present) return;
     if (S.tool === 'laser' && !S.drag) {
-      laserAdd(e.clientX, e.clientY);
+      /* Hover with the laser tool: track for the red-dot cursor. */
+      laserHover.current = { x: e.clientX, y: e.clientY };
+      if (laserEnsure() && !laserRAF.current) laserRAF.current = requestAnimationFrame(laserDraw);
       return;
+    }
+    if ((laserHover.current || laserPoints.current.length) && (S.tool !== 'laser' || S.drag)) {
+      /* Left laser mode (or pressed): drop stale overlay state. */
+      laserHover.current = null;
+      if (S.tool !== 'laser') laserClear();
     }
     if (S.drag) {
       const d: any = S.drag;
+      if (d.mode === 'laser') {
+        if ((e as PointerEvent).buttons) laserAdd(e.clientX, e.clientY);
+        return;
+      }
       const z = S.camera.zoom;
       if (d.mode === 'pan') {
         S.camera.x = d.cam.x + (e.clientX - d.start.x);
@@ -443,7 +526,24 @@ export function Canvas() {
       notify();
       return;
     }
-    if (d.mode === 'create') {
+    if (d.mode === 'move' && !d.moved && d.editId && S.doc.elements[d.editId] && !S.doc.elements[d.editId].locked) {
+      const target = d.editId;
+      S.drag = null;
+      S.panning = false;
+      beginEdit(target);
+      notify();
+      persist();
+      return;
+    }
+    if (d.mode === 'laser') {
+      /* Release: stop refreshing timestamps so the existing points age out
+         and the trail fades gradually instead of vanishing instantly.
+         No doc changes, so no persist. */
+      S.drag = null;
+      S.panning = false;
+      notify();
+      return;
+    } else if (d.mode === 'create') {
       const el = S.doc.elements[d.id];
       if (el) {
         if (el.width < 8 && el.height < 8) {
@@ -597,6 +697,10 @@ export function Canvas() {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onPointerLeave={() => {
+        laserHover.current = null;
+        if (S.tool === 'laser' && !laserPoints.current.length) laserClear();
+      }}
       onDoubleClick={onDoubleClick}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}

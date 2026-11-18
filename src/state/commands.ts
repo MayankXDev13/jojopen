@@ -1,8 +1,9 @@
 /* The command table and global keyboard handling. */
 
 import { clamp, isTextTarget } from '../lib/dom';
-import { ICON_LIST } from '../lib/icons';
-import { S, fitAll, fitSelection, notify, redo, setZoom, slides, toast, undo, zoomAt } from './store';
+import { defaultIcons, resolveIcon, searchIcons } from '../lib/iconLibrary';
+import { S, fitAll, fitSelection, notify, redo, setZoom, slides, toast, undo, zoomAt } from './store';import { useBoardStore } from './boardStore';
+
 import {
   arrangeSlides,
   buildAdd,
@@ -18,6 +19,7 @@ import {
   deleteSlide,
   editLabel,
   exitPresent,
+  getIconMode,
   groupSelection,
   insertIcon,
   nudge,
@@ -31,6 +33,7 @@ import {
   presentNav,
   selectionToSlide,
   selectAll,
+  setIconMode,
   setPanel,
   setTool,
   toggleGrid,
@@ -145,9 +148,14 @@ export function filteredCommands() {
   );
 }
 
-export function filteredIcons() {
-  const q = (S.iconQuery || '').toLowerCase();
-  return ICON_LIST.filter((k) => !q || k.includes(q));
+export function filteredIcons(): string[] {
+  const q = (S.iconQuery || '').trim();
+  if (!q) return defaultIcons().map((e) => e.id);
+  return searchIcons(q, 36).map((e) => e.id);
+}
+
+export function resolveIconName(id: string): string {
+  return resolveIcon(id)?.id || id;
 }
 
 export function keyMatch(e: KeyboardEvent, spec: string): boolean {
@@ -268,12 +276,12 @@ function onKeyDown(e: KeyboardEvent) {
     const list = filteredCommands();
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      S.paletteIndex = clamp((S.paletteIndex || 0) + 1, 0, list.length - 1);
+      useBoardStore.setState({ paletteIndex: clamp((S.paletteIndex || 0) + 1, 0, list.length - 1) } as any);
       return notify();
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault();
-      S.paletteIndex = clamp((S.paletteIndex || 0) - 1, 0, list.length - 1);
+      useBoardStore.setState({ paletteIndex: clamp((S.paletteIndex || 0) - 1, 0, list.length - 1) } as any);
       return notify();
     }
     if (e.key === 'Enter') {
@@ -288,15 +296,19 @@ function onKeyDown(e: KeyboardEvent) {
 
   if (S.iconSearch) {
     const list = filteredIcons();
-    if (e.key === 'ArrowDown') {
+    const step = (d: number) => {
       e.preventDefault();
-      S.iconCursor = clamp((S.iconCursor || 0) + 1, 0, list.length - 1);
+      useBoardStore.setState({ iconCursor: clamp((S.iconCursor || 0) + d, 0, list.length - 1) } as any);
       return notify();
-    }
-    if (e.key === 'ArrowUp') {
+    };
+    if (e.key === 'ArrowRight') return step(1);
+    if (e.key === 'ArrowLeft') return step(-1);
+    if (e.key === 'ArrowDown') return step(6);
+    if (e.key === 'ArrowUp') return step(-6);
+    if (e.key === 'Tab') {
       e.preventDefault();
-      S.iconCursor = clamp((S.iconCursor || 0) - 1, 0, list.length - 1);
-      return notify();
+      setIconMode(getIconMode() === 'box' ? 'icon' : 'box');
+      return;
     }
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -312,12 +324,12 @@ function onKeyDown(e: KeyboardEvent) {
 
   if (e.key === ' ' && !e.repeat) {
     e.preventDefault();
-    S.space = true;
+    useBoardStore.setState({ space: true } as any);
     notify();
     return;
   }
 
-  S._shift = e.shiftKey;
+  useBoardStore.setState({ _shift: e.shiftKey } as any);
   for (const c of COMMANDS) {
     if (e.repeat && !c.repeat) continue;
     if (c.keys.some((k) => keyMatch(e, k))) {
@@ -330,10 +342,10 @@ function onKeyDown(e: KeyboardEvent) {
 
 function onKeyUp(e: KeyboardEvent) {
   if (e.key === ' ') {
-    S.space = false;
+    useBoardStore.setState({ space: false } as any);
     notify();
   }
-  if (e.key === 'Shift') S._shift = false;
+  if (e.key === 'Shift') useBoardStore.setState({ _shift: false } as any);
 }
 
 export function installKeyboard(): () => void {

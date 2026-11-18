@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { iconPath } from '../lib/icons';
-import { brandFill, iconInner, resolveIcon } from '../lib/iconLibrary';
+import { brandFill, iconInner, resolveIcon, onIconLibraryLoaded, isIconLibraryLoaded } from '../lib/iconLibrary';
 
 /* Tool icons are authored on a 20x20 grid (stroke 1.75) to match the live
    toolbar markup; all other icons stay on the 24x24 grid. */
@@ -31,6 +32,12 @@ export function Icon({ name, size = 18, sw }: { name: string; size?: number; sw?
 }
 
 export function LibraryIcon({ name, size = 22, color }: { name: string; size?: number; color?: string }) {
+  const [, setLoaded] = useState(isIconLibraryLoaded());
+  useEffect(() => {
+    if (!isIconLibraryLoaded()) {
+      return onIconLibraryLoaded(() => setLoaded(true));
+    }
+  }, []);
   const def = resolveIcon(name);
   if (!def) return null;
   if (def.brand) {

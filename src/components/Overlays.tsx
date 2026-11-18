@@ -24,7 +24,7 @@ import {
   setIconMode,
 } from '../state/actions';
 import { Icon, LibraryIcon } from './Icon';
-import { resolveIcon } from '../lib/iconLibrary';
+import { resolveIcon, loadIconLibrary } from '../lib/iconLibrary';
 import { useVersion } from '../state/boardStore';
 
 function Scrim({ children, align }: { children: React.ReactNode; align?: string }) {
@@ -360,7 +360,10 @@ function IconSearch() {
   useVersion();
   const ref = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  useEffect(() => ref.current?.focus(), []);
+  useEffect(() => {
+    ref.current?.focus();
+    loadIconLibrary().then(() => notify());
+  }, []);
   const list = filteredIcons();
   const cur = Math.max(0, Math.min(S.iconCursor || 0, list.length - 1));
   const mode = getIconMode();

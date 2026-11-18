@@ -156,7 +156,7 @@ Always visible, six actions top-to-bottom:
 
 ### 3.4 Bottom chrome
 
-- **Bottom-left**: zoom out / `100%` label / zoom in / fit-all, snap-to-dots toggle, background dots toggle, random-colors toggle.
+- **Bottom-left**: collapsed to the zoom label (`100%`). Hover or keyboard focus expands it, left to right, to zoom out, the zoom label (click for 100%), zoom in, **Fit everything** (`Shift+1`), **Snap**, **Dots**, **Random colors**, then a second group with **Undo** (`Ctrl+Z`) and **Redo** (`Ctrl+Shift+Z`). Undo and Redo are disabled when there is no history. Snap and Dots show their active state, and Snap confirms each change with a toast.
 - **Bottom-centre**: contextual **format bar** when something is selected (see §6).
 - **Toasts** appear bottom-centre, e.g. “Added URL shortener”, “Zen mode · Alt+Z to exit”, “Command palette arrives in step 7”.
 
@@ -196,7 +196,7 @@ Everything you draw is a first-class element with position, size, layer order, l
 
 - Role/auto colours — each node gets a colour from its semantic role (actor, network, compute, data, cache, messaging, security, external, neutral).
 - **B/W** — “turn every color off” (still keeps hierarchy via fills).
-- **Random colors** — every shape/arrow gets its own colour (bottom bar).
+- **Random colors** — every shape and arrow gets its own colour from the board palette, spread across the roles before repeating. The colours are locked against theme changes, drawn immediately, and recorded as one undoable step (bottom bar).
 
 ![Black & white mode](docs/img/05-bw.png)
 ![Dark theme](docs/img/06-dark.png)
@@ -232,7 +232,7 @@ Clicking an element selects it (blue handles + a floating format bar at the bott
 | Control | Meaning |
 |---|---|
 | `Auto · Edge` | Colour is picked automatically from the node name/role; click for the palette |
-| Colour swatches | Manual colour override (locks the colour) |
+| Colour dot | Shows the selected element's colour; opens the colour picker and writes the choice as one undoable step |
 | Box / Ellipse / Diamond / Cylinder / Pill / Document | **Morph** the shape without losing text |
 | `A−` / `A+` | Text size down/up (shows current scale, e.g. “now 1×”) |
 | `Size 1×` | Per-item scale |
@@ -515,6 +515,14 @@ Clipboard failures surface as “The browser blocked the clipboard — use Downl
 ### 12.1 Anonymous scratch board
 
 Without an account the app opens a single board named **“Scratch board”**, marked **“Saved on this device”**. The document is stored in `localStorage` and survives reloads. All core editing, diagrams, slides, recording and export work here.
+
+**First-run boot order** (`src/lib/firstRun.ts`, `bootStore` in `src/state/store.ts`):
+
+1. A `#/b/<id>` hash link or the saved `jojopen.doc.v1` board wins when present — an existing (even empty) port board is never overwritten.
+2. Otherwise the live site's `jojopen:scratch:v2` record is imported read-only through `normalizeDoc` when it parses and has elements; the live key is never written.
+3. Otherwise the URL-shortener demo is seeded from `TEMPLATES.system` (diagram plus a “301s are cacheable” sticky note) and persisted immediately to the port's own keys, so a reload keeps it and the demo is never seeded twice.
+
+Edits to an imported or seeded board persist through the port's keys (`jojopen.doc.v1`, `jojopen.boards.v1`, `jojopen.current.v1`, per-board copies).
 
 ### 12.2 Sign in
 

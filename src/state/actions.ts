@@ -71,7 +71,7 @@ export function setPanel(name: Exclude<any, 'none'> | any) {
 }
 
 export function openMenu() {
-  S.help = true;
+  S.help = !S.help;
   notify();
 }
 export function openShortcuts() {
@@ -988,7 +988,9 @@ export function applyColor(color: string) {
     e.color = color;
     e.colorLocked = true;
   });
+  persist();
   notify();
+  toast(color.startsWith('#') ? 'Custom color' : 'Color');
 }
 
 export function autoColor() {
@@ -1002,14 +1004,17 @@ export function autoColor() {
 
 export function randomColors() {
   pushHistory('random colors');
-  const roles = [...COLOR_KEYS].sort(() => Math.random() - 0.5);
+  if (!paletteOn()) settings().palette = 'roles';
+  /* Store colour keys, not resolved paints: `colorFor()` maps them through
+     COLOR_TO_ROLE so the colours follow the active theme. */
+  const keys = [...COLOR_KEYS].sort(() => Math.random() - 0.5);
   elements()
     .filter((e) => e.type === 'shape' || e.type === 'arrow')
     .forEach((e, i) => {
-      const paint = roleColor(roles[i % roles.length]);
-      e.color = paint.stroke;
+      e.color = keys[i % keys.length];
       e.colorLocked = true;
     });
+  persist();
   notify();
   toast('Random colors');
 }

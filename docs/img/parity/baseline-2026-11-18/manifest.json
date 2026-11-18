@@ -1,0 +1,908 @@
+{
+  "generatedAt": "2026-11-18T11:09:12.356Z",
+  "target": "live",
+  "url": "https://jojopen.com/",
+  "tag": "live-baseline",
+  "viewport": "1440x900",
+  "bundle": "index-AUJ3ngSu.js",
+  "css": "index-CLwQeLoE.css",
+  "firstRun": {
+    "keys": [
+      "jojopen:scratch:v2"
+    ],
+    "elements": 19,
+    "boardName": null
+  },
+  "toolbar": {
+    "id": "toolbar",
+    "before": {
+      "total": 17,
+      "shown": 0,
+      "titles": []
+    },
+    "hovered": {
+      "total": 17,
+      "shown": 17,
+      "titles": [
+        "Hand (H)",
+        "",
+        "Rectangle (R)",
+        "Ellipse (O)",
+        "Diamond (D)",
+        "Cylinder (C)",
+        "Arrow (A)",
+        "Line (L)",
+        "",
+        "Text (T)",
+        "Pen (P)",
+        "Sticky note (S)",
+        "Image (I)",
+        "",
+        "Diagram frame (F)",
+        "Eraser (E)",
+        "Laser pointer (K)"
+      ]
+    },
+    "stillOpen": {
+      "total": 17,
+      "shown": 17,
+      "titles": [
+        "Hand (H)",
+        "",
+        "Rectangle (R)",
+        "Ellipse (O)",
+        "Diamond (D)",
+        "Cylinder (C)",
+        "Arrow (A)",
+        "Line (L)",
+        "",
+        "Text (T)",
+        "Pen (P)",
+        "Sticky note (S)",
+        "Image (I)",
+        "",
+        "Diagram frame (F)",
+        "Eraser (E)",
+        "Laser pointer (K)"
+      ]
+    },
+    "leftShort": {
+      "total": 17,
+      "shown": 17,
+      "titles": [
+        "Hand (H)",
+        "",
+        "Rectangle (R)",
+        "Ellipse (O)",
+        "Diamond (D)",
+        "Cylinder (C)",
+        "Arrow (A)",
+        "Line (L)",
+        "",
+        "Text (T)",
+        "Pen (P)",
+        "Sticky note (S)",
+        "Image (I)",
+        "",
+        "Diagram frame (F)",
+        "Eraser (E)",
+        "Laser pointer (K)"
+      ]
+    },
+    "leftLinger": {
+      "total": 17,
+      "shown": 0,
+      "titles": []
+    }
+  },
+  "rail": {
+    "id": "rail",
+    "before": {
+      "total": 2,
+      "shown": 0,
+      "titles": []
+    },
+    "hovered": {
+      "total": 2,
+      "shown": 2,
+      "titles": [
+        "Diagram code (Ctrl+E)",
+        "Keyboard shortcuts (?)"
+      ]
+    },
+    "stillOpen": {
+      "total": 2,
+      "shown": 2,
+      "titles": [
+        "Diagram code (Ctrl+E)",
+        "Keyboard shortcuts (?)"
+      ]
+    },
+    "leftShort": {
+      "total": 2,
+      "shown": 2,
+      "titles": [
+        "Diagram code (Ctrl+E)",
+        "Keyboard shortcuts (?)"
+      ]
+    },
+    "leftLinger": {
+      "total": 2,
+      "shown": 0,
+      "titles": []
+    }
+  },
+  "topright": {
+    "id": "topright",
+    "before": {
+      "total": 6,
+      "shown": 0,
+      "titles": []
+    },
+    "hovered": {
+      "total": 6,
+      "shown": 6,
+      "titles": [
+        "Clean",
+        "Chalkboard",
+        "",
+        "Font: Excalifont",
+        "Black & white — turn every color",
+        "Theme: system"
+      ]
+    },
+    "stillOpen": {
+      "total": 6,
+      "shown": 6,
+      "titles": [
+        "Clean",
+        "Chalkboard",
+        "",
+        "Font: Excalifont",
+        "Black & white — turn every color",
+        "Theme: system"
+      ]
+    },
+    "leftShort": {
+      "total": 6,
+      "shown": 6,
+      "titles": [
+        "Clean",
+        "Chalkboard",
+        "",
+        "Font: Excalifont",
+        "Black & white — turn every color",
+        "Theme: system"
+      ]
+    },
+    "leftLinger": {
+      "total": 6,
+      "shown": 0,
+      "titles": []
+    }
+  },
+  "bottom": {
+    "id": "bottombar",
+    "before": {
+      "total": 10,
+      "shown": 0,
+      "titles": []
+    },
+    "hovered": {
+      "total": 10,
+      "shown": 10,
+      "titles": [
+        "Zoom out (Ctrl+-)",
+        "Zoom in (Ctrl+=)",
+        "",
+        "Fit everything (Shift+1)",
+        "",
+        "Snap to dots — hold Alt to place",
+        "Show background dots (Ctrl+Shift",
+        "",
+        "Random colors — every shape and ",
+        ""
+      ]
+    },
+    "stillOpen": {
+      "total": 10,
+      "shown": 10,
+      "titles": [
+        "Zoom out (Ctrl+-)",
+        "Zoom in (Ctrl+=)",
+        "",
+        "Fit everything (Shift+1)",
+        "",
+        "Snap to dots — hold Alt to place",
+        "Show background dots (Ctrl+Shift",
+        "",
+        "Random colors — every shape and ",
+        ""
+      ]
+    },
+    "leftShort": {
+      "total": 10,
+      "shown": 10,
+      "titles": [
+        "Zoom out (Ctrl+-)",
+        "Zoom in (Ctrl+=)",
+        "",
+        "Fit everything (Shift+1)",
+        "",
+        "Snap to dots — hold Alt to place",
+        "Show background dots (Ctrl+Shift",
+        "",
+        "Random colors — every shape and ",
+        ""
+      ]
+    },
+    "leftLinger": {
+      "total": 10,
+      "shown": 0,
+      "titles": []
+    }
+  },
+  "menu": {
+    "opened": "ok",
+    "info": {
+      "cls": "cp-layermenu-pop cp-mainpop",
+      "x": 16,
+      "y": 66,
+      "w": 230,
+      "h": 241,
+      "position": "absolute",
+      "items": [
+        "My boards",
+        "Scratch board",
+        "Connect AI",
+        "Keyboard shortcuts ?",
+        "Connect your AI app (guide)",
+        "Sign in",
+        "Privacy",
+        "Terms"
+      ]
+    },
+    "closedOutside": true
+  },
+  "context": {
+    "selected": "click-demo-node",
+    "info": {
+      "x": 357,
+      "y": 840,
+      "w": 727,
+      "h": 44,
+      "buttons": [
+        {
+          "title": "Color picked automatically from the name",
+          "aria": null,
+          "text": "Auto · Actor",
+          "cls": "cp-chip"
+        },
+        {
+          "title": "Color",
+          "aria": "Color",
+          "text": "",
+          "cls": "cp-colorbtn"
+        },
+        {
+          "title": "Box",
+          "aria": "Box",
+          "text": "",
+          "cls": "cp-iconbtn"
+        },
+        {
+          "title": "Ellipse",
+          "aria": "Ellipse",
+          "text": "",
+          "cls": "cp-iconbtn"
+        },
+        {
+          "title": "Diamond (decision)",
+          "aria": "Diamond (decision)",
+          "text": "",
+          "cls": "cp-iconbtn"
+        },
+        {
+          "title": "Cylinder (data)",
+          "aria": "Cylinder (data)",
+          "text": "",
+          "cls": "cp-iconbtn"
+        },
+        {
+          "title": "Pill (person / actor)",
+          "aria": "Pill (person / actor)",
+          "text": "",
+          "cls": "cp-iconbtn is-active"
+        },
+        {
+          "title": "Document",
+          "aria": "Document",
+          "text": "",
+          "cls": "cp-iconbtn"
+        },
+        {
+          "title": "Smaller text (now 1×)",
+          "aria": "Smaller text",
+          "text": "A −",
+          "cls": ""
+        },
+        {
+          "title": "Bigger text (now 1×)",
+          "aria": "Bigger text",
+          "text": "A +",
+          "cls": ""
+        },
+        {
+          "title": "Size of this item only",
+          "aria": null,
+          "text": "Size 1×",
+          "cls": "cp-chip"
+        },
+        {
+          "title": "Layer order",
+          "aria": "Layer order",
+          "text": "",
+          "cls": "cp-iconbtn"
+        },
+        {
+          "title": "Lock (Ctrl+Shift+L)",
+          "aria": "Lock",
+          "text": "",
+          "cls": "cp-iconbtn"
+        },
+        {
+          "title": "Delete (Del)",
+          "aria": "Delete",
+          "text": "",
+          "cls": "cp-iconbtn"
+        },
+        {
+          "title": "Clean it — AI presentation layout (Ctrl+Shift+K)",
+          "aria": null,
+          "text": "Clean it",
+          "cls": "cp-cleanit"
+        }
+      ]
+    }
+  },
+  "random": {
+    "clicked": "ok",
+    "before": [
+      "color-mix(in srgb, #3974D0 55%, transparent)",
+      "#795AD6",
+      "#25907F",
+      "#25907F",
+      "#3974D0",
+      "#1C1B19",
+      "#3974D0",
+      "#38914F",
+      "#38914F",
+      "#D96F2F",
+      "#BC8810",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650",
+      "#5A5650"
+    ],
+    "after": [
+      "color-mix(in srgb, #D96F2F 55%, transparent)",
+      "#25907F",
+      "#3974D0",
+      "#D04A69",
+      "#BC8810",
+      "#38914F",
+      "#D96F2F",
+      "#BC8810",
+      "#BC8810",
+      "#D04A69",
+      "#38914F",
+      "#25907F",
+      "#25907F",
+      "#3974D0",
+      "#3974D0",
+      "#D04A69",
+      "#D04A69",
+      "#795AD6",
+      "#795AD6",
+      "#D96F2F",
+      "#D96F2F",
+      "#38914F",
+      "#38914F",
+      "#BC8810",
+      "#BC8810",
+      "#25907F",
+      "#25907F"
+    ]
+  },
+  "errors": [],
+  "failed": [],
+  "entries": [
+    {
+      "id": "first-run",
+      "file": "base.png",
+      "observations": {
+        "info": {
+          "keys": [
+            "jojopen:scratch:v2"
+          ],
+          "elements": 19,
+          "boardName": null
+        }
+      }
+    },
+    {
+      "id": "toolbar-collapsed",
+      "file": "toolbar-collapsed.png",
+      "observations": {
+        "before": {
+          "total": 17,
+          "shown": 0,
+          "titles": []
+        }
+      }
+    },
+    {
+      "id": "toolbar-revealed",
+      "file": "toolbar-revealed.png",
+      "observations": {
+        "hovered": {
+          "total": 17,
+          "shown": 17,
+          "titles": [
+            "Hand (H)",
+            "",
+            "Rectangle (R)",
+            "Ellipse (O)",
+            "Diamond (D)",
+            "Cylinder (C)",
+            "Arrow (A)",
+            "Line (L)",
+            "",
+            "Text (T)",
+            "Pen (P)",
+            "Sticky note (S)",
+            "Image (I)",
+            "",
+            "Diagram frame (F)",
+            "Eraser (E)",
+            "Laser pointer (K)"
+          ]
+        },
+        "stillOpen": {
+          "total": 17,
+          "shown": 17,
+          "titles": [
+            "Hand (H)",
+            "",
+            "Rectangle (R)",
+            "Ellipse (O)",
+            "Diamond (D)",
+            "Cylinder (C)",
+            "Arrow (A)",
+            "Line (L)",
+            "",
+            "Text (T)",
+            "Pen (P)",
+            "Sticky note (S)",
+            "Image (I)",
+            "",
+            "Diagram frame (F)",
+            "Eraser (E)",
+            "Laser pointer (K)"
+          ]
+        },
+        "leftShort": {
+          "total": 17,
+          "shown": 17,
+          "titles": [
+            "Hand (H)",
+            "",
+            "Rectangle (R)",
+            "Ellipse (O)",
+            "Diamond (D)",
+            "Cylinder (C)",
+            "Arrow (A)",
+            "Line (L)",
+            "",
+            "Text (T)",
+            "Pen (P)",
+            "Sticky note (S)",
+            "Image (I)",
+            "",
+            "Diagram frame (F)",
+            "Eraser (E)",
+            "Laser pointer (K)"
+          ]
+        },
+        "leftLinger": {
+          "total": 17,
+          "shown": 0,
+          "titles": []
+        }
+      }
+    },
+    {
+      "id": "rail-collapsed",
+      "file": "rail-collapsed.png",
+      "observations": {
+        "before": {
+          "total": 2,
+          "shown": 0,
+          "titles": []
+        }
+      }
+    },
+    {
+      "id": "rail-revealed",
+      "file": "rail-revealed.png",
+      "observations": {
+        "hovered": {
+          "total": 2,
+          "shown": 2,
+          "titles": [
+            "Diagram code (Ctrl+E)",
+            "Keyboard shortcuts (?)"
+          ]
+        },
+        "stillOpen": {
+          "total": 2,
+          "shown": 2,
+          "titles": [
+            "Diagram code (Ctrl+E)",
+            "Keyboard shortcuts (?)"
+          ]
+        },
+        "leftShort": {
+          "total": 2,
+          "shown": 2,
+          "titles": [
+            "Diagram code (Ctrl+E)",
+            "Keyboard shortcuts (?)"
+          ]
+        },
+        "leftLinger": {
+          "total": 2,
+          "shown": 0,
+          "titles": []
+        }
+      }
+    },
+    {
+      "id": "topright-collapsed",
+      "file": "topright-collapsed.png",
+      "observations": {
+        "before": {
+          "total": 6,
+          "shown": 0,
+          "titles": []
+        }
+      }
+    },
+    {
+      "id": "topright-revealed",
+      "file": "topright-revealed.png",
+      "observations": {
+        "hovered": {
+          "total": 6,
+          "shown": 6,
+          "titles": [
+            "Clean",
+            "Chalkboard",
+            "",
+            "Font: Excalifont",
+            "Black & white — turn every color",
+            "Theme: system"
+          ]
+        },
+        "stillOpen": {
+          "total": 6,
+          "shown": 6,
+          "titles": [
+            "Clean",
+            "Chalkboard",
+            "",
+            "Font: Excalifont",
+            "Black & white — turn every color",
+            "Theme: system"
+          ]
+        },
+        "leftShort": {
+          "total": 6,
+          "shown": 6,
+          "titles": [
+            "Clean",
+            "Chalkboard",
+            "",
+            "Font: Excalifont",
+            "Black & white — turn every color",
+            "Theme: system"
+          ]
+        },
+        "leftLinger": {
+          "total": 6,
+          "shown": 0,
+          "titles": []
+        }
+      }
+    },
+    {
+      "id": "bottombar-collapsed",
+      "file": "bottombar-collapsed.png",
+      "observations": {
+        "before": {
+          "total": 10,
+          "shown": 0,
+          "titles": []
+        }
+      }
+    },
+    {
+      "id": "bottombar-revealed",
+      "file": "bottombar-revealed.png",
+      "observations": {
+        "hovered": {
+          "total": 10,
+          "shown": 10,
+          "titles": [
+            "Zoom out (Ctrl+-)",
+            "Zoom in (Ctrl+=)",
+            "",
+            "Fit everything (Shift+1)",
+            "",
+            "Snap to dots — hold Alt to place",
+            "Show background dots (Ctrl+Shift",
+            "",
+            "Random colors — every shape and ",
+            ""
+          ]
+        },
+        "stillOpen": {
+          "total": 10,
+          "shown": 10,
+          "titles": [
+            "Zoom out (Ctrl+-)",
+            "Zoom in (Ctrl+=)",
+            "",
+            "Fit everything (Shift+1)",
+            "",
+            "Snap to dots — hold Alt to place",
+            "Show background dots (Ctrl+Shift",
+            "",
+            "Random colors — every shape and ",
+            ""
+          ]
+        },
+        "leftShort": {
+          "total": 10,
+          "shown": 10,
+          "titles": [
+            "Zoom out (Ctrl+-)",
+            "Zoom in (Ctrl+=)",
+            "",
+            "Fit everything (Shift+1)",
+            "",
+            "Snap to dots — hold Alt to place",
+            "Show background dots (Ctrl+Shift",
+            "",
+            "Random colors — every shape and ",
+            ""
+          ]
+        },
+        "leftLinger": {
+          "total": 10,
+          "shown": 0,
+          "titles": []
+        }
+      }
+    },
+    {
+      "id": "menu-open",
+      "file": "menu-open.png",
+      "observations": {
+        "opened": "ok",
+        "info": {
+          "cls": "cp-layermenu-pop cp-mainpop",
+          "x": 16,
+          "y": 66,
+          "w": 230,
+          "h": 241,
+          "position": "absolute",
+          "items": [
+            "My boards",
+            "Scratch board",
+            "Connect AI",
+            "Keyboard shortcuts ?",
+            "Connect your AI app (guide)",
+            "Sign in",
+            "Privacy",
+            "Terms"
+          ]
+        },
+        "closedOutside": true
+      }
+    },
+    {
+      "id": "contextbar",
+      "file": "contextbar.png",
+      "observations": {
+        "selected": "click-demo-node",
+        "info": {
+          "x": 357,
+          "y": 840,
+          "w": 727,
+          "h": 44,
+          "buttons": [
+            {
+              "title": "Color picked automatically from the name",
+              "aria": null,
+              "text": "Auto · Actor",
+              "cls": "cp-chip"
+            },
+            {
+              "title": "Color",
+              "aria": "Color",
+              "text": "",
+              "cls": "cp-colorbtn"
+            },
+            {
+              "title": "Box",
+              "aria": "Box",
+              "text": "",
+              "cls": "cp-iconbtn"
+            },
+            {
+              "title": "Ellipse",
+              "aria": "Ellipse",
+              "text": "",
+              "cls": "cp-iconbtn"
+            },
+            {
+              "title": "Diamond (decision)",
+              "aria": "Diamond (decision)",
+              "text": "",
+              "cls": "cp-iconbtn"
+            },
+            {
+              "title": "Cylinder (data)",
+              "aria": "Cylinder (data)",
+              "text": "",
+              "cls": "cp-iconbtn"
+            },
+            {
+              "title": "Pill (person / actor)",
+              "aria": "Pill (person / actor)",
+              "text": "",
+              "cls": "cp-iconbtn is-active"
+            },
+            {
+              "title": "Document",
+              "aria": "Document",
+              "text": "",
+              "cls": "cp-iconbtn"
+            },
+            {
+              "title": "Smaller text (now 1×)",
+              "aria": "Smaller text",
+              "text": "A −",
+              "cls": ""
+            },
+            {
+              "title": "Bigger text (now 1×)",
+              "aria": "Bigger text",
+              "text": "A +",
+              "cls": ""
+            },
+            {
+              "title": "Size of this item only",
+              "aria": null,
+              "text": "Size 1×",
+              "cls": "cp-chip"
+            },
+            {
+              "title": "Layer order",
+              "aria": "Layer order",
+              "text": "",
+              "cls": "cp-iconbtn"
+            },
+            {
+              "title": "Lock (Ctrl+Shift+L)",
+              "aria": "Lock",
+              "text": "",
+              "cls": "cp-iconbtn"
+            },
+            {
+              "title": "Delete (Del)",
+              "aria": "Delete",
+              "text": "",
+              "cls": "cp-iconbtn"
+            },
+            {
+              "title": "Clean it — AI presentation layout (Ctrl+Shift+K)",
+              "aria": null,
+              "text": "Clean it",
+              "cls": "cp-cleanit"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "random-colors",
+      "file": "random-colors.png",
+      "observations": {
+        "clicked": "ok",
+        "before": [
+          "color-mix(in srgb, #3974D0 55%, transparent)",
+          "#795AD6",
+          "#25907F",
+          "#25907F",
+          "#3974D0",
+          "#1C1B19",
+          "#3974D0",
+          "#38914F",
+          "#38914F",
+          "#D96F2F",
+          "#BC8810",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650",
+          "#5A5650"
+        ],
+        "after": [
+          "color-mix(in srgb, #D96F2F 55%, transparent)",
+          "#25907F",
+          "#3974D0",
+          "#D04A69",
+          "#BC8810",
+          "#38914F",
+          "#D96F2F",
+          "#BC8810",
+          "#BC8810",
+          "#D04A69",
+          "#38914F",
+          "#25907F",
+          "#25907F",
+          "#3974D0",
+          "#3974D0",
+          "#D04A69",
+          "#D04A69",
+          "#795AD6",
+          "#795AD6",
+          "#D96F2F",
+          "#D96F2F",
+          "#38914F",
+          "#38914F",
+          "#BC8810",
+          "#BC8810",
+          "#25907F",
+          "#25907F"
+        ]
+      }
+    }
+  ],
+  "missingScreenshots": []
+}

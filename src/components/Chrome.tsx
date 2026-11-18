@@ -1,4 +1,4 @@
-import { COLOR_KEYS, COLOR_TO_ROLE } from '../lib/palette';
+import { useEffect, useRef } from 'react';
 import { TOOLBAR } from '../lib/templates';
 import {
   S,
@@ -10,7 +10,6 @@ import {
   persist,
   redo,
   resolvedTheme,
-  roleColor,
   roleOf,
   setZoom,
   settings,
@@ -22,9 +21,11 @@ import {
   autoColor,
   bumpText,
   cleanIt,
+  closeOverlays,
   copyBoardLink,
   deleteSelection,
   duplicateSelection,
+  openConnect,
   openExport,
   openMenu,
   openRename,
@@ -39,7 +40,6 @@ import {
   toggleFont,
   toggleGrid,
   toggleLock,
-  toggleNoFill,
   toggleSnap,
   toggleTheme,
   applyTemplate,
@@ -53,14 +53,71 @@ const KEY_HINT: Record<string, string> = {
   frame: 'F', eraser: 'E', laser: 'K',
 };
 
+/* The live main menu: a 230 px popover anchored at 16,66 below the hamburger.
+   It closes on outside click and on the trigger; Escape is kept as an extra. */
+function MainMenu() {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (!target) return;
+      if (ref.current && ref.current.contains(target)) return;
+      if (target.closest('[data-act="menu"]')) return;
+      closeOverlays();
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true);
+      const active = document.activeElement;
+      if (!active || active === document.body || !document.body.contains(active)) {
+        (document.querySelector('[data-act="menu"]') as HTMLElement | null)?.focus();
+      }
+    };
+  }, []);
+
+  const open = (run: () => void) => () => {
+    closeOverlays();
+    run();
+  };
+  const external = (path: string) => () => {
+    closeOverlays();
+    window.open(`https://jojopen.com/${path}`, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div className="mainmenu" ref={ref} role="menu" aria-label="Main menu">
+      <button role="menuitem" type="button" onClick={open(() => setPanel('boards'))}>My boards</button>
+      <button role="menuitem" type="button" onClick={open(() => setPanel('none'))}>Scratch board</button>
+      <button role="menuitem" type="button" onClick={open(openConnect)}>Connect AI</button>
+      <span className="menu-sep" />
+      <button role="menuitem" type="button" onClick={open(openShortcuts)}>
+        Keyboard shortcuts <span className="menu-hint">?</span>
+      </button>
+      <button role="menuitem" type="button" onClick={open(openConnect)}>Connect your AI app (guide)</button>
+      <span className="menu-sep" />
+      <button role="menuitem" type="button" className="menu-signin" onClick={open(copyBoardLink)}>
+        <svg width="15" height="15" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Sign in
+      </button>
+      <span className="menu-sep" />
+      <div className="menu-row">
+        <button role="menuitem" type="button" onClick={external('privacy')}>Privacy</button>
+        <button role="menuitem" type="button" onClick={external('terms')}>Terms</button>
+      </div>
+    </div>
+  );
+}
+
 export function TopBar() {
   if (S.zen) return null;
   return (
     <>
       <div className="topleft">
-        <button className="iconbtn" data-act="menu" onClick={openMenu} title="Main menu" aria-label="Main menu">
+        <button className="iconbtn" data-act="menu" onClick={openMenu} title="Main menu" aria-label="Main menu" aria-expanded={!!S.help}>
           <Icon name="menu" size={18} />
         </button>
+        {S.help ? <MainMenu /> : null}
         <div className="pill">
           <span className="brand">
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -147,6 +204,7 @@ export function Toolbar() {
           </button>
         ),
       )}
+      <span className="peekhint" aria-hidden="true" />
     </div>
   );
 }
@@ -198,44 +256,96 @@ export function Rail() {
   );
 }
 
+type BottomItem = {
+  id: string;
+  group: 0 | 1;
+  kind: 'icon' | 'text' | 'zoom' | 'sep';
+  icon?: string;
+  label?: string;
+  title: string;
+  act?: string;
+  run?: () => void;
+  active?: boolean;
+  disabled?: boolean;
+};
+
+/* Live order at 1440x900: zoom out, zoom label, zoom in, Fit, Snap, Dots,
+   Random colors, then Undo/Redo in a second group. The zoom label is the only
+   control that stays visible while the cluster is collapsed. */
+function bottomItems(): BottomItem[] {
+  return [
+    { id: 'zoomout', group: 0, kind: 'icon', icon: 'minus', title: 'Zoom out (Ctrl+-)', act: 'zoomout', run: () => zoomAt(innerWidth / 2, innerHeight / 2, 1 / 1.2) },
+    { id: 'zoomlabel', group: 0, kind: 'zoom', title: 'Zoom to 100% (Shift+0)', act: 'zoomreset', run: () => setZoom(1) },
+    { id: 'zoomin', group: 0, kind: 'icon', icon: 'plus', title: 'Zoom in (Ctrl+=)', act: 'zoomin', run: () => zoomAt(innerWidth / 2, innerHeight / 2, 1.2) },
+    { id: 'sep-zoom', group: 0, kind: 'sep', title: '' },
+    { id: 'fit', group: 0, kind: 'icon', icon: 'fit', title: 'Fit everything (Shift+1)', act: 'fit', run: fitAll },
+    { id: 'sep-fit', group: 0, kind: 'sep', title: '' },
+    { id: 'snap', group: 0, kind: 'text', icon: 'dots', label: 'Snap', title: "Snap to dots — hold Alt to place freely (Ctrl+')", act: 'snap', run: toggleSnap, active: !!settings().snapToGrid },
+    { id: 'dots', group: 0, kind: 'text', label: 'Dots', title: "Show background dots (Ctrl+Shift+')", act: 'dots', run: toggleGrid, active: !!settings().showGrid },
+    { id: 'random', group: 0, kind: 'text', label: 'Random colors', title: 'Random colors — every shape and arrow gets its own color', act: 'random', run: randomColors },
+    { id: 'undo', group: 1, kind: 'icon', icon: 'backward', title: 'Undo (Ctrl+Z)', act: 'undo', run: undo, disabled: !S.history.length },
+    { id: 'redo', group: 1, kind: 'icon', icon: 'forward', title: 'Redo (Ctrl+Shift+Z)', act: 'redo', run: redo, disabled: !S.future.length },
+  ];
+}
+
+function BottomIcon({ item }: { item: BottomItem }) {
+  if (item.id === 'random') {
+    return (
+      <svg aria-hidden="true" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M5.5 3.5h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zM7.25 7.25h.01M12.75 7.25h.01M10 10h.01M7.25 12.75h.01M12.75 12.75h.01"/></svg>
+    );
+  }
+  return item.icon ? <Icon name={item.icon} size={item.kind === 'text' ? 15 : 16} /> : null;
+}
+
 export function BottomBar() {
   if (S.zen) return null;
+  const items = bottomItems();
   return (
     <div className="bottomleft collapsible">
-      <div className="group">
-        <button className="iconbtn more" data-act="zoomout" onClick={() => zoomAt(innerWidth / 2, innerHeight / 2, 1 / 1.2)} title="Zoom out (Ctrl+-)">
-          <Icon name="minus" size={16} />
-        </button>
-        <button className="zoomlabel" id="zoomLabel" data-act="zoomreset" onClick={() => setZoom(1)} title="Zoom to 100% (Shift+0)">
-          {Math.round(S.camera.zoom * 100)}%
-        </button>
-        <button className="iconbtn more" data-act="zoomin" onClick={() => zoomAt(innerWidth / 2, innerHeight / 2, 1.2)} title="Zoom in (Ctrl+=)">
-          <Icon name="plus" size={16} />
-        </button>
-        <span className="vsep more" />
-        <button className="iconbtn more" data-act="fit" title="Fit everything" onClick={fitAll}>
-          <Icon name="fit" size={16} />
-        </button>
-        <span className="vsep more" />
-        <button className={`textbtn more${settings().snapToGrid ? ' is-active' : ''}`} id="snapBtn" data-act="snap" onClick={toggleSnap} title="Snap to dots — hold Alt to place freely (Ctrl+')">
-          <Icon name="dots" size={15} /> Snap
-        </button>
-        <button className={`textbtn more${settings().showGrid ? ' is-active' : ''}`} id="gridBtn" data-act="dots" onClick={toggleGrid} title="Show background dots (Ctrl+Shift+')">
-          Dots
-        </button>
-        <span className="vsep more" />
-        <button className="textbtn more" data-act="random" onClick={randomColors} title="Random colors — every shape and arrow gets its own color">
-          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M5.5 3.5h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zM7.25 7.25h.01M12.75 7.25h.01M10 10h.01M7.25 12.75h.01M12.75 12.75h.01"/></svg> Random colors
-        </button>
-      </div>
-      <div className="group">
-        <button className="iconbtn" id="undoBtn" data-act="undo" onClick={undo} title="Undo" disabled={!S.history.length}>
-          <Icon name="backward" size={16} />
-        </button>
-        <button className="iconbtn" id="redoBtn" data-act="redo" onClick={redo} title="Redo" disabled={!S.future.length}>
-          <Icon name="forward" size={16} />
-        </button>
-      </div>
+      {([0, 1] as const).map((group) => (
+        <div className={`group${group === 1 ? ' more' : ''}`} key={group}>
+          {items
+            .filter((i) => i.group === group)
+            .map((item) => {
+              if (item.kind === 'sep') return <span className="vsep more" key={item.id} />;
+              if (item.kind === 'zoom') {
+                return (
+                  <button
+                    key={item.id}
+                    className="zoomlabel"
+                    id="zoomLabel"
+                    data-act={item.act}
+                    type="button"
+                    onClick={item.run}
+                    title={item.title}
+                  >
+                    {Math.round(S.camera.zoom * 100)}%
+                  </button>
+                );
+              }
+              const cls =
+                item.kind === 'text'
+                  ? `textbtn more${item.active ? ' is-active' : ''}`
+                  : `iconbtn more`;
+              return (
+                <button
+                  key={item.id}
+                  className={cls}
+                  id={item.id === 'undo' ? 'undoBtn' : item.id === 'redo' ? 'redoBtn' : item.id === 'snap' ? 'snapBtn' : item.id === 'dots' ? 'gridBtn' : undefined}
+                  data-act={item.act}
+                  type="button"
+                  onClick={item.run}
+                  title={item.title}
+                  aria-pressed={item.kind === 'text' ? item.active : undefined}
+                  disabled={item.disabled}
+                >
+                  <BottomIcon item={item} />
+                  {item.label ? <span>{item.label}</span> : null}
+                </button>
+              );
+            })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -246,16 +356,19 @@ export function ContextBar() {
   const el = list[0];
   const c = colorFor(el);
   const locked = list.every((e) => e.locked);
-  const noFill = list.filter((e) => e.type === 'shape').length > 0 && list.filter((e) => e.type === 'shape').every((e) => e.noFill);
-  const shapeBtns: [string, string][] = [
-    ['rectangle', 'rectangle'],
-    ['rounded', 'rectangle'],
-    ['ellipse', 'ellipse'],
-    ['diamond', 'diamond'],
-    ['cylinder', 'cylinder'],
-    ['document', 'note'],
-    ['person', 'user'],
+  const shapeBtns: [string, string, string][] = [
+    ['rectangle', 'rectangle', 'Box'],
+    ['ellipse', 'ellipse', 'Ellipse'],
+    ['diamond', 'diamond', 'Diamond (decision)'],
+    ['cylinder', 'cylinder', 'Cylinder (data)'],
+    ['person', 'user', 'Pill (person / actor)'],
+    ['document', 'note', 'Document'],
   ];
+  const layer = (kind: string) => {
+    S.layerPop = false;
+    orderSelection(kind);
+    notify();
+  };
   return (
     <div className="contextbar" id="contextbar">
       {list.length > 1 ? <span className="count">{list.length} selected</span> : null}
@@ -266,29 +379,19 @@ export function ContextBar() {
           <span className="muted">· {roleOf(el)}</span>
         </button>
       ) : null}
-      <button className="iconbtn" onClick={() => { S.colorPop = !S.colorPop; notify(); }} title="Color">
-        <Icon name="palette" size={16} />
-      </button>
-      {S.colorPop ? (
-        <span className="row" style={{ gap: 4, padding: '0 4px', flexWrap: 'nowrap' }}>
-          {COLOR_KEYS.map((k) => {
-            const paint = roleColor(COLOR_TO_ROLE[k]);
-            return (
-              <button key={k} className="iconbtn small" onClick={() => applyColor(k)} title={k} style={{ width: 26, height: 26 }}>
-                <span className="swatch" style={{ background: paint.fill, borderColor: paint.stroke }} />
-              </button>
-            );
-          })}
-          <button className="iconbtn small" onClick={toggleNoFill} title="No fill" style={{ width: 26, height: 26, background: noFill ? 'var(--raised)' : undefined }}>
-            <Icon name="ellipse" size={14} />
-          </button>
-        </span>
-      ) : null}
+      <label
+        className="colordot"
+        title="Color"
+        aria-label="Color"
+        style={{ background: c.fill === 'transparent' ? '#fff' : c.fill, borderColor: c.stroke }}
+      >
+        <input type="color" value={toHex(c.stroke)} onChange={(e) => applyColor(e.target.value)} aria-label="Color" />
+      </label>
       {list.some((e) => e.type === 'shape') ? (
         <>
           <span className="vsep more" />
-          {shapeBtns.map(([shape, icon]) => (
-            <button key={shape} className="iconbtn" onClick={() => setShape(shape)} title={shape} style={{ width: 30, height: 30 }}>
+          {shapeBtns.map(([shape, icon, title]) => (
+            <button key={shape} className="iconbtn" onClick={() => setShape(shape)} title={title} aria-label={title} style={{ width: 30, height: 30 }}>
               <Icon name={icon} size={15} />
             </button>
           ))}
@@ -304,34 +407,47 @@ export function ContextBar() {
         </>
       ) : null}
       <span className="vsep more" />
-      <button className="chip sizelabel" title="Size of this item only">Size 1×</button>
-      <button className="iconbtn" onClick={() => bumpText(-2)} title="Smaller text">
+      <button className="iconbtn" onClick={() => bumpText(-2)} title={`Smaller text (now ${el.fontSize ?? 18}px)`} aria-label="Smaller text">
         <Icon name="minus" size={14} />
       </button>
-      <button className="iconbtn" onClick={() => bumpText(2)} title="Larger text">
+      <button className="iconbtn" onClick={() => bumpText(2)} title={`Bigger text (now ${el.fontSize ?? 18}px)`} aria-label="Bigger text">
         <Icon name="plus" size={14} />
       </button>
+      <button className="chip sizelabel" title="Size of this item only">Size 1×</button>
       <span className="vsep more" />
-      <button className="iconbtn" onClick={() => orderSelection('forward')} title="Bring forward">
-        <Icon name="arrowup" size={15} />
-      </button>
-      <button className="iconbtn" onClick={() => orderSelection('backward')} title="Send backward">
-        <Icon name="arrowdown" size={15} />
-      </button>
-      <button className="iconbtn" onClick={duplicateSelection} title="Duplicate">
-        <Icon name="duplicate" size={15} />
-      </button>
-      <button className="iconbtn" onClick={toggleLock} title={locked ? 'Unlock' : 'Lock'} style={{ background: locked ? 'var(--raised)' : undefined }}>
+      <span className="layerwrap">
+        <button className="iconbtn" onClick={() => { S.layerPop = !S.layerPop; notify(); }} title="Layer order" aria-label="Layer order" aria-expanded={!!S.layerPop}>
+          <Icon name="layers" size={15} />
+        </button>
+        {S.layerPop ? (
+          <div className="layerpop" role="menu" aria-label="Layer order">
+            <button type="button" onClick={() => layer('front')}>Bring to front</button>
+            <button type="button" onClick={() => layer('forward')}>Bring forward</button>
+            <button type="button" onClick={() => layer('backward')}>Send backward</button>
+            <button type="button" onClick={() => layer('back')}>Send to back</button>
+          </div>
+        ) : null}
+      </span>
+      <button className="iconbtn" onClick={toggleLock} title={locked ? 'Unlock (Ctrl+Shift+L)' : 'Lock (Ctrl+Shift+L)'} aria-label={locked ? 'Unlock' : 'Lock'} style={{ background: locked ? 'var(--raised)' : undefined }}>
         <Icon name={locked ? 'lock' : 'unlock'} size={15} />
       </button>
-      <button className="iconbtn" onClick={deleteSelection} title="Delete">
+      <button className="iconbtn" onClick={deleteSelection} title="Delete (Del)" aria-label="Delete">
         <Icon name="trash" size={15} />
       </button>
-      <button className="cleanit" data-act="clean" onClick={cleanIt} title="Clean it — AI presentation layout">
+      <button className="cleanit" data-act="clean" onClick={cleanIt} title="Clean it — AI presentation layout (Ctrl+Shift+K)">
         <Icon name="spark" size={15} /> Clean it
       </button>
     </div>
   );
+}
+
+/** `<input type="color">` only accepts `#rrggbb`; paints may be rgb() or color-mix(). */
+function toHex(color: string): string {
+  if (/^#[0-9a-f]{6}$/i.test(color)) return color.toLowerCase();
+  if (/^#[0-9a-f]{3}$/i.test(color)) return '#' + color.slice(1).split('').map((ch) => ch + ch).join('');
+  const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (m) return '#' + [1, 2, 3].map((i) => Number(m[i]).toString(16).padStart(2, '0')).join('');
+  return '#808080';
 }
 
 function selectionElementsSafe() {

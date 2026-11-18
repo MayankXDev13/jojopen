@@ -4,6 +4,7 @@
    and keeps pointer interactions allocation-free. */
 
 import { uid, clamp } from '../lib/dom';
+import { importLive, seedDemo } from '../lib/firstRun';
 import {
   blankDoc,
   MAKE,
@@ -52,6 +53,7 @@ export const S: any = {
   boardsOpen: false,
   renameOpen: false,
   mermaidOpen: false,
+  layerPop: false,
 
   startOpen: false,
   present: null,
@@ -140,15 +142,28 @@ export function diagram(dsl: string): DiagramRender {
 }
 
 export function roleOf(el: BoardElement): string {
-  if (el.colorLocked && el.color) return COLOR_TO_ROLE[el.color] || 'neutral';
+  if (el.colorLocked && el.color) {
+    if (el.color.startsWith('#')) return 'custom';
+    return COLOR_TO_ROLE[el.color] || 'neutral';
+  }
   if (el.role) return el.role;
   const label = (el.label || el.title || el.text || '').toLowerCase();
   return inferRole(label, el.icon, el.shape);
 }
 
+/** A painter for a raw hex colour chosen with the context-bar colour dot. */
+export function hexPaint(hex: string) {
+  return {
+    fill: `color-mix(in srgb, ${hex} 14%, transparent)`,
+    stroke: hex,
+    text: theme().ink,
+  };
+}
+
 export function colorFor(el: BoardElement) {
   if (!paletteOn()) return { fill: 'transparent', stroke: theme().ink, text: theme().ink };
   if (el.colorLocked && el.color) {
+    if (el.color.startsWith('#')) return hexPaint(el.color);
     if (el.color === 'ink') return roleColor('ink');
     return roleColor(COLOR_TO_ROLE[el.color] || 'neutral');
   }
@@ -281,8 +296,20 @@ export function loadDoc(): BoardDoc {
   return blankDoc();
 }
 
-export function saveBoardCopy() {
+/** True when the port already has its own board (hash link or saved doc).
+   An existing-but-empty board counts: emptying the board is respected and the
+   demo is never seeded over it. */
+export function hasPortBoard(): boolean {
   try {
+    const hash = location.hash.match(/#\/b\/([A-Za-z0-9_-]+)/);
+    if (hash && localStorage.getItem('jojopen.board.' + hash[1])) return true;
+    return localStorage.getItem(KEY_DOC) != null;
+  } catch {
+    return false;
+  }
+}
+
+export function saveBoardCopy() {  try {
     localStorage.setItem('jojopen.board.' + S.doc.id, JSON.stringify(S.doc));
   } catch {}
 }
@@ -290,6 +317,13 @@ export function saveBoardCopy() {
 /** Load state and start the background snapshot loop. */
 export function bootStore() {
   S.doc = loadDoc();
+  if (!hasPortBoard()) {
+    /* First run: prefer the live site's board when it exists, otherwise seed
+       the URL-shortener demo. Persist immediately so a reload keeps the board
+       and the demo is never seeded twice. The live key is only read. */
+    S.doc = importLive() ?? seedDemo();
+    persist(true);
+  }
   S.startOpen = false;
   S.timeline.push({ json: snapshot(), label: 'Start', at: Date.now() });
   try {

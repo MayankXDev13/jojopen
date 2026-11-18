@@ -6,7 +6,14 @@ export const SLIDE_W = 1280;
 export const SLIDE_H = 720;
 
 export type Point = { x: number; y: number };
-export type Anchor = { elementId: string; anchor?: string } | null;
+export type Anchor = {
+  elementId: string;
+  anchor?: string;
+  normalizedAnchor?: { x: number; y: number };
+  isExact?: boolean;
+  isPrecise?: boolean;
+  snap?: 'center' | 'edge' | 'edge-point' | 'none';
+} | null;
 
 export type BoardSettings = {
   style: 'sketch' | 'clean' | 'chalkboard';
@@ -45,12 +52,18 @@ export interface BoardElement {
   noFill?: boolean;
   /* text */
   text?: string;
+  originalText?: string;
+  autoSize?: boolean;
+  boundId?: string | null;
   fontSize?: number;
   align?: string;
   /* label text scale for shapes/stickies (A-/A+); box size untouched */
   textScale?: number;
   /* freehand */
   points?: Point[];
+  pressures?: number[];
+  isPen?: boolean;
+  isClosed?: boolean;
   strokeWidth?: number;
   /* image */
   fileId?: string;
@@ -132,17 +145,22 @@ export const MAKE = {
   }),
   text: (e: Partial<BoardElement> = {}): BoardElement => ({
     ...baseElement(e, { width: 240, height: 24 }), type: 'text',
-    text: e.text ?? '', fontSize: e.fontSize ?? 18, align: e.align ?? 'left',
+    text: e.text ?? '', originalText: e.originalText ?? e.text ?? '',
+    autoSize: e.autoSize ?? true, boundId: e.boundId ?? null,
+    fontSize: e.fontSize ?? 18, align: e.align ?? 'left',
   }),
   sticky: (e: Partial<BoardElement> = {}): BoardElement => ({
     ...baseElement(e, { width: 200, height: 200 }), type: 'sticky', text: e.text ?? '',
+    originalText: e.originalText ?? e.text ?? '', align: e.align ?? 'left',
   }),
   image: (e: Partial<BoardElement> = {}): BoardElement => ({
     ...baseElement(e, { width: 320, height: 240 }), type: 'image', fileId: e.fileId,
   }),
   freehand: (e: Partial<BoardElement> = {}): BoardElement => ({
     ...baseElement(e, { width: 0, height: 0 }), type: 'freehand',
-    points: e.points ?? [], strokeWidth: e.strokeWidth ?? 2,
+    points: e.points ?? [], pressures: e.pressures ?? [],
+    isPen: e.isPen ?? false, isClosed: e.isClosed ?? false,
+    strokeWidth: e.strokeWidth ?? 2,
   }),
   container: (e: Partial<BoardElement> = {}): BoardElement => ({
     ...baseElement(e, { width: 400, height: 240 }), type: 'container', label: e.label ?? '',
@@ -159,6 +177,7 @@ export const MAKE = {
     routeMode: e.routeMode ?? 'orthogonal', route: e.route ?? 'auto',
     startHead: e.startHead ?? 'none', endHead: e.endHead ?? 'triangle',
     dash: e.dash ?? 'solid', label: e.label ?? '', kind: e.kind ?? 'sync',
+    labelPoint: (e as any).labelPoint ?? null,
   }),
 };
 
@@ -185,7 +204,34 @@ export function normalizeDoc(d: any): BoardDoc {
     recordings: Array.isArray(d.recordings) ? d.recordings : [],
   };
   for (const [id, e] of Object.entries<any>(d.elements || {})) {
-    doc.elements[id] = { ...baseElement({ ...e, id }, { width: e.width ?? 0, height: e.height ?? 0 }), ...e, id };
+    const merged = { ...baseElement({ ...e, id }, { width: e.width ?? 0, height: e.height ?? 0 }), ...e, id };
+    // Backfill best-approach defaults for old boards.
+    if (merged.type === 'text') {
+      if (merged.autoSize == null) merged.autoSize = true;
+      if (merged.originalText == null) merged.originalText = merged.text ?? '';
+      if (merged.boundId === undefined) merged.boundId = null;
+      if (merged.align == null) merged.align = 'left';
+    }
+    if (merged.type === 'sticky' && merged.align == null) merged.align = 'left';
+    if (merged.type === 'freehand') {
+      if (!Array.isArray(merged.pressures)) merged.pressures = (merged.points || []).map(() => 0.5);
+      if (merged.isPen == null) merged.isPen = false;
+      if (merged.isClosed == null) merged.isClosed = false;
+    }
+    if (merged.type === 'arrow') {
+      if ((merged as any).route == null) (merged as any).route = 'auto';
+      for (const k of ['start', 'end'] as const) {
+        const a = (merged as any)[k];
+        if (a && a.elementId && !a.normalizedAnchor) {
+          a.normalizedAnchor = { x: 0.5, y: 0.5 };
+          a.isExact = false;
+          a.isPrecise = false;
+          a.snap = 'edge';
+          if (!a.anchor) a.anchor = 'auto';
+        }
+      }
+    }
+    doc.elements[id] = merged;
   }
   return doc;
 }

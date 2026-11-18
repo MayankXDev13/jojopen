@@ -37,6 +37,7 @@ import {
   scaleSelection,
   setPanel,
   setRoute,
+  rerouteSelection,
   setShape,
   setTool,
   textSizeLabel,
@@ -464,6 +465,17 @@ export function ContextBar() {
               <Icon name={r === 'orthogonal' ? 'route' : r === 'curved' ? 'curve' : 'straight'} size={15} />
             </button>
           ))}
+          {list.some((e) => e.type === 'arrow' && (e as any).route === 'manual') ? (
+            <button
+              className="iconbtn"
+              onClick={() => rerouteSelection()}
+              title="Forget the hand-made shape and route automatically"
+              aria-label="Re-route"
+              style={{ width: 'auto', padding: '0 8px' }}
+            >
+              Re-route
+            </button>
+          ) : null}
         </>
       ) : null}
       <span className="vsep more" />

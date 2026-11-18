@@ -827,4 +827,14 @@ These are things that look like features in the UI but behave differently, or th
 
 ---
 
+## 18. Best-approach canvas tools (2026-11-18)
+
+- Text: click = `autoSize`, drag>36px = fixed-width; `Enter` newline, `Cmd/Ctrl+Enter`/`Esc`/outside commit; canvas-measured fit (`src/lib/textMeasure.ts`).
+- Write-inside (original): double-click/Enter edits the element's own label, no separate text element; Escape/blur/Cmd+Enter all commit trailing-trimmed; shapes grow-only to longest word + wrapped lines grid-quantized; empty-canvas double-click drops into text.
+- Pen: pressure (real + velocity-simulated), streamline/smoothing/thinning outline, `Shift` 15deg straight, RDP simplify + 600 cap, near-loop auto-close.
+- Arrows: `normalizedAnchor/isExact/isPrecise/snap` bindings, live suggested-binding highlight, endpoint/midpoint drag re-bind, draggable labels.
+- Sticky: click-create 200x200, measured auto-grow, align.
+- Eraser: collision-based for shapes/ink/arrows/text, `Ctrl`-temp mode. Old boards backfill defaults in `normalizeDoc`.
+- Original line copy (jojopen.com bundle `index-AUJ3ngSu.js`): selection shows the raw polyline dashed (`4 4`, opacity .5) under the routed curve; orthogonal arrows get axis-constrained segment handles (28px min), curved/manual routes get waypoint handles + insert (+) handles (36px min, 9px hit, endpoints 10px); waypoint drag sets `route: manual`, segment drag cleans collinear points on release, double-click a waypoint on manual routes with >3 points removes the bend; `Re-route` collapses to 2 points + `route: auto`; idle hover with arrow/line tool previews the bind target; `<8px` arrows undo on release.
+
 *Screenshots and measurements come from the live production site; no source code was copied. This document is an independent behavioural specification for the reconstruction in [`legacy/index.html`](legacy/index.html) and its React port in [`src/`](src/).*

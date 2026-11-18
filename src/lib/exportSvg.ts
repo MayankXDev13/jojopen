@@ -1,0 +1,147 @@
+/* Board and slide SVG generation used by every export path. */
+
+import { esc } from './dom';
+import type { BoardElement } from './model';
+import type { ArrowGeom } from './geometry';
+import { arrowHead } from './geometry';
+import { nodeIconMarkup, shapeMarkup, type DiagramRender, type Paint } from './diagram';
+import { SLIDE_H, SLIDE_W } from './model';
+import type { Theme } from './palette';
+import { wrapText } from './layout';
+
+export type ExportEnv = {
+  th: Theme;
+  clean: boolean;
+  colorFor: (el: BoardElement) => Paint;
+  files: Record<string, string>;
+  slides: BoardElement[];
+  diagramFor: (dsl: string) => DiagramRender;
+  arrowGeom: (el: BoardElement) => ArrowGeom;
+};
+
+const roughDefs = `<defs><filter id="rough" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.021" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.8"/></filter></defs>`;
+
+export function elementSVG(e: BoardElement, env: ExportEnv): string {
+  const th = env.th;
+  const clean = env.clean;
+  const filter = clean ? '' : 'url(#rough)';
+  const c = env.colorFor(e);
+  switch (e.type) {
+    case 'shape': {
+      const lines = wrapText(e.label || '', e.width - (e.icon ? 54 : 24), 13);
+      const lh = 15;
+      const total = lines.length * lh;
+      const startY = e.height / 2 - total / 2 + 12;
+      const cx = e.icon ? e.width / 2 + 10 : e.width / 2;
+      let s = `<g transform="translate(${e.x} ${e.y})">`;
+      s += shapeMarkup(e.shape, e.width, e.height, e.noFill ? 'none' : c.fill, c.stroke, filter);
+      if (e.icon) s += nodeIconMarkup({ icon: e.icon }, 16, e.height / 2 - 9, 18, e.noFill ? c.stroke : c.text);
+      lines.forEach((ln, i) => {
+        s += `<text x="${cx}" y="${startY + i * lh + (lines.length === 1 ? -2 : 0)}" text-anchor="middle" font-family="${clean ? 'Inter,system-ui,sans-serif' : "Kalam,'Comic Neue',cursive"}" font-size="13" fill="${e.noFill ? c.stroke : c.text}">${esc(ln)}</text>`;
+      });
+      return s + '</g>';
+    }
+    case 'text': {
+      const fs = e.fontSize || 18;
+      const lines = wrapText(e.text || '', e.width, fs);
+      const anchor = e.align === 'center' ? 'middle' : 'start';
+      const tx = e.align === 'center' ? e.x + e.width / 2 : e.x;
+      return lines
+        .map(
+          (ln, i) =>
+            `<text x="${tx}" y="${e.y + fs * 0.98 + i * fs * 1.28}" text-anchor="${anchor}" font-family="${clean ? 'Inter,system-ui,sans-serif' : "Kalam,'Comic Neue',cursive"}" font-size="${fs}" fill="${th.ink}">${esc(ln)}</text>`,
+        )
+        .join('');
+    }
+    case 'sticky': {
+      const lines = wrapText(e.text || '', e.width - 28, 16);
+      let s = `<g><rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="3" fill="${th.sticky}"/><path d="M${e.x + e.width - 20} ${e.y + e.height} l20 -20 v20 z" fill="rgba(0,0,0,.12)"/>`;
+      lines.forEach((ln, i) => {
+        s += `<text x="${e.x + 14}" y="${e.y + 26 + i * 19}" font-family="Kalam,'Comic Neue',cursive" font-size="16" fill="${th.stickyInk}">${esc(ln)}</text>`;
+      });
+      return s + '</g>';
+    }
+    case 'container':
+      return `<g><rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="12" fill="none" stroke="${th.frame}" stroke-width="1.5" stroke-dasharray="6 5"/><text x="${e.x + 14}" y="${e.y + 12}" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="500" fill="${th.frameText}">${esc(e.label)}</text></g>`;
+    case 'slide': {
+      const n = env.slides.findIndex((s) => s.id === e.id) + 1;
+      return `<g><rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="3" fill="${th.slide}" stroke="${th.slideEdge}"/><text x="${e.x}" y="${e.y - 9}" font-family="Inter,system-ui,sans-serif" font-size="12" fill="${th.muted}">${n} · ${esc(e.title)}</text></g>`;
+    }
+    case 'diagram': {
+      const r = env.diagramFor(e.dsl || '');
+      return `<g transform="translate(${e.x} ${e.y})"><svg width="${e.width}" height="${e.height}" viewBox="0 0 ${r.layout.width} ${r.layout.height}" preserveAspectRatio="xMidYMid meet">${r.svg.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '')}</svg></g>`;
+    }
+    case 'image': {
+      const src = env.files[e.fileId || ''] || '';
+      return `<image x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" href="${src}" preserveAspectRatio="xMidYMid meet"/>`;
+    }
+    case 'freehand': {
+      const pts = (e.points || []).map((p) => `${e.x + p.x},${e.y + p.y}`).join(' ');
+      return `<polyline points="${pts}" fill="none" stroke="${th.ink}" stroke-width="${e.strokeWidth || 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+    case 'arrow': {
+      const g = env.arrowGeom(e);
+      const dash = e.kind === 'async' ? '7 5' : e.kind === 'optional' ? '2 5' : e.dash === 'dashed' ? '7 5' : e.dash === 'dotted' ? '2 5' : '';
+      let s = `<path d="${g.d}" fill="none" stroke="${th.arrow}" stroke-width="${e.dash === 'thick' ? 2.6 : 1.7}" stroke-linecap="round" stroke-linejoin="round" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`;
+      if (e.kind !== 'line') s += arrowHead(g, 'end', th.arrow);
+      if (e.kind === 'bidirectional') s += arrowHead(g, 'start', th.arrow);
+      if (e.label) {
+        const w = Math.max(28, e.label.length * 6.4 + 14);
+        s += `<g><rect x="${g.labelPoint.x - w / 2}" y="${g.labelPoint.y - 10}" width="${w}" height="20" rx="5" fill="${th.labelPill}" stroke="${th.slideEdge}" stroke-width=".8"/><text x="${g.labelPoint.x}" y="${g.labelPoint.y + 4}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="${th.muted}">${esc(e.label)}</text></g>`;
+      }
+      return s;
+    }
+    default:
+      return '';
+  }
+}
+
+export function exportSVG(list: BoardElement[], bounds: { minX: number; minY: number; width: number; height: number } | null, env: ExportEnv, opts: { bg?: boolean } = {}) {
+  const th = env.th;
+  if (!bounds) return null;
+  const pad = 40;
+  const x = bounds.minX - pad;
+  const y = bounds.minY - pad;
+  const w = Math.max(1, bounds.width + pad * 2);
+  const h = Math.max(1, bounds.height + pad * 2);
+  const parts: string[] = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(w)}" height="${Math.round(h)}" viewBox="${x} ${y} ${w} ${h}">`);
+  parts.push(roughDefs);
+  if (opts.bg !== false) parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${th.board}"/>`);
+  for (const e of list) parts.push(elementSVG(e, env));
+  parts.push('</svg>');
+  return { svg: parts.join(''), width: Math.round(w), height: Math.round(h) };
+}
+
+export function renderSlideSVG(sl: BoardElement, children: BoardElement[], env: ExportEnv): string {
+  const th = env.th;
+  const parts: string[] = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${SLIDE_W}" height="${SLIDE_H}" viewBox="${sl.x} ${sl.y} ${SLIDE_W} ${SLIDE_H}">`);
+  parts.push(
+    `${roughDefs.replace('</defs>', '')}<clipPath id="clip"><rect x="${sl.x}" y="${sl.y}" width="${SLIDE_W}" height="${SLIDE_H}"/></clipPath></defs>`,
+  );
+  parts.push(`<rect x="${sl.x}" y="${sl.y}" width="${SLIDE_W}" height="${SLIDE_H}" fill="${th.slide}"/>`);
+  parts.push(`<g clip-path="url(#clip)">`);
+  for (const e of children) parts.push(elementSVG(e, env));
+  parts.push('</g></svg>');
+  return parts.join('');
+}
+
+export const svgToDataURL = (svg: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+
+export async function rasterize(svg: string, w: number, h: number, scale: number): Promise<HTMLCanvasElement> {
+  const url = svgToDataURL(svg);
+  const img = new Image();
+  await new Promise((res, rej) => {
+    img.onload = res as () => void;
+    img.onerror = rej;
+    img.src = url;
+  });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(w * scale);
+  canvas.height = Math.round(h * scale);
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}

@@ -584,6 +584,7 @@ export function BoardsPanel() {
     collections.find((c) => c.id === activeColId) || collections[0];
 
   const [newColName, setNewColName] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const collectionCounts: Record<string, number> = {};
   for (const b of allBoards) {
@@ -787,10 +788,61 @@ export function BoardsPanel() {
             {filtered.length ? (
               filtered.map((b: any) => {
                 const isCurrent = b.id === S.doc.id;
+                if (confirmDeleteId === b.id) {
+                  return (
+                    <li key={b.id} className="boardrow is-confirm">
+                      <div className="boardconfirm">
+                        Delete “{b.name}”? This can’t be undone.
+                      </div>
+                      <div className="boardconfirm-actions">
+                        <button
+                          className="btn"
+                          style={{
+                            height: 28,
+                            padding: "0 10px",
+                            borderRadius: 6,
+                            fontSize: 12,
+                            background: "transparent",
+                            border: "1px solid var(--border)",
+                            color: "var(--text)",
+                            cursor: "pointer",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDeleteId(null);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="btn is-danger"
+                          style={{
+                            height: 28,
+                            padding: "0 10px",
+                            borderRadius: 6,
+                            fontSize: 12,
+                            background: "#e5484d",
+                            borderColor: "#e5484d",
+                            color: "#fff",
+                            cursor: "pointer",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteBoard(b.id);
+                            setConfirmDeleteId(null);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </li>
+                  );
+                }
+
                 return (
                   <li
                     key={b.id}
-                    className="board-row"
+                    className="boardrow"
                     style={{ position: "relative" }}
                   >
                     <a
@@ -809,18 +861,20 @@ export function BoardsPanel() {
                         <Icon name="lock" size={11} />
                       </div>
                     </a>
-                    <button
-                      className="iconbtn small board-del-btn"
-                      data-act="deleteBoard"
-                      data-id={b.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteBoard(b.id);
-                      }}
-                      title="Delete board"
-                    >
-                      <Icon name="trash" size={13} />
-                    </button>
+                    <div className="boardrow-actions">
+                      <button
+                        className="iconbtn small"
+                        data-act="deleteBoard"
+                        data-id={b.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDeleteId(b.id);
+                        }}
+                        title="Delete"
+                      >
+                        <Icon name="trash" size={13} />
+                      </button>
+                    </div>
                   </li>
                 );
               })

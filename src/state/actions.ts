@@ -45,6 +45,7 @@ import {
   S,
   addElement,
   boardsList,
+  collectionsList,
   colorFor,
   diagram,
   elements,
@@ -742,7 +743,30 @@ export function saveRename(name: string, newId?: string) {
 
 export function copyBoardLink() {
   saveBoardCopy();
-  const link = location.origin + location.pathname + "#/b/" + S.doc.id;
+  let link = "";
+  if (typeof window !== "undefined") {
+    const host = window.location.host.replace(/^\/+/, "");
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    if (segments.length >= 2) {
+      const slugVal =
+        segments[2] ||
+        `${slug(S.doc.name || "board")}-${(S.doc.id || "xn9jzgl0").slice(0, 8)}`;
+      link = `${window.location.protocol}//${host}/${segments[0]}/${segments[1]}/${slugVal}`;
+    } else {
+      const username =
+        (typeof localStorage !== "undefined" &&
+          localStorage.getItem("jojopen.user.v1")) ||
+        "mayanknair";
+      const col =
+        collectionsList().find(
+          (c) => c.id === (S.doc.collectionId || S.activeCollection),
+        )?.name || "jojo";
+      const slugVal = `${slug(S.doc.name || "board")}-${(S.doc.id || "xn9jzgl0").slice(0, 8)}`;
+      link = `${window.location.protocol}//${host}/${username}/${col}/${slugVal}`;
+    }
+  } else {
+    link = `https://jojopen.com/mayanknair/jojo/${slug(S.doc.name || "board")}-${(S.doc.id || "xn9jzgl0").slice(0, 8)}`;
+  }
   navigator.clipboard
     ?.writeText(link)
     .then(() => toast("Board link copied"))
@@ -798,8 +822,13 @@ export function openBoard(id: string) {
   }
 }
 
-export function deleteBoard(id: string) {
-  if (!confirm("Delete this board? This cannot be undone.")) return;
+export function deleteBoard(id: string, skipConfirm = true) {
+  if (
+    !skipConfirm &&
+    typeof confirm !== "undefined" &&
+    !confirm("Delete this board? This cannot be undone.")
+  )
+    return;
   const list = boardsList().filter((b: any) => b.id !== id);
   localStorage.setItem(KEY_BOARDS, JSON.stringify(list));
   localStorage.removeItem("jojopen.board." + id);

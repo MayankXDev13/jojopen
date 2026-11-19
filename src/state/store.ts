@@ -328,8 +328,6 @@ export type Collection = {
 
 export const DEFAULT_COLLECTIONS: Collection[] = [
   { id: "col-jojo", name: "jojo", createdAt: 1 },
-  { id: "col-ledger-x", name: "ledger-x", createdAt: 2 },
-  { id: "col-sketcha", name: "sketcha", createdAt: 3 },
 ];
 
 export function collectionsList(): Collection[] {
@@ -340,7 +338,24 @@ export function collectionsList(): Collection[] {
       return DEFAULT_COLLECTIONS;
     }
     const cols = JSON.parse(raw);
-    return Array.isArray(cols) && cols.length ? cols : DEFAULT_COLLECTIONS;
+    if (!Array.isArray(cols) || cols.length === 0) {
+      localStorage.setItem(KEY_COLLECTIONS, JSON.stringify(DEFAULT_COLLECTIONS));
+      return DEFAULT_COLLECTIONS;
+    }
+    // Delete ledger-x and sketcha collections if they exist in localStorage
+    const cleaned = cols.filter(
+      (c) =>
+        c.name !== "ledger-x" &&
+        c.name !== "sketcha" &&
+        c.id !== "col-ledger-x" &&
+        c.id !== "col-sketcha",
+    );
+    if (cleaned.length !== cols.length || cleaned.length === 0) {
+      const result = cleaned.length ? cleaned : DEFAULT_COLLECTIONS;
+      localStorage.setItem(KEY_COLLECTIONS, JSON.stringify(result));
+      return result;
+    }
+    return cleaned;
   } catch {
     return DEFAULT_COLLECTIONS;
   }
@@ -374,58 +389,6 @@ export function deleteCollection(id: string) {
   const list = collectionsList().filter((c) => c.id !== id);
   saveCollections(list.length ? list : DEFAULT_COLLECTIONS);
 }
-
-const DEFAULT_INITIAL_BOARDS = [
-  {
-    id: "b-peppy-token",
-    name: "Peppy Token",
-    collectionId: "col-jojo",
-    updatedAt: Date.now(),
-    kind: "board",
-  },
-  {
-    id: "b-gap-analysis",
-    name: "Text Arrow Pen vs Excalidraw - Gap Analysis",
-    collectionId: "col-jojo",
-    updatedAt: Date.now(),
-    kind: "board",
-  },
-  {
-    id: "b-aws",
-    name: "AWS",
-    collectionId: "col-jojo",
-    updatedAt: Date.now() - 86400000,
-    kind: "board",
-  },
-  {
-    id: "b-ledger-core",
-    name: "Ledger Core Architecture",
-    collectionId: "col-ledger-x",
-    updatedAt: Date.now(),
-    kind: "board",
-  },
-  {
-    id: "b-event-stream",
-    name: "Event Sourcing Pipeline",
-    collectionId: "col-ledger-x",
-    updatedAt: Date.now() - 86400000,
-    kind: "board",
-  },
-  {
-    id: "b-system-blueprint",
-    name: "System Blueprint",
-    collectionId: "col-sketcha",
-    updatedAt: Date.now(),
-    kind: "board",
-  },
-  {
-    id: "b-network-topology",
-    name: "Network Topology",
-    collectionId: "col-sketcha",
-    updatedAt: Date.now() - 86400000,
-    kind: "board",
-  },
-];
 
 export function persist(now = false) {
   clearTimeout(saveTimer);
@@ -461,44 +424,50 @@ export function persist(now = false) {
 export function boardsList(): any[] {
   try {
     const raw = localStorage.getItem(KEY_BOARDS);
-    if (!raw) {
-      localStorage.setItem(KEY_BOARDS, JSON.stringify(DEFAULT_INITIAL_BOARDS));
-      return DEFAULT_INITIAL_BOARDS;
-    }
-    const list = JSON.parse(raw);
+    const list = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(list) || list.length === 0) {
-      localStorage.setItem(KEY_BOARDS, JSON.stringify(DEFAULT_INITIAL_BOARDS));
-      return DEFAULT_INITIAL_BOARDS;
+      const rec = {
+        id: S.doc?.id || uid(),
+        name: S.doc?.name || "Scratch board",
+        collectionId: S.doc?.collectionId || "col-jojo",
+        updatedAt: Date.now(),
+        kind: "board",
+      };
+      return [rec];
     }
-    // If the list only has 1 board or has boards missing collectionId
-    let changed = false;
-    const populated = list.map((b: any) => {
-      if (!b.collectionId) {
-        changed = true;
-        return { ...b, collectionId: "col-jojo" };
-      }
-      return b;
-    });
+    // Filter out any mock dummy boards and reassign any ledger-x/sketcha boards to jojo
+    const cleaned = list
+      .filter(
+        (b: any) =>
+          b.id !== "b-ledger-core" &&
+          b.id !== "b-event-stream" &&
+          b.id !== "b-system-blueprint" &&
+          b.id !== "b-network-topology",
+      )
+      .map((b: any) => ({
+        ...b,
+        collectionId:
+          b.collectionId === "col-ledger-x" || b.collectionId === "col-sketcha"
+            ? "col-jojo"
+            : b.collectionId || "col-jojo",
+      }));
 
-    // If there's only 1 board (e.g. initial demo board), merge default demo boards
-    // so collections don't look completely empty on first opening of collections
-    if (populated.length <= 1) {
-      for (const d of DEFAULT_INITIAL_BOARDS) {
-        if (!populated.some((b: any) => b.id === d.id || b.name === d.name)) {
-          populated.push(d);
-          changed = true;
-        }
-      }
-    }
-
-    if (changed) {
+    if (cleaned.length !== list.length) {
       try {
-        localStorage.setItem(KEY_BOARDS, JSON.stringify(populated.slice(0, 60)));
+        localStorage.setItem(KEY_BOARDS, JSON.stringify(cleaned.slice(0, 60)));
       } catch {}
     }
-    return populated;
+    return cleaned;
   } catch {
-    return DEFAULT_INITIAL_BOARDS;
+    return [
+      {
+        id: S.doc?.id || uid(),
+        name: S.doc?.name || "Scratch board",
+        collectionId: "col-jojo",
+        updatedAt: Date.now(),
+        kind: "board",
+      },
+    ];
   }
 }
 

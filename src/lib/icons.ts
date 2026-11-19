@@ -24,10 +24,11 @@ export const ICONS: Record<string, string> = {
   laser:
     '<path d="M3 17l7-7M12.5 7.5a2.5 2.5 0 1 1 0.01 0M15 3.5l.8 1.6M17.5 6l-1.6.8M16.5 2.5l-.5 1"/>',
   slides:
-    '<rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M12 18v3"/>',
-  code: '<path d="m9 8-4 4 4 4M15 8l4 4-4 4"/>',
+    '<path d="M4 4.5h12a1.5 1.5 0 0 1 1.5 1.5v6.5a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 12.5V6A1.5 1.5 0 0 1 4 4.5zM10 14v3M7 17h6"/>',
+  code: '<path d="M7 6l-4 4 4 4M13 6l4 4-4 4"/>',
   docshape: '<path d="M4 3.5h12V15c-2-1.2-4-1.2-6 0s-4 1.2-6 0z"/>',
-  help: '<circle cx="12" cy="12" r="9"/><path d="M9.3 9a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.2-2.7 3.6M12 17h.01"/>',
+  boards: '<path d="M4 3.5h12V15c-2-1.2-4-1.2-6 0s-4 1.2-6 0z"/>',
+  help: '<path d="M10 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14zM8 8a2 2 0 1 1 3 1.7c-.7.4-1 .8-1 1.6M10 14h.01"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   fit: '<path d="M4 9V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4"/>',
@@ -48,7 +49,7 @@ export const ICONS: Record<string, string> = {
   rounded: '<rect x="3" y="5" width="18" height="14" rx="4.5"/>',
   person: '<path d="M6 5h8a5 5 0 0 1 0 10H6A5 5 0 0 1 6 5z"/>',
   hourglass:
-    '<path d="M6 3h12M6 21h12"/><path d="M7 3v3.5c0 2 5 3.6 5 5.5s-5 3.5-5 5.5V21M17 3v3.5c0 2-5 3.6-5 5.5s5 3.5 5 5.5V21"/>',
+    '<path d="M5.5 3h9M5.5 17h9M6.5 3c0 4 3.5 5 3.5 7S6.5 13 6.5 17M13.5 3c0 4-3.5 5-3.5 7s3.5 3 3.5 7M8 15.5h4"/>',
   present:
     '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="m9 8 4 2-4 2z" fill="currentColor" stroke="none"/><path d="M8 20h8M12 16v4"/>',
   play: '<path d="m8 5 11 7-11 7z" fill="currentColor" stroke="none"/>',

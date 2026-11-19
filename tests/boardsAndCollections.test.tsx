@@ -2,10 +2,6 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-if (typeof globalThis.window === "undefined") {
-  globalThis.window = globalThis as any;
-}
-
 if (typeof globalThis.localStorage === "undefined") {
   const store: Record<string, string> = {};
   globalThis.localStorage = {
@@ -30,6 +26,7 @@ import {
   collectionsList,
   createCollection,
   boardsList,
+  KEY_COLLECTIONS,
   S,
 } from "../src/state/store";
 import { useBoardStore } from "../src/state/boardStore";
@@ -46,13 +43,27 @@ describe("Boards & Collections System", () => {
     } as any);
   });
 
-  it("provides default collections matching original site (jojo, ledger-x, sketcha)", () => {
+  it("provides jojo as the ONLY default collection", () => {
     const cols = collectionsList();
-    expect(cols.length).toBeGreaterThanOrEqual(3);
-    const names = cols.map((c) => c.name);
-    expect(names).toContain("jojo");
-    expect(names).toContain("ledger-x");
-    expect(names).toContain("sketcha");
+    expect(cols.length).toBe(1);
+    expect(cols[0].name).toBe("jojo");
+  });
+
+  it("purges ledger-x and sketcha collections if they exist in localStorage", () => {
+    globalThis.localStorage.setItem(
+      KEY_COLLECTIONS,
+      JSON.stringify([
+        { id: "col-jojo", name: "jojo", createdAt: 1 },
+        { id: "col-ledger-x", name: "ledger-x", createdAt: 2 },
+        { id: "col-sketcha", name: "sketcha", createdAt: 3 },
+      ]),
+    );
+
+    const cols = collectionsList();
+    expect(cols.length).toBe(1);
+    expect(cols[0].name).toBe("jojo");
+    expect(cols.some((c) => c.name === "ledger-x")).toBe(false);
+    expect(cols.some((c) => c.name === "sketcha")).toBe(false);
   });
 
   it("allows creating new collections dynamically", () => {
@@ -62,28 +73,26 @@ describe("Boards & Collections System", () => {
 
     const updated = collectionsList();
     expect(updated.some((c) => c.name === "my-projects")).toBe(true);
+    expect(updated.length).toBe(2);
   });
 
-  it("persists boards with their collectionId", () => {
+  it("persists boards with their collectionId defaulting to jojo", () => {
     const boards = boardsList();
     expect(boards.length).toBeGreaterThan(0);
-    const jojoBoards = boards.filter((b: any) => b.collectionId === "col-jojo");
-    expect(jojoBoards.length).toBeGreaterThanOrEqual(3);
-    const names = jojoBoards.map((b: any) => b.name);
-    expect(names).toContain("Peppy Token");
+    expect(boards.every((b: any) => b.collectionId === "col-jojo")).toBe(true);
   });
 
-  it("renders the BoardsPanel with original sidebar layout and collections", () => {
+  it("renders the BoardsPanel with original sidebar layout and jojo collection", () => {
     const html = renderToStaticMarkup(React.createElement(BoardsPanel));
 
     // Header has My boards
     expect(html).toContain("My boards");
 
-    // Collections label and pills
+    // Collections label and jojo pill
     expect(html).toContain("Collections");
     expect(html).toContain("jojo");
-    expect(html).toContain("ledger-x");
-    expect(html).toContain("sketcha");
+    expect(html).not.toContain("ledger-x");
+    expect(html).not.toContain("sketcha");
 
     // Search bar with placeholder
     expect(html).toContain('placeholder="Search all boards"');
@@ -96,31 +105,12 @@ describe("Boards & Collections System", () => {
 
     // Section label for current collection
     expect(html).toContain("BOARDS IN JOJO");
-
-    // Peppy Token board is listed
-    expect(html).toContain("Peppy Token");
-  });
-
-  it("switches active collection when activeCollection changes", () => {
-    useBoardStore.setState({ activeCollection: "col-ledger-x" } as any);
-    const html = renderToStaticMarkup(React.createElement(BoardsPanel));
-
-    expect(html).toContain("BOARDS IN LEDGER-X");
-    expect(html).toContain("Ledger Core Architecture");
-  });
-
-  it("filters boards when searching", () => {
-    useBoardStore.setState({ boardQuery: "Peppy" } as any);
-    const html = renderToStaticMarkup(React.createElement(BoardsPanel));
-
-    expect(html).toContain("Matching boards");
-    expect(html).toContain("Peppy Token");
-    expect(html).not.toContain("AWS");
   });
 
   it("creates a new board in the currently active collection", () => {
-    useBoardStore.setState({ activeCollection: "col-ledger-x" } as any);
+    const customCol = createCollection("custom-col")!;
+    useBoardStore.setState({ activeCollection: customCol.id } as any);
     newBoard();
-    expect(S.doc.collectionId).toBe("col-ledger-x");
+    expect(S.doc.collectionId).toBe(customCol.id);
   });
 });

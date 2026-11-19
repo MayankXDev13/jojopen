@@ -1041,7 +1041,7 @@ export function StartCard() {
   useVersion();
   const show =
     elements().length === 0 &&
-    S.panel === "none" &&
+    (S.panel === "none" || S.panel === "boards") &&
     !S.present &&
     !S.replay &&
     !S.zen &&

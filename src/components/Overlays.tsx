@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AI_META, loadAIConfig } from "../lib/ai";
+import { slug } from "../lib/dom";
 import { svgToDataURL } from "../lib/exportSvg";
 import {
   COMMANDS,
@@ -652,14 +653,9 @@ function IconSearch() {
 function BoardSettings() {
   useVersion();
   const nameRef = useRef<HTMLInputElement>(null);
-  const slugRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    nameRef.current?.focus();
-    nameRef.current?.select();
-  }, []);
 
   // Compute clean link prefix without any erroneous leading slash
+  // Format: {host}/{username}/{collection}/{slug}
   const host = (
     typeof window !== "undefined"
       ? window.location.host || "jojopen.com"
@@ -669,22 +665,60 @@ function BoardSettings() {
     typeof window !== "undefined" ? window.location.pathname : "";
   const segments = pathname.split("/").filter(Boolean);
 
-  let prefix = "";
-  let initialSlug = S.doc.id;
+  // 1. Username selected on sign-in (or from URL path / localStorage / default)
+  const username =
+    segments[0] && segments[0] !== "b"
+      ? segments[0]
+      : (typeof localStorage !== "undefined" &&
+          localStorage.getItem("jojopen.user.v1")) ||
+        "mayanknair";
 
-  if (segments.length >= 2) {
-    prefix = `${host}/${segments.slice(0, -1).join("/")}/`;
-    initialSlug = segments[segments.length - 1] || S.doc.id;
-  } else if (segments.length === 1 && segments[0] !== "b") {
-    prefix = `${host}/${segments[0]}/`;
-  } else {
-    prefix = `${host}/`;
-  }
+  // 2. Collection (default collection 'jojo' or current board's collection)
+  const currentCol =
+    collectionsList().find(
+      (c) => c.id === (S.doc.collectionId || S.activeCollection),
+    )?.name || "jojo";
+  const collectionName =
+    segments.length >= 2 ? segments[1] : currentCol;
+
+  // 3. Clean prefix without leading slash
+  const prefix = `${host}/${username}/${collectionName}/`;
+
+  // 4. Board slug suffix (e.g. short id "xn9jzgl0")
+  const suffix =
+    (segments.length >= 3 && segments[2].includes("-")
+      ? segments[2].split("-").pop()
+      : null) || (S.doc.id || "xn9jzgl0").slice(0, 8);
+
+  const defaultSlug = `${slug(S.doc.name || "board")}-${suffix}`;
+  const initialSlug =
+    segments.length >= 3 ? segments[2] : defaultSlug;
+
+  const [name, setName] = useState(S.doc.name || "");
+  const [slugVal, setSlugVal] = useState(initialSlug);
+  const [isSlugManual, setIsSlugManual] = useState(false);
+
+  useEffect(() => {
+    nameRef.current?.focus();
+    nameRef.current?.select();
+  }, []);
+
+  const onNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setName(val);
+    if (!isSlugManual) {
+      const s = slug(val.trim() || "board");
+      setSlugVal(s ? `${s}-${suffix}` : suffix);
+    }
+  };
+
+  const onSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsSlugManual(true);
+    setSlugVal(e.target.value);
+  };
 
   const handleSave = () => {
-    const newName = nameRef.current?.value || "";
-    const newSlug = slugRef.current?.value || "";
-    saveRename(newName, newSlug);
+    saveRename(name, slugVal);
   };
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -712,7 +746,8 @@ function BoardSettings() {
               ref={nameRef}
               className="input"
               id="renameInput"
-              defaultValue={S.doc.name}
+              value={name}
+              onChange={onNameChange}
               placeholder="Board name"
               onKeyDown={onKey}
             />
@@ -724,9 +759,9 @@ function BoardSettings() {
                 {prefix}
               </span>
               <input
-                ref={slugRef}
                 id="renameSlug"
-                defaultValue={initialSlug}
+                value={slugVal}
+                onChange={onSlugChange}
                 placeholder="slug"
                 onKeyDown={onKey}
               />

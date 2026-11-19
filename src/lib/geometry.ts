@@ -1002,30 +1002,6 @@ export function arrowGeom(
     return { d: roundedPath(pts), pts };
   };
 
-  const curvedFallback = (p0: Point, p1: Point) => {
-    if (Math.abs(p1.x - p0.x) < 1 || Math.abs(p1.y - p0.y) < 1) {
-      return { d: `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`, pts: [p0, p1] };
-    }
-    if (Math.abs(p1.x - p0.x) >= Math.abs(p1.y - p0.y)) {
-      const mx = (p0.x + p1.x) / 2;
-      const c1 = { x: mx, y: p0.y };
-      const c2 = { x: mx, y: p1.y };
-      const pts = sampleCubic(p0, c1, c2, p1, 24);
-      return {
-        d: `M${p0.x} ${p0.y} C${mx} ${p0.y} ${mx} ${p1.y} ${p1.x} ${p1.y}`,
-        pts,
-      };
-    }
-    const my = (p0.y + p1.y) / 2;
-    const c1 = { x: p0.x, y: my };
-    const c2 = { x: p1.x, y: my };
-    const pts = sampleCubic(p0, c1, c2, p1, 24);
-    return {
-      d: `M${p0.x} ${p0.y} C${p0.x} ${my} ${p1.x} ${my} ${p1.x} ${p1.y}`,
-      pts,
-    };
-  };
-
   if (
     mode === "orthogonal" &&
     el.route !== "manual" &&
@@ -1059,13 +1035,9 @@ export function arrowGeom(
       pts = seq;
     }
   } else {
-    // 2-point or auto-routed arrows
+    // 2-point or auto-routed arrows: orthogonal keeps elbow, curved and straight stay straight until bent
     if (mode === "orthogonal") {
       const fb = orthogonalFallback(p0, p1);
-      d = fb.d;
-      pts = fb.pts;
-    } else if (mode === "curved") {
-      const fb = curvedFallback(p0, p1);
       d = fb.d;
       pts = fb.pts;
     } else {

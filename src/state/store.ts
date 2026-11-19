@@ -279,6 +279,129 @@ export const slideChildren = (slide: BoardElement) =>
         : e.y + (e.height || 0) / 2;
     return pointInElement(midX, midY, slide);
   });
+
+export function slideBuildStages(
+  doc: BoardDoc,
+  slide: BoardElement,
+): string[][] {
+  const allChildren = slideChildren(slide);
+  const cmp = (a: BoardElement, b: BoardElement) =>
+    (a.index ?? 0) - (b.index ?? 0) || (a.id < b.id ? -1 : 1);
+  const isDiagramChild = (id: string) => {
+    const p = doc.elements[id];
+    return !!p?.frameId && doc.elements[p.frameId]?.type === "diagram";
+  };
+  const base: string[] = [];
+  const stages: string[][] = [];
+  const stageMap = new Map<string, number>();
+  const record = (ids: string[], stageIdx: number) =>
+    ids.forEach((id) => stageMap.set(id, stageIdx));
+
+  const nonArrows = allChildren
+    .filter((el) => el.type !== "arrow" && !isDiagramChild(el.id))
+    .sort(cmp);
+
+  for (const el of nonArrows) {
+    if (
+      el.type === "text" &&
+      el.y + el.height <= slide.y + slide.height * 0.2
+    ) {
+      base.push(el.id);
+      continue;
+    }
+    if (
+      el.type === "text" &&
+      el.meta?.slideRole === "icon-label" &&
+      stages.length
+    ) {
+      stages[stages.length - 1].push(el.id);
+      record([el.id], stages.length);
+      continue;
+    }
+    const stageGroup = [el.id];
+    if (el.type === "diagram") {
+      const diagChildren = Object.values(doc.elements)
+        .filter((c) => c.frameId === el.id)
+        .sort(cmp);
+      stageGroup.push(
+        ...diagChildren.filter((c) => c.type !== "arrow").map((c) => c.id),
+        ...diagChildren.filter((c) => c.type === "arrow").map((c) => c.id),
+      );
+    }
+    stages.push(stageGroup);
+    record(stageGroup, stages.length);
+  }
+  record(base, 0);
+
+  for (const arr of allChildren
+    .filter((el) => el.type === "arrow" && !isDiagramChild(el.id))
+    .sort(cmp)) {
+    const startStage = arr.start?.elementId
+      ? stageMap.get(arr.start.elementId) ?? 0
+      : 0;
+    const endStage = arr.end?.elementId
+      ? stageMap.get(arr.end.elementId) ?? 0
+      : 0;
+    const maxStage = Math.max(startStage, endStage);
+    if (maxStage === 0) {
+      base.push(arr.id);
+    } else {
+      stages[maxStage - 1].push(arr.id);
+      stageMap.set(arr.id, maxStage);
+    }
+  }
+
+  return [base, ...stages.filter((s) => s.length > 0)];
+}
+
+export function slideStepCount(doc: BoardDoc, slide: BoardElement): number {
+  if (slide.builds && slide.builds.length > 0) return slide.builds.length;
+  if (slide.animate !== false) {
+    return Math.max(0, slideBuildStages(doc, slide).length - 1);
+  }
+  return 0;
+}
+
+export function slideHiddenElements(
+  doc: BoardDoc,
+  slide: BoardElement,
+  steps: number,
+): Set<string> {
+  const allChildren = slideChildren(slide);
+  const hidden = new Set<string>();
+
+  if (slide.builds && slide.builds.length > 0) {
+    for (let i = steps; i < slide.builds.length; i++) {
+      hidden.add(slide.builds[i]);
+    }
+  } else if (slide.animate !== false) {
+    const stages = slideBuildStages(doc, slide);
+    const visibleIds = new Set<string>();
+    stages.slice(0, steps + 1).forEach((group) => {
+      group.forEach((id) => visibleIds.add(id));
+    });
+    for (const c of allChildren) {
+      if (!visibleIds.has(c.id)) {
+        hidden.add(c.id);
+      }
+    }
+  }
+
+  // Never show an arrow if either connected endpoint is hidden
+  for (const el of allChildren) {
+    if (el.type === "arrow") {
+      const startHidden =
+        !!el.start?.elementId && hidden.has(el.start.elementId);
+      const endHidden = !!el.end?.elementId && hidden.has(el.end.elementId);
+      if (startHidden || endHidden) {
+        hidden.add(el.id);
+      }
+    }
+  }
+
+  return hidden;
+}
+
 export const nextSlideOrder = () =>
   slides().reduce((m, s) => Math.max(m, s.order ?? 0), 0) + 1;
 export const selectionElements = () =>

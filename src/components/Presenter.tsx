@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { SLIDE_H, SLIDE_W } from "../lib/model";
-import { S, notify, slideChildren, slides, theme } from "../state/store";
+import {
+  S,
+  notify,
+  slideChildren,
+  slideHiddenElements,
+  slideStepCount,
+  slides,
+  theme,
+} from "../state/store";
 import { exitPresent, presentNav } from "../state/actions";
 import { Icon } from "./Icon";
 import { SceneView } from "./SceneView";
@@ -115,7 +123,8 @@ export function Presenter() {
       const cur = S.present;
       if (!cur) return;
       const currentSlide = allSlides[cur.index];
-      if (currentSlide && (currentSlide.builds || []).length > cur.steps) {
+      const maxSteps = currentSlide ? slideStepCount(S.doc, currentSlide) : 0;
+      if (currentSlide && maxSteps > cur.steps) {
         presentNav(1);
       } else if (cur.index < allSlides.length - 1) {
         presentNav(1);
@@ -135,8 +144,9 @@ export function Presenter() {
   const h = SLIDE_H * scale;
   const left = (vw - w) / 2;
   const top = (vh - h) / 2;
-  const builds = sl.builds || [];
-  const hidden = new Set(builds.slice(p.steps));
+  const totalSteps = slideStepCount(S.doc, sl);
+  const hidden = slideHiddenElements(S.doc, sl, p.steps);
+  const slideElements = slideChildren(sl).filter((el) => el.type !== "diagram");
   const total = list.length;
 
   return (
@@ -152,7 +162,7 @@ export function Presenter() {
         style={{ left, top, width: w, height: h, background: theme().slide }}
       >
         <SceneView
-          elements={slideChildren(sl)}
+          elements={slideElements}
           ox={sl.x}
           oy={sl.y}
           width={SLIDE_W}
@@ -198,7 +208,7 @@ export function Presenter() {
           fontSize: 11,
         }}
       >
-        {p.steps ? `build ${p.steps}/${builds.length}` : ""}
+        {totalSteps && p.steps ? `build ${p.steps}/${totalSteps}` : ""}
       </div>
     </div>
   );

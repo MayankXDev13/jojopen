@@ -364,17 +364,17 @@ export function compileDiagramDoc(
     });
   });
 
-  // Assign indices
+  // Assign indices: containers < shapes < arrows
   const baseIdx = d.index ?? 0;
   let counter = 1;
   for (const c of upserts.values()) {
     if (c.type === "container") c.index = baseIdx + 0.001 * counter++;
   }
-  for (const a of upserts.values()) {
-    if (a.type === "arrow") a.index = baseIdx + 0.001 * counter++;
-  }
   for (const s of upserts.values()) {
     if (s.type === "shape") s.index = baseIdx + 0.001 * counter++;
+  }
+  for (const a of upserts.values()) {
+    if (a.type === "arrow") a.index = baseIdx + 0.001 * counter++;
   }
 
   // Delete removed child elements

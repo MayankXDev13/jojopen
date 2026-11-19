@@ -11,6 +11,7 @@ import {
   elements,
   notify,
   slideChildren,
+  slideStepCount,
   slides,
 } from "../state/store";
 import { useBoardStore, useVersion } from "../state/boardStore";
@@ -149,7 +150,7 @@ function SlideThumb({ slide }: { slide: BoardElement }) {
   return (
     <div className="slidethumb" ref={ref}>
       <SceneView
-        elements={slideChildren(slide)}
+        elements={slideChildren(slide).filter((e) => e.type !== "diagram")}
         ox={slide.x}
         oy={slide.y}
         width={SLIDE_W}
@@ -312,11 +313,15 @@ export function SlidesPanel() {
               type="checkbox"
               data-act="toggleBuilds"
               data-id={activeSlide.id}
-              checked={(activeSlide.builds || []).length > 0}
+              checked={
+                activeSlide.builds && activeSlide.builds.length > 0
+                  ? true
+                  : activeSlide.animate !== false
+              }
               onChange={(e) => toggleBuilds(activeSlide.id, e.target.checked)}
             />{" "}
             Replay how it was drawn, step by step (
-            {slideChildren(activeSlide).length} steps)
+            {slideStepCount(S.doc, activeSlide)} steps)
           </label>
           <div className="builds-hint">
             Or add your own builds: select things on the slide, then add one

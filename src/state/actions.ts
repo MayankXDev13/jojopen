@@ -61,6 +61,7 @@ import {
   selectionElements,
   settings,
   slideChildren,
+  slideStepCount,
   slides,
   snapshot,
   sortedElements,
@@ -330,11 +331,13 @@ export function toggleBuilds(id: string, checked: boolean) {
   const sl = S.doc.elements[id];
   if (!sl || sl.type !== "slide") return;
   pushHistory("builds");
-  sl.builds = checked ? slideChildren(sl).map((e) => e.id) : [];
+  sl.animate = checked;
+  sl.builds = [];
   persist();
   notify();
+  const count = slideStepCount(S.doc, sl);
   toast(
-    checked ? `Builds on · ${plural(sl.builds.length, "step")}` : "Builds off",
+    checked ? `Builds on · ${plural(count, "step")}` : "Builds off",
   );
 }
 
@@ -360,7 +363,8 @@ export function buildAdd(id: string, mode: "appear" | "highlight") {
 export function buildReplay(id: string) {
   const sl = S.doc.elements[id];
   if (!sl) return;
-  sl.builds = slideChildren(sl).map((e) => e.id);
+  sl.animate = true;
+  sl.builds = [];
   const idx = slides().findIndex((s) => s.id === id);
   present(Math.max(0, idx));
   if (S.present) {
@@ -420,7 +424,8 @@ export function presentNav(delta: number) {
   const p = S.present;
   if (delta > 0) {
     const sl = list[p.index];
-    if (sl && (sl.builds || []).length > p.steps) {
+    const maxSteps = sl ? slideStepCount(S.doc, sl) : 0;
+    if (sl && maxSteps > p.steps) {
       p.steps++;
       notify();
       return;
@@ -438,7 +443,8 @@ export function presentNav(delta: number) {
     }
     if (p.index > 0) {
       p.index--;
-      p.steps = 0;
+      const prevSl = list[p.index];
+      p.steps = prevSl ? slideStepCount(S.doc, prevSl) : 0;
       notify();
     }
   }
@@ -1802,7 +1808,13 @@ export function exportPreview() {
     return withExportTheme(() => {
       if (o.scope === "slides") {
         const s = slides()[0];
-        return s ? renderSlide(s, slideChildren(s), exportEnv()) : "";
+        return s
+          ? renderSlide(
+              s,
+              slideChildren(s).filter((e) => e.type !== "diagram"),
+              exportEnv(),
+            )
+          : "";
       }
       const r = currentExportSVG(o.scope, { bg: o.bg });
       return r ? r.svg : "";
@@ -1831,7 +1843,11 @@ export async function downloadPNG() {
     if (!list.length) return toast("Nothing to export yet.");
     for (let i = 0; i < list.length; i++) {
       const svg = withExportTheme(() =>
-        renderSlide(list[i], slideChildren(list[i]), exportEnv()),
+        renderSlide(
+          list[i],
+          slideChildren(list[i]).filter((e) => e.type !== "diagram"),
+          exportEnv(),
+        ),
       );
       const canvas = await rasterize(svg, SLIDE_W, SLIDE_H, o.scale);
       const blob = await new Promise<Blob | null>((res) =>
@@ -1877,7 +1893,7 @@ export function printDeck() {
     list
       .map(
         (s) =>
-          `<section class="page"><img src="${svgToDataURL(renderSlide(s, slideChildren(s), exportEnv()))}"></section>`,
+          `<section class="page"><img src="${svgToDataURL(renderSlide(s, slideChildren(s).filter((e) => e.type !== "diagram"), exportEnv()))}"></section>`,
       )
       .join(""),
   );

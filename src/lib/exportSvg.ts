@@ -204,7 +204,10 @@ export function renderSlideSVG(
     `<rect x="${sl.x}" y="${sl.y}" width="${SLIDE_W}" height="${SLIDE_H}" fill="${th.slide}"/>`,
   );
   parts.push(`<g clip-path="url(#clip)">`);
-  for (const e of children) parts.push(elementSVG(e, env));
+  for (const e of children) {
+    if (e.type === "diagram") continue;
+    parts.push(elementSVG(e, env));
+  }
   parts.push("</g></svg>");
   return parts.join("");
 }

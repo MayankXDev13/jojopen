@@ -369,6 +369,7 @@ export function compileDiagramDoc(
 
     upserts.set(key, {
       ...prev,
+      kind: edge.kind,
       dash,
       startHead,
       endHead,

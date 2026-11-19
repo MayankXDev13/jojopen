@@ -1421,9 +1421,34 @@ export function autoColor() {
 
 export function randomColors() {
   pushHistory("random colors");
-  const isRandom = settings().palette === "random";
-  settings().palette = isRandom ? "roles" : "random";
-  useBoardStore.setState({ randomMode: !isRandom } as any);
+  const isRandom =
+    settings().palette === "random" || useBoardStore.getState().randomMode;
+  const nextMode = !isRandom;
+  settings().palette = nextMode ? "random" : "roles";
+  useBoardStore.setState({ randomMode: nextMode } as any);
+  if (nextMode) {
+    const vibrant = COLOR_KEYS.filter((k) => k !== "gray" && k !== "ink");
+    const keys = [...vibrant].sort(() => Math.random() - 0.5);
+    elements()
+      .filter(
+        (e) =>
+          e.type === "shape" ||
+          e.type === "container" ||
+          e.type === "arrow" ||
+          e.type === "freehand",
+      )
+      .forEach((e, i) => {
+        e.color = keys[i % keys.length];
+        e.colorLocked = true;
+      });
+    toast("Random colors");
+  } else {
+    elements().forEach((e) => {
+      e.colorLocked = false;
+      e.color = null;
+    });
+    toast("Random colors off");
+  }
   notify();
   persist();
 }

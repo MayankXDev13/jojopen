@@ -157,4 +157,20 @@ describe("Diagram: Full SVG Assembly", () => {
     expect(svg).toContain("Services");
     expect(svg).toContain("API Service");
   });
+
+  test("compileDiagramDoc sets kind and dash appropriately on arrows", () => {
+    const { compileDiagramDoc } = require("../src/lib/diagram");
+    const { MAKE, blankDoc } = require("../src/lib/model");
+    const doc = blankDoc();
+    const diag = MAKE.diagram({ id: "diag-1", x: 100, y: 100 });
+    doc.elements[diag.id] = diag;
+    const dsl = `a --> b : "async call"`;
+    const res = compileDiagramDoc(doc, "diag-1", dsl);
+    expect(res).toBeDefined();
+    expect(res.success).toBe(true);
+    const arrow = Object.values(doc.elements).find((e: any) => e.type === "arrow") as any;
+    expect(arrow).toBeDefined();
+    expect(arrow.kind).toBe("async");
+    expect(arrow.dash).toBe("dashed");
+  });
 });

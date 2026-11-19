@@ -420,6 +420,13 @@ export function parseDSL(src: string): ParsedDiagram {
       return;
     }
 
+    const hashMatch = /^#+\s*(.*)$/.exec(line);
+    if (hashMatch) {
+      const val = unquote(hashMatch[1].trim());
+      if (val) title = val;
+      return;
+    }
+
     /* group */
     const brace = scanTop(line, (c) => c === "{");
     if (brace >= 0) {

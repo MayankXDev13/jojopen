@@ -165,10 +165,12 @@ export function hashIdToColor(id: string): string {
   let n = 2166136261;
   for (let a = 0; a < id.length; a++)
     n = Math.imul(n ^ id.charCodeAt(a), 16777619);
-  return COLOR_KEYS[(n >>> 0) % COLOR_KEYS.length];
+  const vibrant = COLOR_KEYS.filter((k) => k !== "gray" && k !== "ink");
+  return vibrant[(n >>> 0) % vibrant.length];
 }
 
 export function randomColorsMap(): Record<string, string> {
+  const vibrant = COLOR_KEYS.filter((k) => k !== "gray" && k !== "ink");
   const els = elements().filter(
     (k) =>
       k.type === "shape" ||
@@ -179,11 +181,11 @@ export function randomColorsMap(): Record<string, string> {
   const n: Record<string, string> = {};
   const a: string[] = [];
   for (const el of els) {
-    let c = COLOR_KEYS.indexOf(hashIdToColor(el.id));
+    let c = vibrant.indexOf(hashIdToColor(el.id));
     if (c === -1) c = 0;
-    for (let r = 0; r < COLOR_KEYS.length && a.includes(COLOR_KEYS[c]); r++)
-      c = (c + 3) % COLOR_KEYS.length;
-    const o = COLOR_KEYS[c];
+    for (let r = 0; r < vibrant.length && a.includes(vibrant[c]); r++)
+      c = (c + 3) % vibrant.length;
+    const o = vibrant[c];
     n[el.id] = o;
     a.push(o);
     if (a.length > 2) a.shift();
@@ -741,7 +743,7 @@ export function zoomAt(cx: number, cy: number, factor: number) {
   const px = cx - r.left;
   const py = cy - r.top;
   const before = toWorld(cx, cy);
-  S.camera.zoom = clamp(S.camera.zoom * factor, 0.08, 4);
+  S.camera.zoom = clamp(S.camera.zoom * factor, 0.08, 8);
   S.camera.x = px - before.x * S.camera.zoom;
   S.camera.y = py - before.y * S.camera.zoom;
   notify();
@@ -813,7 +815,8 @@ export function addElement(el: BoardElement, opts: { noClamp?: boolean } = {}) {
       el.type === "freehand") &&
     !el.colorLocked
   ) {
-    el.color = COLOR_KEYS[Math.floor(Math.random() * COLOR_KEYS.length)];
+    const vibrant = COLOR_KEYS.filter((k) => k !== "gray" && k !== "ink");
+    el.color = vibrant[Math.floor(Math.random() * vibrant.length)];
     el.colorLocked = true;
   }
   const max = nextIndex();

@@ -96,6 +96,17 @@ describe("DSL: Groups, Titles, and Directives", () => {
     expect(res.direction).toBe("down");
   });
 
+  test("parses markdown-style heading as title without creating a phantom node", () => {
+    const src = `
+      # URL shortener
+      User -> CDN
+    `;
+    const res = parseDSL(src);
+    expect(res.title).toBe("URL shortener");
+    expect(res.nodes.has("# URL shortener")).toBe(false);
+    expect(res.nodes.size).toBe(2);
+  });
+
   test("parses nested groups and associates nodes with groups", () => {
     const src = `
       group Backend {

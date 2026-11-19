@@ -5,9 +5,11 @@ import {
   colorFor,
   elements,
   fitAll,
+  hashIdToColor,
   notify,
   paletteOn,
   persist,
+  randomColorsMap,
   redo,
   resolvedTheme,
   roleColor,
@@ -17,7 +19,7 @@ import {
   undo,
   zoomAt,
 } from "../state/store";
-import { COLOR_TO_ROLE } from "../lib/palette";
+import { COLOR_TO_ROLE, ROLE_TO_COLOR } from "../lib/palette";
 import {
   applyColor,
   autoColor,
@@ -826,7 +828,15 @@ export function ContextBar() {
                     k === "ink"
                       ? roleColor("ink")
                       : roleColor(COLOR_TO_ROLE[k] || "neutral");
-                  const active = !!el.colorLocked && el.color === k;
+                  const currentEffectiveColor =
+                    el.colorLocked && el.color
+                      ? el.color
+                      : (settings().palette === "random"
+                          ? (randomColorsMap()[el.id] || hashIdToColor(el.id))
+                          : (ROLE_TO_COLOR[roleOf(el)] || "gray"));
+                  const active =
+                    (el.colorLocked && el.color === k) ||
+                    (!el.colorLocked && currentEffectiveColor === k);
                   return (
                     <button
                       key={k}

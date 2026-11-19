@@ -385,8 +385,13 @@ export class SelectToolController implements ToolController {
       for (const [id, pos] of d.positions) {
         const el = S.doc.elements[id];
         if (!el) continue;
-        if (el.type === "arrow" && (el.start?.elementId || el.end?.elementId))
+        if (
+          el.type === "arrow" &&
+          ((el.start?.elementId && !d.positions.has(el.start.elementId)) ||
+            (el.end?.elementId && !d.positions.has(el.end.elementId)))
+        ) {
           continue;
+        }
         el.x = pos.x + dx;
         el.y = pos.y + dy;
       }

@@ -104,7 +104,9 @@ export class ArrowToolController implements ToolController {
         const [kind, a, b] = h.split(":");
         if (kind === "endpoint") {
           pushHistory("edit arrow");
-          S.drag = { mode: "arrow-edit", id: el.id, pointIdx: Number(a) };
+          const lastIdx = Math.max(1, (el.points?.length || 2) - 1);
+          const ptIdx = Number(a) === 0 ? 0 : lastIdx;
+          S.drag = { mode: "arrow-edit", id: el.id, pointIdx: ptIdx };
           (S as any).suggestedBinding = null;
           ctx.capturePointer(e.pointerId);
           notify();
@@ -357,24 +359,26 @@ export class ArrowToolController implements ToolController {
       const el = S.doc.elements[d.id];
       if (el) {
         const idx = d.pointIdx;
-        const pt = el.points![idx];
-        const world = { x: el.x + pt.x, y: el.y + pt.y };
-        const sug = suggestedBinding(sortedElements(), world, el.id);
-        const isEnd = idx === 0 || idx === el.points!.length - 1;
-        if (sug && isEnd) {
-          const binding = {
-            elementId: sug.el.id,
-            anchor: "auto",
-            normalizedAnchor: sug.anchor,
-            isExact: false,
-            isPrecise: true,
-            snap: "edge" as const,
-          };
-          if (idx === 0) el.start = binding;
-          else el.end = binding;
-        } else if (isEnd) {
-          if (idx === 0) el.start = null;
-          else el.end = null;
+        const pt = el.points?.[idx];
+        if (pt) {
+          const world = { x: el.x + pt.x, y: el.y + pt.y };
+          const sug = suggestedBinding(sortedElements(), world, el.id);
+          const isEnd = idx === 0 || idx === el.points!.length - 1;
+          if (sug && isEnd) {
+            const binding = {
+              elementId: sug.el.id,
+              anchor: "auto",
+              normalizedAnchor: sug.anchor,
+              isExact: false,
+              isPrecise: true,
+              snap: "edge" as const,
+            };
+            if (idx === 0) el.start = binding;
+            else el.end = binding;
+          } else if (isEnd) {
+            if (idx === 0) el.start = null;
+            else el.end = null;
+          }
         }
         S.selection = new Set([el.id]);
       }

@@ -446,4 +446,48 @@ describe("Geometry: Arrow Routing and Handles", () => {
     expect(geom3.d).toContain("C");
     expect(geom3.pts.length).toBe(3);
   });
+
+  test("2-point curved arrow between diagonal points renders smooth S-curve without overshoot", () => {
+    const arrow = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      routeMode: "curved",
+      points: [
+        { x: 100, y: 100 },
+        { x: 300, y: 200 },
+      ],
+    });
+    const geom = arrowGeom(arrow, () => undefined, THEME.light);
+    expect(geom.d).toContain("C200 100 200 200 300 200");
+    // Points are sampled along the curve
+    expect(geom.pts.length).toBeGreaterThan(2);
+  });
+
+  test("bound curved arrow with auto route ignores stale multi-point bends", () => {
+    const sEl = makeEl({ id: "s", type: "shape", x: 100, y: 100, width: 80, height: 60 });
+    const tEl = makeEl({ id: "t", type: "shape", x: 300, y: 250, width: 80, height: 60 });
+    const arrow = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      route: "auto",
+      routeMode: "curved",
+      start: { elementId: "s", anchor: "auto" },
+      end: { elementId: "t", anchor: "auto" },
+      // Stale detour waypoints from a previous orthogonal route
+      points: [
+        { x: 180, y: 130 },
+        { x: 180, y: 50 },
+        { x: 300, y: 50 },
+        { x: 300, y: 250 },
+      ],
+    });
+    const geom = arrowGeom(arrow, (id) => (id === "s" ? sEl : tEl), THEME.light);
+    // Should NOT route through (180, 50) detour; should use clean S-curve
+    expect(geom.d).toContain("C");
+    // Verify it doesn't overshoot way up to y=50
+    const minY = Math.min(...geom.pts.map((p) => p.y));
+    expect(minY).toBeGreaterThanOrEqual(100);
+  });
 });

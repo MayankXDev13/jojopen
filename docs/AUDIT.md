@@ -29,7 +29,7 @@ with per-child reveal steps.
 
 ## 2. Strengths worth keeping
 
-- The behaviour is already fully specified by [`FEATURES.md`](../FEATURES.md), including
+- The behaviour is already fully specified by [`FEATURES.md`](FEATURES.md), including
   exact labels, counts, key bindings and the Sands of Time flow.
 - The diagram engine is deliberately renderer-independent: it produces SVG strings from
   a parsed graph, which makes it reusable in React, thumbnails, replay, and export.

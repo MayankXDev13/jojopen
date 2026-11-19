@@ -7,7 +7,7 @@ chrome, hover key hints, a `system` theme, `Random colors`, `Size 1×` / `Clean 
 context bar and a **Sign in** chip; cloud boards and share/profile links remain gated.
 The React port mirrors this visual refresh in `src/styles/newui.css`.
 
-**Companion artifact:** [`legacy/index.html`](legacy/index.html) — the original single-file reconstruction of this app, verified end-to-end on 15 Nov 2026 (see [§15.1](#151-reconstruction-checks)). The app now ships as a Vite + React project; see [docs/MIGRATION.md](docs/MIGRATION.md) for the source layout and [docs/AUDIT.md](docs/AUDIT.md) for the audit.
+**Companion artifact:** [`legacy/index.html`](../legacy/index.html) — the original single-file reconstruction of this app, verified end-to-end on 15 Nov 2026 (see [§15.1](#151-reconstruction-checks)). The app now ships as a Vite + React project; see [MIGRATION.md](MIGRATION.md) for the source layout and [AUDIT.md](AUDIT.md) for the audit.
 
 ---
 
@@ -45,7 +45,7 @@ Earlier passes could not reach the site through the in-app browser (the desktop 
 | Interactions    | Hover, click, drag, right-click, keyboard shortcuts, text input, file-less flows          |
 | Console errors  | **0** across all runs                                                                     |
 | Failed requests | **0**                                                                                     |
-| Screenshots     | 30 in [`docs/img/`](docs/img/)                                                            |
+| Screenshots     | 30 in [`img/`](img/)                                                            |
 | Dates           | 14 Nov 2026                                                                               |
 
 The harness scripts are included so the run is reproducible:
@@ -86,7 +86,7 @@ Signed-in surfaces (cloud boards, share links, MCP, assistant calls) stay gated 
 
 JojoPen is a **sketch-style infinite whiteboard for system diagrams, with a built-in slide deck and a drawing recorder**. It is diagram-first rather than freeform-first: nodes carry semantic roles (actor, compute, data, cache, messaging…), edges route orthogonally, and the same content can be laid out as a presentation.
 
-![The scratch board with a URL-shortener system diagram](docs/img/01-board.png)
+![The scratch board with a URL-shortener system diagram](img/01-board.png)
 
 Three things distinguish it from a generic whiteboard:
 
@@ -102,7 +102,7 @@ Anonymous use is a **single “Scratch board”** saved to the browser. Signing 
 
 ### 3.1 Top bar
 
-![Top bar with style controls revealed](docs/img/02-toolbar.png)
+![Top bar with style controls revealed](img/02-toolbar.png)
 
 - **Hamburger** (`aria-label="Main menu"`) — opens the keyboard-shortcut sheet (the same sheet as `?`).
 - **Brand + board name** — “JojoPen · Scratch board”. When signed in the name becomes a button titled “Rename or change link”.
@@ -170,7 +170,7 @@ Always visible, six actions top-to-bottom:
 - **Zoom**: controls bottom-left, `Ctrl+=` / `Ctrl+-`, `Shift+0` for 100 %, `Shift+1` fit everything, `Shift+2` fit selection. The zoom % is displayed live (e.g. `69%` in slide view).
 - **Zen mode** (`Alt+Z`) hides all chrome except the brand and a “Zen mode · Alt+Z to exit” toast.
 
-![Zen mode](docs/img/24-zen.png)
+![Zen mode](img/24-zen.png)
 
 - **Undo/redo** with history (`Ctrl+Z`, `Ctrl+Shift+Z` / `Ctrl+Y`).
 - No right-click context menu is registered — actions live in the bottom format bar.
@@ -181,8 +181,8 @@ Always visible, six actions top-to-bottom:
 
 Everything you draw is a first-class element with position, size, layer order, lock state, role/color, and optional group membership. The default board demonstrates the visual language: hand-drawn containers, coloured role nodes, dashed async edges and labelled arrows.
 
-![Style: Clean](docs/img/03-style-clean.png)
-![Style: Chalkboard](docs/img/04-style-chalkboard.png)
+![Style: Clean](img/03-style-clean.png)
+![Style: Chalkboard](img/04-style-chalkboard.png)
 
 **Board styles**
 
@@ -198,14 +198,14 @@ Everything you draw is a first-class element with position, size, layer order, l
 - **B/W** — “turn every color off” (still keeps hierarchy via fills).
 - **Random colors** — every shape and arrow gets its own colour from the board palette, spread across the roles before repeating. The colours are locked against theme changes, drawn immediately, and recorded as one undoable step (bottom bar).
 
-![Black & white mode](docs/img/05-bw.png)
-![Dark theme](docs/img/06-dark.png)
+![Black & white mode](img/05-bw.png)
+![Dark theme](img/06-dark.png)
 
 **Sticky notes** are real notes with an inline editor (yellow paper, folded corner), not just coloured rectangles.
 
 **Icons** — press `/` (outside text editing) to open the icon search palette:
 
-![Icon search palette](docs/img/22-icons.png)
+![Icon search palette](img/22-icons.png)
 
 - Search field (“Search icons: user, database, postgres, queue…”).
 - Grid of named icons: stick figure, mobile, browser, server, database, cache, queue, load balancer, API, cloud, lock, user, PostgreSQL, Redis, Apache Kafka, Docker, Kubernetes, NGINX, inbox, notification, search index, bucket, CDN, box…
@@ -213,7 +213,7 @@ Everything you draw is a first-class element with position, size, layer order, l
 
 **Diagram frame** (`F`) — draws a titled frame (`# Diagram`) that groups diagram content; “Tidy up” appears in its format bar.
 
-![Diagram frame](docs/img/23-frame.png)
+![Diagram frame](img/23-frame.png)
 
 **Images** — `I` opens the OS file picker; images can also be dropped/pasted. (Not captured: OS dialog.)
 
@@ -225,7 +225,7 @@ Everything you draw is a first-class element with position, size, layer order, l
 
 Clicking an element selects it (blue handles + a floating format bar at the bottom). The bar is context-sensitive.
 
-![Selected node with format bar](docs/img/10-selection.png)
+![Selected node with format bar](img/10-selection.png)
 
 **Node format bar**
 
@@ -244,7 +244,7 @@ Clicking an element selects it (blue handles + a floating format bar at the bott
 
 **Edge format bar** — selecting an arrow exposes routing and style:
 
-![Selected edge with routing controls](docs/img/11-edge.png)
+![Selected edge with routing controls](img/11-edge.png)
 
 - **Elbow route**, **Curved route**, **Straight**.
 - **Dashed (async)** toggle.
@@ -260,7 +260,7 @@ Clicking an element selects it (blue handles + a floating format bar at the bott
 
 `Ctrl+E` or the rail code icon opens **Diagram code** on the right. With a diagram selected (or after **New diagram**) it shows a live, syntax-highlighted DSL editor.
 
-![Diagram code panel with live DSL](docs/img/12-code.png)
+![Diagram code panel with live DSL](img/12-code.png)
 
 Observed anatomy:
 
@@ -308,7 +308,7 @@ Orders service --> Kafka: order.created
 
 ### 7.3 Mermaid import
 
-![Import Mermaid dialog](docs/img/13-mermaid.png)
+![Import Mermaid dialog](img/13-mermaid.png)
 
 - Dialog: **“Paste a Mermaid flowchart”** with a textarea (placeholder `flowchart LR / A[Browser] --> B(API) ...`).
 - Buttons: **Cancel**, **Convert to diagram**, plus **Copy**.
@@ -324,7 +324,7 @@ Slides are **frames placed on the board**, 16:9 (1280×720 units). Anything draw
 
 `Ctrl+Shift+S` or the rail slide icon.
 
-![Slides panel](docs/img/14-slides-panel.png)
+![Slides panel](img/14-slides-panel.png)
 
 - Header: **Slides** with a count, **Present** button, close.
 - **Add slide** opens the layout picker; **Selection → slide** converts the current selection into a slide.
@@ -332,7 +332,7 @@ Slides are **frames placed on the board**, 16:9 (1280×720 units). Anything draw
 
 ### 8.2 Layouts
 
-![Layout picker](docs/img/15-layouts.png)
+![Layout picker](img/15-layouts.png)
 
 Six layouts, each with a mini diagram:
 
@@ -351,7 +351,7 @@ Layout geometry (from the bundle): 1280×720 unit, title at `y+253` size 69, sub
 
 Selecting a slide (or adding one) reveals the inspector in the slides panel.
 
-![Slide inspector with builds and speaker notes](docs/img/16-slide-builds.png)
+![Slide inspector with builds and speaker notes](img/16-slide-builds.png)
 
 - Thumbnails list with a play button and a delete button per slide.
 - **BUILDS**:
@@ -365,7 +365,7 @@ Selecting a slide (or adding one) reveals the inspector in the slides panel.
 
 `Ctrl+Enter` or **Present**.
 
-![Presenting a title slide](docs/img/17-present.png)
+![Presenting a title slide](img/17-present.png)
 
 - Fullscreen letterboxed 16:9 stage (black surround), auto-fit scale.
 - Minimal floating control pill: previous, `1 / N` indicator, overflow menu, next, exit.
@@ -380,7 +380,7 @@ Selecting a slide (or adding one) reveals the inspector in the slides panel.
 
 When slides exist, the export dialog gains a **Slides (N)** scope and downloads one PNG per slide (`Download 1 PNG`, `Download N PNGs`).
 
-![Export scope with slides](docs/img/08-export-slides.png)
+![Export scope with slides](img/08-export-slides.png)
 
 ---
 
@@ -390,14 +390,14 @@ This is JojoPen's “recording” feature. It records **drawing actions on the b
 
 ### 9.1 Recording
 
-![Recording in progress (red hourglass, live step count)](docs/img/18-recording-active.png)
+![Recording in progress (red hourglass, live step count)](img/18-recording-active.png)
 
 1. Click the **hourglass** in the right rail. Its tooltip/`aria-label` becomes **“Stop recording (N steps so far)”**, the icon turns red, and a toast says:
    > “Sands of Time: recording — click the hourglass again to stop”
 2. Draw normally (shapes, stickies, arrows, labels…). Steps are counted live. The counter follows _history steps_, not objects: in one run two drawn shapes reported “3 steps”, because each create/resize pair can land as its own entry.
 3. Click the hourglass again to stop.
 
-![Recordings card with step count and duration](docs/img/19-recordings.png)
+![Recordings card with step count and duration](img/19-recordings.png)
 
 The **Sands of Time** card appears top-right:
 
@@ -414,7 +414,7 @@ The **Sands of Time** card appears top-right:
 
 Click a recording row (tooltip `Replay Sands 1`).
 
-![Replay player with scrubber and speed](docs/img/20-replay.png)
+![Replay player with scrubber and speed](img/20-replay.png)
 
 - Top pill: `Sands 1` + hints `← → step`, `Space play`, `Esc exit`.
 - Bottom player: previous / play / next, a **step scrubber** (`0/2`) with ticks, `Start`, **speed 1× → 2× → 4×**, export, exit.
@@ -426,7 +426,7 @@ Click a recording row (tooltip `Replay Sands 1`).
 
 The export button in the replay player opens a menu:
 
-![Replay export menu: GIF or MP4](docs/img/21-replay-export.png)
+![Replay export menu: GIF or MP4](img/21-replay-export.png)
 
 - **GIF** — “loops anywhere”.
 - **MP4 video** — “for X, LinkedIn, YouTube” (encoded with WebCodecs; the option only appears when the browser can encode H.264 at that size).
@@ -443,7 +443,7 @@ Frames are rendered from the vector document at each step, so output is crisp at
 
 `Ctrl+I` or the AI rail button.
 
-![Assistant panel](docs/img/25-assistant.png)
+![Assistant panel](img/25-assistant.png)
 
 - Header: **Assistant**, **Connect AI** chip, close.
 - Intro: “Ask for a diagram, or select one and ask to change, explain or review it.”
@@ -460,7 +460,7 @@ The assistant can return a whole diagram (the board is replaced/updated) or oper
 
 ### 10.2 Connect AI (BYO key)
 
-![Connect your AI dialog](docs/img/26-connect-ai.png)
+![Connect your AI dialog](img/26-connect-ai.png)
 
 - Providers: **Anthropic** (Claude, recommended), **OpenAI** (GPT), **Google Gemini**, **OpenAI-compatible** (OpenRouter, Ollama, LM Studio…).
 - **API key** field with reveal toggle and a provider-specific “Get one at …” link.
@@ -475,7 +475,7 @@ The assistant can return a whole diagram (the board is replaced/updated) or oper
 
 ### 10.4 MCP
 
-![Connect AI over MCP](docs/img/27-mcp.png)
+![Connect AI over MCP](img/27-mcp.png)
 
 Two tabs: **“Claude, Codex… (MCP)”** and **“Your API key”**.
 
@@ -489,7 +489,7 @@ Requires sign-in; then an external AI app connects to your boards over MCP. **[g
 
 `Ctrl+Shift+E` or **Export**.
 
-![Export dialog — PNG](docs/img/07-export.png)
+![Export dialog — PNG](img/07-export.png)
 
 | Option                                 | Values                                                                                      |
 | -------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -502,7 +502,7 @@ Requires sign-in; then an external AI app connects to your boards over MCP. **[g
 | Size readout                           | e.g. `2144 × 1032 px`, `1088 × 548 px`, `5344 × 1656 px`                                    |
 | Actions                                | **Copy** (clipboard) · **Download PNG / Download SVG / Download N PNGs**                    |
 
-![Export dialog — SVG](docs/img/09-export-svg.png)
+![Export dialog — SVG](img/09-export-svg.png)
 
 SVG exports at intrinsic size (no scale), with a “Download SVG” action. When exporting slides, PNG is the natural format (one file per slide).
 
@@ -526,7 +526,7 @@ Edits to an imported or seeded board persist through the port's keys (`jojopen.d
 
 ### 12.2 Sign in
 
-![My boards sign-in gate](docs/img/28-boards.png)
+![My boards sign-in gate](img/28-boards.png)
 
 - **Sign in** uses **Google OAuth** (redirect to `accounts.google.com`, then back).
 - **My boards** (rail) opens a panel: “Sign in to save boards, organise them into collections and share links.” → **Sign in with Google**, with Terms/Privacy links. **[gated]**
@@ -577,7 +577,7 @@ Element types include `slide`, `shape`, `text`, `sticky`, `image`, `freehand`, `
 
 ## 14. Keyboard shortcuts
 
-![Keyboard shortcut sheet](docs/img/29-shortcuts.png)
+![Keyboard shortcut sheet](img/29-shortcuts.png)
 
 Opened by `?` or the hamburger. Verbatim from the live sheet:
 
@@ -794,36 +794,36 @@ These are things that look like features in the UI but behave differently, or th
 
 | File                               | Feature                         |
 | ---------------------------------- | ------------------------------- |
-| `docs/img/01-board.png`            | Scratch board / default diagram |
-| `docs/img/02-toolbar.png`          | Expanded tool rail              |
-| `docs/img/03-style-clean.png`      | Clean style                     |
-| `docs/img/04-style-chalkboard.png` | Chalkboard style                |
-| `docs/img/05-bw.png`               | Black & white mode              |
-| `docs/img/06-dark.png`             | Dark theme                      |
-| `docs/img/07-export.png`           | Export (PNG)                    |
-| `docs/img/08-export-slides.png`    | Export scope “Slides (1)”       |
-| `docs/img/09-export-svg.png`       | Export (SVG)                    |
-| `docs/img/10-selection.png`        | Node selection + format bar     |
-| `docs/img/11-edge.png`             | Edge selection + routing        |
-| `docs/img/12-code.png`             | Diagram DSL panel               |
-| `docs/img/13-mermaid.png`          | Mermaid import                  |
-| `docs/img/14-slides-panel.png`     | Slides panel                    |
-| `docs/img/15-layouts.png`          | Slide layouts                   |
-| `docs/img/16-slide-builds.png`     | Builds + speaker notes          |
-| `docs/img/17-present.png`          | Presentation                    |
-| `docs/img/18-recording-active.png` | Recording                       |
-| `docs/img/19-recordings.png`       | Recordings card                 |
-| `docs/img/20-replay.png`           | Replay player                   |
-| `docs/img/21-replay-export.png`    | GIF/MP4 export                  |
-| `docs/img/22-icons.png`            | Icon search                     |
-| `docs/img/23-frame.png`            | Diagram frame                   |
-| `docs/img/24-zen.png`              | Zen mode                        |
-| `docs/img/25-assistant.png`        | AI assistant                    |
-| `docs/img/26-connect-ai.png`       | Connect your AI                 |
-| `docs/img/27-mcp.png`              | MCP connection                  |
-| `docs/img/28-boards.png`           | My boards (sign-in gate)        |
-| `docs/img/29-shortcuts.png`        | Keyboard shortcuts              |
-| `docs/img/30-palette.png`          | Command palette placeholder     |
+| `img/01-board.png`            | Scratch board / default diagram |
+| `img/02-toolbar.png`          | Expanded tool rail              |
+| `img/03-style-clean.png`      | Clean style                     |
+| `img/04-style-chalkboard.png` | Chalkboard style                |
+| `img/05-bw.png`               | Black & white mode              |
+| `img/06-dark.png`             | Dark theme                      |
+| `img/07-export.png`           | Export (PNG)                    |
+| `img/08-export-slides.png`    | Export scope “Slides (1)”       |
+| `img/09-export-svg.png`       | Export (SVG)                    |
+| `img/10-selection.png`        | Node selection + format bar     |
+| `img/11-edge.png`             | Edge selection + routing        |
+| `img/12-code.png`             | Diagram DSL panel               |
+| `img/13-mermaid.png`          | Mermaid import                  |
+| `img/14-slides-panel.png`     | Slides panel                    |
+| `img/15-layouts.png`          | Slide layouts                   |
+| `img/16-slide-builds.png`     | Builds + speaker notes          |
+| `img/17-present.png`          | Presentation                    |
+| `img/18-recording-active.png` | Recording                       |
+| `img/19-recordings.png`       | Recordings card                 |
+| `img/20-replay.png`           | Replay player                   |
+| `img/21-replay-export.png`    | GIF/MP4 export                  |
+| `img/22-icons.png`            | Icon search                     |
+| `img/23-frame.png`            | Diagram frame                   |
+| `img/24-zen.png`              | Zen mode                        |
+| `img/25-assistant.png`        | AI assistant                    |
+| `img/26-connect-ai.png`       | Connect your AI                 |
+| `img/27-mcp.png`              | MCP connection                  |
+| `img/28-boards.png`           | My boards (sign-in gate)        |
+| `img/29-shortcuts.png`        | Keyboard shortcuts              |
+| `img/30-palette.png`          | Command palette placeholder     |
 
 ---
 

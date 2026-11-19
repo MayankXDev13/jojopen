@@ -11,7 +11,7 @@ bun run build     # type-check + production bundle
 bun run preview
 ```
 
-- Feature reference: [`FEATURES.md`](FEATURES.md)
+- Feature reference: [`docs/FEATURES.md`](docs/FEATURES.md)
 - Code audit: [`docs/AUDIT.md`](docs/AUDIT.md)
 - Architecture and migration notes: [`docs/MIGRATION.md`](docs/MIGRATION.md)
 - Parity harness: [`docs/harness/`](docs/harness/)

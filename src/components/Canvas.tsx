@@ -4,6 +4,7 @@ import {
   S,
   selectionElements,
   settings,
+  slides,
   sortedElements,
   theme,
   toWorld,
@@ -165,7 +166,9 @@ export function Canvas() {
   const selBounds =
     S.editingId || isSingleArrow ? null : list.length ? boundsOf(list) : null;
   const resizable =
-    !!single && !single.locked && !["arrow", "freehand"].includes(single.type);
+    !!single &&
+    !single.locked &&
+    !["arrow", "freehand", "slide"].includes(single.type);
   const sugId = (S as any).suggestedBinding as string | null;
   const sugEl = sugId ? S.doc.elements[sugId] : null;
   const sugBounds = sugEl ? elementBounds(sugEl) : null;
@@ -203,23 +206,25 @@ export function Canvas() {
           transform: `translate(${S.camera.x}px,${S.camera.y}px) scale(${S.camera.zoom})`,
         }}
       >
+        <div id="slides">
+          {sortedElements()
+            .filter((el) => el.type === "slide")
+            .map((el) => (
+              <NodeView
+                key={el.id}
+                el={el}
+                selected={S.selection.has(el.id)}
+                slideNumber={slides().findIndex((s) => s.id === el.id) + 1}
+              />
+            ))}
+        </div>
         <Edges />
         <div id="nodes">
-          {sortedElements().map((el) => (
-            <NodeView
-              key={el.id}
-              el={el}
-              selected={S.selection.has(el.id)}
-              slideNumber={
-                el.type === "slide"
-                  ? ([...Object.values(S.doc.elements)] as any[])
-                      .filter((x) => x.type === "slide")
-                      .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
-                      .findIndex((s: any) => s.id === el.id) + 1
-                  : undefined
-              }
-            />
-          ))}
+          {sortedElements()
+            .filter((el) => el.type !== "slide")
+            .map((el) => (
+              <NodeView key={el.id} el={el} selected={S.selection.has(el.id)} />
+            ))}
         </div>
       </div>
       {S.marquee ? (

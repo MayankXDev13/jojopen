@@ -70,7 +70,7 @@ export function Overlays() {
   if (S.palette) return <CommandPalette />;
   if (S.exportOpen) return <ExportDialog />;
   if (S.connectOpen) return <ConnectDialog />;
-  if (S.mermaidOpen) return <MermaidDialog />;
+  if (S.mermaidOpen && S.panel !== "code") return <MermaidDialog />;
   if (S.iconSearch) return <IconSearch />;
   if (S.renameOpen) return <BoardSettings />;
   return null;
@@ -680,8 +680,7 @@ function BoardSettings() {
     collectionsList().find(
       (c) => c.id === (S.doc.collectionId || S.activeCollection),
     )?.name || "jojo";
-  const collectionName =
-    segments.length >= 2 ? segments[1] : currentCol;
+  const collectionName = segments.length >= 2 ? segments[1] : currentCol;
 
   // 3. Clean prefix without leading slash
   const prefix = `${host}/${username}/${collectionName}/`;
@@ -693,8 +692,7 @@ function BoardSettings() {
       : null) || (S.doc.id || "xn9jzgl0").slice(0, 8);
 
   const defaultSlug = `${slug(S.doc.name || "board")}-${suffix}`;
-  const initialSlug =
-    segments.length >= 3 ? segments[2] : defaultSlug;
+  const initialSlug = segments.length >= 3 ? segments[2] : defaultSlug;
 
   const [name, setName] = useState(S.doc.name || "");
   const [slugVal, setSlugVal] = useState(initialSlug);

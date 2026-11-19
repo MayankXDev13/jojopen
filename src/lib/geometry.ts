@@ -87,7 +87,11 @@ export function shapeEncloses(
     innerCy >= outer.y &&
     innerCy <= outer.y + outer.height;
 
-  if (centerInside && outer.width >= inner.width && outer.height >= inner.height) {
+  if (
+    centerInside &&
+    outer.width >= inner.width &&
+    outer.height >= inner.height
+  ) {
     const xOverlap = Math.max(
       0,
       Math.min(outer.x + outer.width, inner.x + inner.width) -
@@ -121,6 +125,7 @@ export function nextFrameElement(
         e.id !== excludeId &&
         e.type !== "arrow" &&
         e.type !== "freehand" &&
+        e.type !== "slide" &&
         pointInElement(point.x, point.y, e),
     );
   return hit || null;
@@ -210,7 +215,6 @@ export function hitTestArrow(
   }
   return false;
 }
-
 
 /* ---- Arrow handles, mirroring the original board (jojopen.com) ----
    Orthogonal arrows expose axis-constrained segment handles; other modes
@@ -486,7 +490,12 @@ function freeTrack(
   return best;
 }
 
-function autoOrthogonal(a: Bounds, b: Bounds): Point[] | null {
+function autoOrthogonal(
+  a: Bounds,
+  b: Bounds,
+  p0Hint?: Point,
+  p1Hint?: Point,
+): Point[] | null {
   const pad = 16;
   const ea = expand(a, pad);
   const eb = expand(b, pad);
@@ -505,28 +514,146 @@ function autoOrthogonal(a: Bounds, b: Bounds): Point[] | null {
       const pen =
         (n1.x * toB.x + n1.y * toB.y < 0 ? 400 : 0) +
         (n2.x * toA.x + n2.y * toA.y < 0 ? 400 : 0);
-      const p0 = sidePoint(a, s1);
-      const p1 = sidePoint(b, s2);
+
+      const along0 = s1 === "left" || s1 === "right" ? p0Hint?.y : p0Hint?.x;
+      const along1 = s2 === "left" || s2 === "right" ? p1Hint?.y : p1Hint?.x;
+      const p0 = sidePoint(a, s1, along0);
+      const p1 = sidePoint(b, s2, along1);
+
+      const cands: Array<{ pts: Point[]; bonus: number }> = [];
+
+      // Direct straight connection when facing faces overlap
+      if (s1 === "right" && s2 === "left" && a.maxX <= b.minX) {
+        const overlapMinY = Math.max(a.minY + 6, b.minY + 6);
+        const overlapMaxY = Math.min(a.maxY - 6, b.maxY - 6);
+        if (overlapMinY <= overlapMaxY) {
+          const y =
+            p0Hint && p0Hint.y >= overlapMinY && p0Hint.y <= overlapMaxY
+              ? p0Hint.y
+              : (overlapMinY + overlapMaxY) / 2;
+          cands.push({
+            pts: [
+              { x: a.maxX, y },
+              { x: b.minX, y },
+            ],
+            bonus: -60,
+          });
+        }
+      } else if (s1 === "left" && s2 === "right" && a.minX >= b.maxX) {
+        const overlapMinY = Math.max(a.minY + 6, b.minY + 6);
+        const overlapMaxY = Math.min(a.maxY - 6, b.maxY - 6);
+        if (overlapMinY <= overlapMaxY) {
+          const y =
+            p0Hint && p0Hint.y >= overlapMinY && p0Hint.y <= overlapMaxY
+              ? p0Hint.y
+              : (overlapMinY + overlapMaxY) / 2;
+          cands.push({
+            pts: [
+              { x: a.minX, y },
+              { x: b.maxX, y },
+            ],
+            bonus: -60,
+          });
+        }
+      } else if (s1 === "bottom" && s2 === "top" && a.maxY <= b.minY) {
+        const overlapMinX = Math.max(a.minX + 6, b.minX + 6);
+        const overlapMaxX = Math.min(a.maxX - 6, b.maxX - 6);
+        if (overlapMinX <= overlapMaxX) {
+          const x =
+            p0Hint && p0Hint.x >= overlapMinX && p0Hint.x <= overlapMaxX
+              ? p0Hint.x
+              : (overlapMinX + overlapMaxX) / 2;
+          cands.push({
+            pts: [
+              { x, y: a.maxY },
+              { x, y: b.minY },
+            ],
+            bonus: -60,
+          });
+        }
+      } else if (s1 === "top" && s2 === "bottom" && a.minY >= b.maxY) {
+        const overlapMinX = Math.max(a.minX + 6, b.minX + 6);
+        const overlapMaxX = Math.min(a.maxX - 6, b.maxX - 6);
+        if (overlapMinX <= overlapMaxX) {
+          const x =
+            p0Hint && p0Hint.x >= overlapMinX && p0Hint.x <= overlapMaxX
+              ? p0Hint.x
+              : (overlapMinX + overlapMaxX) / 2;
+          cands.push({
+            pts: [
+              { x, y: a.minY },
+              { x, y: b.maxY },
+            ],
+            bonus: -60,
+          });
+        }
+      }
+
       const q0 = { x: p0.x + n1.x * STUB, y: p0.y + n1.y * STUB };
       const q1 = { x: p1.x + n2.x * STUB, y: p1.y + n2.y * STUB };
-      const cands: Point[][] = [];
+
       if (Math.abs(q0.x - q1.x) < 0.5 || Math.abs(q0.y - q1.y) < 0.5) {
-        cands.push([p0, q0, q1, p1]);
+        cands.push({ pts: [p0, q0, q1, p1], bonus: -30 });
       } else {
-        // H-first and V-first S-bends.
-        cands.push([p0, q0, { x: q1.x, y: q0.y }, q1, p1]);
-        cands.push([p0, q0, { x: q0.x, y: q1.y }, q1, p1]);
-        // Tracks pushed outside both boxes.
+        // Centered Midpoint S-bends
+        if (
+          (s1 === "right" && s2 === "left" && q1.x > q0.x) ||
+          (s1 === "left" && s2 === "right" && q1.x < q0.x)
+        ) {
+          const mx = (q0.x + q1.x) / 2;
+          cands.push({
+            pts: [p0, q0, { x: mx, y: q0.y }, { x: mx, y: q1.y }, q1, p1],
+            bonus: -40,
+          });
+        }
+        if (
+          (s1 === "bottom" && s2 === "top" && q1.y > q0.y) ||
+          (s1 === "top" && s2 === "bottom" && q1.y < q0.y)
+        ) {
+          const my = (q0.y + q1.y) / 2;
+          cands.push({
+            pts: [p0, q0, { x: q0.x, y: my }, { x: q1.x, y: my }, q1, p1],
+            bonus: -40,
+          });
+        }
+
+        // L-bends for perpendicular faces (e.g. bottom -> left)
+        if (n1.x === 0 && n2.y === 0) {
+          cands.push({
+            pts: [p0, q0, { x: q0.x, y: q1.y }, q1, p1],
+            bonus: -20,
+          });
+        } else if (n1.y === 0 && n2.x === 0) {
+          cands.push({
+            pts: [p0, q0, { x: q1.x, y: q0.y }, q1, p1],
+            bonus: -20,
+          });
+        }
+
+        // Staggered S-bends
+        cands.push({ pts: [p0, q0, { x: q1.x, y: q0.y }, q1, p1], bonus: 0 });
+        cands.push({ pts: [p0, q0, { x: q0.x, y: q1.y }, q1, p1], bonus: 0 });
+
+        // Tracks pushed outside both boxes (fallback detours)
         const fy = freeTrack(true, q0.y, q0.x, q1.x, boxes, pad);
         if (fy != null && Math.abs(fy - q0.y) > 0.5)
-          cands.push([p0, q0, { x: q0.x, y: fy }, { x: q1.x, y: fy }, q1, p1]);
+          cands.push({
+            pts: [p0, q0, { x: q0.x, y: fy }, { x: q1.x, y: fy }, q1, p1],
+            bonus: 100,
+          });
         const fx = freeTrack(false, q0.x, q0.y, q1.y, boxes, pad);
         if (fx != null && Math.abs(fx - q0.x) > 0.5)
-          cands.push([p0, q0, { x: fx, y: q0.y }, { x: fx, y: q1.y }, q1, p1]);
+          cands.push({
+            pts: [p0, q0, { x: fx, y: q0.y }, { x: fx, y: q1.y }, q1, p1],
+            bonus: 100,
+          });
       }
-      for (const c of cands) {
+
+      for (const cand of cands) {
+        const c = cleanupArrowPoints(cand.pts);
         if (pathHitsBoxes(c, boxes)) continue;
-        const score = pathLen(c) + pen;
+        const bends = Math.max(0, c.length - 2);
+        const score = pathLen(c) + pen + bends * 25 + (cand.bonus || 0);
         if (score < bestScore) {
           bestScore = score;
           best = c;
@@ -542,6 +669,8 @@ function autoOrthogonal(a: Bounds, b: Bounds): Point[] | null {
 /** Rounded orthogonal path (original Lt, radius 8). */
 function roundedPath(pts: Point[], r = 8): string {
   if (pts.length < 2) return "";
+  if (pts.length === 2)
+    return `M${pts[0].x} ${pts[0].y} L${pts[1].x} ${pts[1].y}`;
   const q = (p: Point, q2: Point, t: number): Point => {
     const l = Math.hypot(q2.x - p.x, q2.y - p.y) || 1;
     return { x: p.x + ((q2.x - p.x) / l) * t, y: p.y + ((q2.y - p.y) / l) * t };
@@ -668,13 +797,27 @@ function unit(from: Point, to: Point): Point {
 function cubicAt(p0: Point, c1: Point, c2: Point, p3: Point, t: number): Point {
   const u = 1 - t;
   return {
-    x: u * u * u * p0.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * p3.x,
-    y: u * u * u * p0.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p3.y,
+    x:
+      u * u * u * p0.x +
+      3 * u * u * t * c1.x +
+      3 * u * t * t * c2.x +
+      t * t * t * p3.x,
+    y:
+      u * u * u * p0.y +
+      3 * u * u * t * c1.y +
+      3 * u * t * t * c2.y +
+      t * t * t * p3.y,
   };
 }
 
 /** Sample a cubic Bézier into n+1 polyline points for hit testing & tangents. */
-function sampleCubic(p0: Point, c1: Point, c2: Point, p3: Point, n: number): Point[] {
+function sampleCubic(
+  p0: Point,
+  c1: Point,
+  c2: Point,
+  p3: Point,
+  n: number,
+): Point[] {
   const pts: Point[] = [];
   for (let i = 0; i <= n; i++) pts.push(cubicAt(p0, c1, c2, p3, i / n));
   return pts;
@@ -737,6 +880,23 @@ export function arrowGeom(
   if (sEl && el.start && seq.length) seq[0] = p0;
   if (tEl && el.end && seq.length) seq[seq.length - 1] = p1;
 
+  const orthogonalFallback = (p0: Point, p1: Point) => {
+    if (Math.abs(p1.x - p0.x) >= Math.abs(p1.y - p0.y)) {
+      if (Math.abs(p1.y - p0.y) < 1) {
+        return { d: `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`, pts: [p0, p1] };
+      }
+      const mx = (p0.x + p1.x) / 2;
+      const pts = [p0, { x: mx, y: p0.y }, { x: mx, y: p1.y }, p1];
+      return { d: roundedPath(pts), pts };
+    }
+    if (Math.abs(p1.x - p0.x) < 1) {
+      return { d: `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`, pts: [p0, p1] };
+    }
+    const my = (p0.y + p1.y) / 2;
+    const pts = [p0, { x: p0.x, y: my }, { x: p1.x, y: my }, p1];
+    return { d: roundedPath(pts), pts };
+  };
+
   if (
     mode === "orthogonal" &&
     el.route !== "manual" &&
@@ -744,13 +904,19 @@ export function arrowGeom(
     tEl &&
     sEl.id !== tEl.id
   ) {
-    const routed = autoOrthogonal(elementBounds(sEl), elementBounds(tEl));
+    const routed = autoOrthogonal(
+      elementBounds(sEl),
+      elementBounds(tEl),
+      p0,
+      p1,
+    );
     if (routed && routed.length >= 2) {
       d = roundedPath(routed);
       pts = routed;
     } else {
-      d = `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`;
-      pts = [p0, p1];
+      const fb = orthogonalFallback(p0, p1);
+      d = fb.d;
+      pts = fb.pts;
     }
   } else if (seq.length >= 3) {
     if (mode === "curved") {
@@ -764,9 +930,15 @@ export function arrowGeom(
       pts = seq;
     }
   } else {
-    // 2-point arrows in free space or bound without obstacles are straight lines
-    d = `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`;
-    pts = [p0, p1];
+    // 2-point arrows: orthogonal keeps elbow, curved and straight stay straight until bent
+    if (mode === "orthogonal") {
+      const fb = orthogonalFallback(p0, p1);
+      d = fb.d;
+      pts = fb.pts;
+    } else {
+      d = `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`;
+      pts = [p0, p1];
+    }
   }
 
   const rawT = (el as any).labelT ?? (el as any).labelRatio;

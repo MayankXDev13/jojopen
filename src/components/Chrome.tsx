@@ -426,12 +426,6 @@ export function Rail() {
       active: S.panel === "slides",
     },
     {
-      act: "boards",
-      icon: "docshape",
-      label: "My boards",
-      active: S.panel === "boards",
-    },
-    {
       act: "code",
       icon: "code",
       label: "Diagram code",
@@ -732,10 +726,11 @@ export function ContextBar() {
   );
   const hasScale = list.some(
     (e) =>
-      e.type === "diagram" ||
-      e.type === "shape" ||
-      e.type === "text" ||
-      (e.type === "image" && typeof (e as any).meta?.icon === "string"),
+      e.type !== "slide" &&
+      (e.type === "diagram" ||
+        e.type === "shape" ||
+        e.type === "text" ||
+        (e.type === "image" && typeof (e as any).meta?.icon === "string")),
   );
 
   return (

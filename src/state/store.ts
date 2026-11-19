@@ -237,7 +237,47 @@ export const slides = () =>
     .filter((e) => e.type === "slide")
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.id < b.id ? -1 : 1));
 export const slideChildren = (slide: BoardElement) =>
-  sortedElements().filter((e) => e.frameId === slide.id);
+  sortedElements().filter((e) => {
+    if (e.id === slide.id || e.type === "slide") return false;
+    if (e.frameId === slide.id) return true;
+    if (e.type === "arrow") {
+      const startEl = e.start?.elementId
+        ? S.doc.elements[e.start.elementId]
+        : null;
+      const endEl = e.end?.elementId ? S.doc.elements[e.end.elementId] : null;
+      if (
+        startEl &&
+        (startEl.frameId === slide.id ||
+          pointInElement(
+            startEl.x + startEl.width / 2,
+            startEl.y + startEl.height / 2,
+            slide,
+          ))
+      ) {
+        return true;
+      }
+      if (
+        endEl &&
+        (endEl.frameId === slide.id ||
+          pointInElement(
+            endEl.x + endEl.width / 2,
+            endEl.y + endEl.height / 2,
+            slide,
+          ))
+      ) {
+        return true;
+      }
+    }
+    const midX =
+      e.type === "arrow" && e.points?.length
+        ? e.x + (e.points[0].x + e.points[e.points.length - 1].x) / 2
+        : e.x + (e.width || 0) / 2;
+    const midY =
+      e.type === "arrow" && e.points?.length
+        ? e.y + (e.points[0].y + e.points[e.points.length - 1].y) / 2
+        : e.y + (e.height || 0) / 2;
+    return pointInElement(midX, midY, slide);
+  });
 export const nextSlideOrder = () =>
   slides().reduce((m, s) => Math.max(m, s.order ?? 0), 0) + 1;
 export const selectionElements = () =>
@@ -334,12 +374,18 @@ export function collectionsList(): Collection[] {
   try {
     const raw = localStorage.getItem(KEY_COLLECTIONS);
     if (!raw) {
-      localStorage.setItem(KEY_COLLECTIONS, JSON.stringify(DEFAULT_COLLECTIONS));
+      localStorage.setItem(
+        KEY_COLLECTIONS,
+        JSON.stringify(DEFAULT_COLLECTIONS),
+      );
       return DEFAULT_COLLECTIONS;
     }
     const cols = JSON.parse(raw);
     if (!Array.isArray(cols) || cols.length === 0) {
-      localStorage.setItem(KEY_COLLECTIONS, JSON.stringify(DEFAULT_COLLECTIONS));
+      localStorage.setItem(
+        KEY_COLLECTIONS,
+        JSON.stringify(DEFAULT_COLLECTIONS),
+      );
       return DEFAULT_COLLECTIONS;
     }
     // Delete ledger-x and sketcha collections if they exist in localStorage
@@ -639,15 +685,33 @@ export function addElement(el: BoardElement, opts: { noClamp?: boolean } = {}) {
   }
   const max = nextIndex();
   el.index = el.index ?? max;
+  if (!el.frameId && el.type !== "slide") {
+    const midX = eMidX(el);
+    const midY = eMidY(el);
+    const sl = slides().find((s) => pointInElement(midX, midY, s));
+    if (sl) el.frameId = sl.id;
+  }
   S.doc.elements[el.id] = el;
   if (el.frameId && !opts.noClamp) {
     const s = S.doc.elements[el.frameId];
-    if (s) {
+    if (s && el.type !== "arrow") {
       el.x = clamp(el.x, s.x, s.x + s.width - 20);
       el.y = clamp(el.y, s.y, s.y + s.height - 20);
     }
   }
   return el;
+}
+
+function eMidX(el: BoardElement): number {
+  return el.type === "arrow" && el.points?.length
+    ? el.x + (el.points[0].x + el.points[el.points.length - 1].x) / 2
+    : el.x + (el.width || 0) / 2;
+}
+
+function eMidY(el: BoardElement): number {
+  return el.type === "arrow" && el.points?.length
+    ? el.y + (el.points[0].y + el.points[el.points.length - 1].y) / 2
+    : el.y + (el.height || 0) / 2;
 }
 
 export function removeElements(ids: string[]) {
@@ -679,6 +743,7 @@ export function nextFrameElement(
         e.id !== excludeId &&
         e.type !== "arrow" &&
         e.type !== "freehand" &&
+        e.type !== "slide" &&
         pointInElement(point.x, point.y, e),
     );
   return hit || null;

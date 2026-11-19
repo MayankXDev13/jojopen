@@ -371,4 +371,79 @@ describe("Geometry: Arrow Routing and Handles", () => {
     expect(geom2.labelPoint.y).toBe(100);
     expect(geom2.labelPoint.x).toBeCloseTo(240, 1);
   });
+
+  test("orthogonal arrow routes with centered midpoint S-bend between staggered shapes", () => {
+    const sEl = makeEl({ id: "box1", x: 100, y: 100, width: 100, height: 100 });
+    const tEl = makeEl({ id: "box2", x: 400, y: 250, width: 100, height: 100 });
+    const arrow = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      routeMode: "orthogonal",
+      start: { elementId: "box1", anchor: "auto" },
+      end: { elementId: "box2", anchor: "auto" },
+      points: [
+        { x: 200, y: 150 },
+        { x: 400, y: 300 },
+      ],
+    });
+    const elements: Record<string, any> = { box1: sEl, box2: tEl };
+    const geom = arrowGeom(arrow, (id) => elements[id], THEME.light);
+
+    expect(geom.pts.length).toBeGreaterThanOrEqual(4);
+    // Exit right of box1 (x = 200), enter left of box2 (x = 400)
+    // S-bend vertical transition segment must be at midpoint mx = (200 + 400) / 2 = 300
+    const midX = (geom.pts[1].x + geom.pts[geom.pts.length - 2].x) / 2;
+    expect(midX).toBeCloseTo(300, 1);
+  });
+
+  test("2-point orthogonal arrow preserves elbow shape instead of falling back to straight line", () => {
+    const arrow = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      routeMode: "orthogonal",
+      points: [
+        { x: 100, y: 100 },
+        { x: 300, y: 200 },
+      ],
+    });
+    const geom = arrowGeom(arrow, () => undefined, THEME.light);
+    expect(geom.pts.length).toBe(4);
+    expect(geom.pts[1].x).toBe(200);
+    expect(geom.pts[2].x).toBe(200);
+  });
+
+  test("curved arrow stays straight by default and curves smoothly when bent by user", () => {
+    // 2-point curved arrow stays straight by default
+    const arrow2 = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      routeMode: "curved",
+      points: [
+        { x: 200, y: 100 },
+        { x: 200, y: 300 },
+      ],
+    });
+    const geom2 = arrowGeom(arrow2, () => undefined, THEME.light);
+    expect(geom2.d).toBe("M200 100 L200 300");
+    expect(geom2.pts.length).toBe(2);
+
+    // When bent with a midpoint (3 points), it curves smoothly via Catmull-Rom
+    const arrow3 = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      routeMode: "curved",
+      points: [
+        { x: 200, y: 100 },
+        { x: 250, y: 200 },
+        { x: 200, y: 300 },
+      ],
+    });
+    const geom3 = arrowGeom(arrow3, () => undefined, THEME.light);
+    expect(geom3.d).toContain("C");
+    expect(geom3.pts.length).toBe(3);
+  });
 });

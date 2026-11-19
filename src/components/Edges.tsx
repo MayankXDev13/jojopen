@@ -5,6 +5,7 @@ import {
   S,
   colorFor,
   fontFor,
+  selectionElements,
   sortedElements,
   theme,
 } from "../state/store";
@@ -153,109 +154,119 @@ export function Edges() {
                   );
                 })()
               : null}
-            {S.selection.has(el.id)
-              ? (() => {
-                  const linePts = geom.pts
-                    .map((p) => `${p.x},${p.y}`)
-                    .join(" ");
-                  const handles = arrowHandlesFor(
-                    geom.pts,
-                    el.routeMode,
-                    el.route,
-                    S.camera.zoom,
-                  );
-                  const z = S.camera.zoom || 1;
-                  const selColor = "#7c93ff";
-                  const handleFill = "var(--bg)";
-                  return (
-                    <g data-id={el.id}>
-                      {[geom.p0, geom.p1].map((p, i) => {
-                        const ptIndex =
-                          i === 0
-                            ? 0
-                            : Math.max(1, (el.points?.length || 2) - 1);
-                        return (
-                          <circle
-                            key={`e${i}`}
-                            cx={p.x}
-                            cy={p.y}
-                            r={5.5 / z}
-                            fill={handleFill}
-                            stroke={selColor}
-                            strokeWidth={1.75 / z}
-                            data-id={el.id}
-                            data-handle={`endpoint:${ptIndex}`}
-                          />
-                        );
-                      })}
-                      {handles.map((h, i) => {
-                        const key = `${h.kind}${i}`;
-                        if (h.kind === "segment") {
-                          const w = (h.axis === "h" ? 16 : 6) / z;
-                          const ht = (h.axis === "h" ? 6 : 16) / z;
-                          return (
-                            <rect
-                              key={key}
-                              x={h.point.x - w / 2}
-                              y={h.point.y - ht / 2}
-                              width={w}
-                              height={ht}
-                              rx={3 / z}
-                              fill={handleFill}
-                              stroke={selColor}
-                              strokeWidth={1.5 / z}
-                              data-id={el.id}
-                              data-handle={`segment:${h.index}:${h.axis}`}
-                            />
-                          );
-                        }
-                        if (h.kind === "insert") {
-                          if (S.editingId === el.id || el.label) return null;
-                          const r = 5 / z;
-                          const arm = 2.5 / z;
-                          const sw = 1.25 / z;
-                          return (
-                            <g
-                              key={key}
-                              opacity={0.75}
-                              data-id={el.id}
-                              data-handle={`insert:${h.index}`}
-                            >
-                              <circle
-                                cx={h.point.x}
-                                cy={h.point.y}
-                                r={r}
-                                fill={handleFill}
-                                stroke={selColor}
-                                strokeWidth={sw}
-                                strokeDasharray={`${2 / z} ${2 / z}`}
-                              />
-                              <path
-                                d={`M${h.point.x - arm} ${h.point.y}H${h.point.x + arm}M${h.point.x} ${h.point.y - arm}V${h.point.y + arm}`}
-                                stroke={selColor}
-                                strokeWidth={sw}
-                              />
-                            </g>
-                          );
-                        }
-                        return (
-                          <circle
-                            key={key}
-                            cx={h.point.x}
-                            cy={h.point.y}
-                            r={5 / z}
-                            fill={handleFill}
-                            stroke={selColor}
-                            strokeWidth={1.75 / z}
-                            data-id={el.id}
-                            data-handle={`waypoint:${h.index}`}
-                          />
-                        );
-                      })}
-                    </g>
-                  );
-                })()
-              : null}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+export function ArrowHandles() {
+  useVersion();
+  const th = theme();
+  const selectedArrows = selectionElements().filter((e) => e.type === "arrow");
+  if (!selectedArrows.length) return null;
+  const z = S.camera.zoom || 1;
+  const selColor = "#7c93ff";
+  const handleFill = "var(--bg, #1a1a1a)";
+
+  return (
+    <svg className="arrow-handles" width="10" height="10">
+      {selectedArrows.map((el) => {
+        const geom = arrowGeom(
+          el,
+          (id) => S.doc.elements[id] as BoardElement | undefined,
+          th,
+        );
+        const handles = arrowHandlesFor(
+          geom.pts,
+          el.routeMode,
+          el.route,
+          S.camera.zoom,
+        );
+        return (
+          <g key={el.id} data-id={el.id}>
+            {[geom.p0, geom.p1].map((p, i) => {
+              const ptIndex =
+                i === 0 ? 0 : Math.max(1, (el.points?.length || 2) - 1);
+              return (
+                <circle
+                  key={`e${i}`}
+                  cx={p.x}
+                  cy={p.y}
+                  r={6 / z}
+                  fill={handleFill}
+                  stroke={selColor}
+                  strokeWidth={1.8 / z}
+                  data-id={el.id}
+                  data-handle={`endpoint:${ptIndex}`}
+                />
+              );
+            })}
+            {handles.map((h, i) => {
+              const key = `${h.kind}${i}`;
+              if (h.kind === "segment") {
+                const w = (h.axis === "h" ? 16 : 6) / z;
+                const ht = (h.axis === "h" ? 6 : 16) / z;
+                return (
+                  <rect
+                    key={key}
+                    x={h.point.x - w / 2}
+                    y={h.point.y - ht / 2}
+                    width={w}
+                    height={ht}
+                    rx={3 / z}
+                    fill={handleFill}
+                    stroke={selColor}
+                    strokeWidth={1.5 / z}
+                    data-id={el.id}
+                    data-handle={`segment:${h.index}:${h.axis}`}
+                  />
+                );
+              }
+              if (h.kind === "insert") {
+                if (S.editingId === el.id || el.label) return null;
+                const r = 5 / z;
+                const arm = 2.5 / z;
+                const sw = 1.25 / z;
+                return (
+                  <g
+                    key={key}
+                    opacity={0.75}
+                    data-id={el.id}
+                    data-handle={`insert:${h.index}`}
+                  >
+                    <circle
+                      cx={h.point.x}
+                      cy={h.point.y}
+                      r={r}
+                      fill={handleFill}
+                      stroke={selColor}
+                      strokeWidth={sw}
+                      strokeDasharray={`${2 / z} ${2 / z}`}
+                    />
+                    <path
+                      d={`M${h.point.x - arm} ${h.point.y}H${h.point.x + arm}M${h.point.x} ${h.point.y - arm}V${h.point.y + arm}`}
+                      stroke={selColor}
+                      strokeWidth={sw}
+                    />
+                  </g>
+                );
+              }
+              return (
+                <circle
+                  key={key}
+                  cx={h.point.x}
+                  cy={h.point.y}
+                  r={5 / z}
+                  fill={handleFill}
+                  stroke={selColor}
+                  strokeWidth={1.75 / z}
+                  data-id={el.id}
+                  data-handle={`waypoint:${h.index}`}
+                />
+              );
+            })}
           </g>
         );
       })}

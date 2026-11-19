@@ -126,6 +126,7 @@ export function nextFrameElement(
         e.type !== "arrow" &&
         e.type !== "freehand" &&
         e.type !== "slide" &&
+        e.type !== "diagram" &&
         pointInElement(point.x, point.y, e),
     );
   return hit || null;
@@ -143,6 +144,29 @@ export function normalizedAnchorOf(
     x: Math.min(1, Math.max(0, (p.x - b.minX) / w)),
     y: Math.min(1, Math.max(0, (p.y - b.minY) / h)),
   };
+}
+
+/** Normalized anchor clamped to the closest bounding edge of an element (0..1). */
+export function edgeNormalizedAnchor(
+  e: BoardElement,
+  p: Point,
+): { x: number; y: number } {
+  const b = elementBounds(e);
+  const w = Math.max(1, b.maxX - b.minX);
+  const h = Math.max(1, b.maxY - b.minY);
+  const nx = Math.min(1, Math.max(0, (p.x - b.minX) / w));
+  const ny = Math.min(1, Math.max(0, (p.y - b.minY) / h));
+
+  const dLeft = nx;
+  const dRight = 1 - nx;
+  const dTop = ny;
+  const dBottom = 1 - ny;
+  const min = Math.min(dLeft, dRight, dTop, dBottom);
+
+  if (min === dLeft) return { x: 0, y: ny };
+  if (min === dRight) return { x: 1, y: ny };
+  if (min === dTop) return { x: nx, y: 0 };
+  return { x: nx, y: 1 };
 }
 
 /** Suggested binding while drawing: topmost bindable under cursor + anchor. */
@@ -347,7 +371,11 @@ export function centerOf(e: BoardElement): Point {
   return { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 };
 }
 
-export function anchorPoint(e: BoardElement, toward: Point): Point {
+export function anchorPoint(
+  e: BoardElement,
+  toward: Point,
+  forceCenter = false,
+): Point {
   const b = elementBounds(e);
   const cx = (b.minX + b.maxX) / 2;
   const cy = (b.minY + b.maxY) / 2;
@@ -356,11 +384,15 @@ export function anchorPoint(e: BoardElement, toward: Point): Point {
   if (!dx && !dy) return { x: cx, y: b.maxY };
   const hw = Math.max(1, (b.maxX - b.minX) / 2);
   const hh = Math.max(1, (b.maxY - b.minY) / 2);
-  if (Math.abs(hw / (dx || 1e-6)) < Math.abs(hh / (dy || 1e-6))) {
-    return { x: dx >= 0 ? b.maxX : b.minX, y: cy };
-  } else {
-    return { x: cx, y: dy >= 0 ? b.maxY : b.minY };
+  if (forceCenter) {
+    if (Math.abs(hw / (dx || 1e-6)) < Math.abs(hh / (dy || 1e-6))) {
+      return { x: dx >= 0 ? b.maxX : b.minX, y: cy };
+    } else {
+      return { x: cx, y: dy >= 0 ? b.maxY : b.minY };
+    }
   }
+  const t = Math.min(Math.abs(hw / (dx || 1e-6)), Math.abs(hh / (dy || 1e-6)));
+  return { x: cx + dx * t, y: cy + dy * t };
 }
 
 /* ---- Original-style auto router (jojopen.com) ----
@@ -381,14 +413,24 @@ function sideNormal(s: Side): Point {
         : { x: 0, y: 1 };
 }
 
-/** Point on a side: always connects to the exact center of the shape face. */
-function sidePoint(b: Bounds, side: Side): Point {
+/** Point on a side: connects to the exact center unless an explicit along coordinate is provided. */
+function sidePoint(b: Bounds, side: Side, along?: number): Point {
   const cx = (b.minX + b.maxX) / 2;
   const cy = (b.minY + b.maxY) / 2;
-  if (side === "left") return { x: b.minX, y: cy };
-  if (side === "right") return { x: b.maxX, y: cy };
-  if (side === "top") return { x: cx, y: b.minY };
-  return { x: cx, y: b.maxY };
+  if (side === "left" || side === "right") {
+    const margin = Math.min(6, Math.max(0, (b.maxY - b.minY) / 4));
+    const y =
+      along != null
+        ? Math.min(Math.max(along, b.minY + margin), b.maxY - margin)
+        : cy;
+    return { x: side === "left" ? b.minX : b.maxX, y };
+  }
+  const margin = Math.min(6, Math.max(0, (b.maxX - b.minX) / 4));
+  const x =
+    along != null
+      ? Math.min(Math.max(along, b.minX + margin), b.maxX - margin)
+      : cx;
+  return { x, y: side === "top" ? b.minY : b.maxY };
 }
 
 function expand(b: Bounds, pad: number): Bounds {
@@ -535,15 +577,28 @@ function autoOrthogonal(
         pen += 200;
       }
 
-      const p0 = sidePoint(a, s1);
-      const p1 = sidePoint(b, s2);
+      const along0 =
+        s1 === h1 && p0Hint
+          ? s1 === "left" || s1 === "right"
+            ? p0Hint.y
+            : p0Hint.x
+          : undefined;
+      const along1 =
+        s2 === h2 && p1Hint
+          ? s2 === "left" || s2 === "right"
+            ? p1Hint.y
+            : p1Hint.x
+          : undefined;
+
+      const p0 = sidePoint(a, s1, along0);
+      const p1 = sidePoint(b, s2, along1);
 
       const cands: Array<{ pts: Point[]; bonus: number }> = [];
 
-      // Direct straight connection when facing faces and centers are aligned
+      // Direct straight connection when facing faces and ports are aligned
       if (s1 === "right" && s2 === "left" && a.maxX <= b.minX) {
-        if (Math.abs(ac.y - bc.y) < 8) {
-          const y = (ac.y + bc.y) / 2;
+        if (Math.abs(p0.y - p1.y) < 8) {
+          const y = (p0.y + p1.y) / 2;
           cands.push({
             pts: [
               { x: a.maxX, y },
@@ -553,8 +608,8 @@ function autoOrthogonal(
           });
         }
       } else if (s1 === "left" && s2 === "right" && a.minX >= b.maxX) {
-        if (Math.abs(ac.y - bc.y) < 8) {
-          const y = (ac.y + bc.y) / 2;
+        if (Math.abs(p0.y - p1.y) < 8) {
+          const y = (p0.y + p1.y) / 2;
           cands.push({
             pts: [
               { x: a.minX, y },
@@ -564,8 +619,8 @@ function autoOrthogonal(
           });
         }
       } else if (s1 === "bottom" && s2 === "top" && a.maxY <= b.minY) {
-        if (Math.abs(ac.x - bc.x) < 8) {
-          const x = (ac.x + bc.x) / 2;
+        if (Math.abs(p0.x - p1.x) < 8) {
+          const x = (p0.x + p1.x) / 2;
           cands.push({
             pts: [
               { x, y: a.maxY },
@@ -575,8 +630,8 @@ function autoOrthogonal(
           });
         }
       } else if (s1 === "top" && s2 === "bottom" && a.minY >= b.maxY) {
-        if (Math.abs(ac.x - bc.x) < 8) {
-          const x = (ac.x + bc.x) / 2;
+        if (Math.abs(p0.x - p1.x) < 8) {
+          const x = (p0.x + p1.x) / 2;
           cands.push({
             pts: [
               { x, y: a.minY },
@@ -903,19 +958,23 @@ export function arrowGeom(
       const b = elementBounds(bindEl);
       const ax = b.minX + binding.normalizedAnchor.x * (b.maxX - b.minX);
       const ay = b.minY + binding.normalizedAnchor.y * (b.maxY - b.minY);
-      if (binding.isExact) return { x: ax, y: ay };
-      return anchorPoint(bindEl, { x: ax, y: ay });
+      return { x: ax, y: ay };
     }
     return null;
   };
+  const isDiag =
+    (el.frameId && getElement(el.frameId)?.type === "diagram") ||
+    !!el.meta?.dslEdge ||
+    !!el.meta?.dslFrom;
+
   if (sEl && el.start)
     p0 =
       precisePoint(sEl, el.start) ??
-      anchorPoint(sEl, tEl ? centerOf(tEl) : last);
+      anchorPoint(sEl, tEl ? centerOf(tEl) : last, isDiag);
   if (tEl && el.end)
     p1 =
       precisePoint(tEl, el.end) ??
-      anchorPoint(tEl, sEl ? centerOf(sEl) : first);
+      anchorPoint(tEl, sEl ? centerOf(sEl) : first, isDiag);
   const mode = el.routeMode || "orthogonal";
 
   let d = "";

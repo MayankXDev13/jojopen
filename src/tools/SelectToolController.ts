@@ -276,7 +276,9 @@ export class SelectToolController implements ToolController {
       this.onNodeDown(e, nodeEl, ctx);
       return;
     }
-    const edgeEl = target?.closest?.(".edges [data-id]") as Element | null;
+    const edgeEl = target?.closest?.(
+      ".edges [data-id], .arrow-handles [data-id]",
+    ) as Element | null;
     if (edgeEl) {
       const id = (edgeEl as HTMLElement).dataset.id!;
       const el = S.doc.elements[id];
@@ -533,7 +535,7 @@ export class SelectToolController implements ToolController {
     if (hEl) {
       const [kind, a] = (hEl.dataset.handle || "").split(":");
       const edgeEl = target?.closest?.(
-        ".edges [data-id]",
+        ".edges [data-id], .arrow-handles [data-id]",
       ) as HTMLElement | null;
       const el = edgeEl ? S.doc.elements[edgeEl.dataset.id!] : null;
       if (
@@ -552,7 +554,9 @@ export class SelectToolController implements ToolController {
       }
     }
 
-    const edgeEl = target?.closest?.(".edges [data-id]") as HTMLElement | null;
+    const edgeEl = target?.closest?.(
+      ".edges [data-id], .arrow-handles [data-id]",
+    ) as HTMLElement | null;
     if (edgeEl && !(target?.closest?.(".node") as HTMLElement | null)) {
       const el = S.doc.elements[edgeEl.dataset.id!];
       if (el && el.type === "arrow" && !el.locked) {

@@ -174,6 +174,18 @@ describe("Geometry: Anchor and Snapping Math", () => {
 
     // Miss
     expect(suggestedBinding(list, { x: 200, y: 200 })).toBeNull();
+
+    // Diagram elements are ignored and do not provide suggestedBinding
+    const diag = makeEl({
+      id: "diag-1",
+      type: "diagram",
+      x: 0,
+      y: 0,
+      width: 500,
+      height: 500,
+    });
+    expect(suggestedBinding([diag], { x: 250, y: 250 })).toBeNull();
+    expect(nextFrameElement([diag], { x: 250, y: 250 })).toBeNull();
   });
 
   test("centerOf calculates element center accurately", () => {
@@ -490,4 +502,131 @@ describe("Geometry: Arrow Routing and Handles", () => {
     const minY = Math.min(...geom.pts.map((p) => p.y));
     expect(minY).toBeGreaterThanOrEqual(100);
   });
+
+  test("arrowGeom preserves precise normalizedAnchor without collapsing to midpoint", () => {
+    const sEl = makeEl({ id: "s", type: "shape", x: 100, y: 100, width: 200, height: 80 });
+    const tEl = makeEl({ id: "t", type: "shape", x: 100, y: 300, width: 200, height: 80 });
+
+    // Arrow with start at 25% across bottom face (x = 100 + 0.25 * 200 = 150)
+    const arrow = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      route: "auto",
+      routeMode: "orthogonal",
+      start: {
+        elementId: "s",
+        anchor: "auto",
+        isPrecise: true,
+        normalizedAnchor: { x: 0.25, y: 1 },
+      },
+      end: {
+        elementId: "t",
+        anchor: "auto",
+        isPrecise: true,
+        normalizedAnchor: { x: 0.5, y: 0 },
+      },
+      points: [
+        { x: 150, y: 180 },
+        { x: 200, y: 300 },
+      ],
+    });
+
+    const geom = arrowGeom(arrow, (id) => (id === "s" ? sEl : tEl), THEME.light);
+    // Departure point must start at x=150, not the face center x=200
+    expect(geom.pts[0].x).toBe(150);
+    expect(geom.pts[0].y).toBe(180); // s.y + s.height
+
+    // Destination point arrives at x=200 (center of t)
+    expect(geom.pts[geom.pts.length - 1].x).toBe(200);
+    expect(geom.pts[geom.pts.length - 1].y).toBe(300); // t.y
+  });
+
+  test("multiple branching arrows from same face maintain separate departure tracks", () => {
+    const parent = makeEl({ id: "p", type: "shape", x: 200, y: 100, width: 200, height: 80 });
+    const child1 = makeEl({ id: "c1", type: "shape", x: 50, y: 300, width: 100, height: 80 });
+    const child2 = makeEl({ id: "c2", type: "shape", x: 250, y: 300, width: 100, height: 80 });
+    const child3 = makeEl({ id: "c3", type: "shape", x: 450, y: 300, width: 100, height: 80 });
+
+    const elMap: Record<string, BoardElement> = { p: parent, c1: child1, c2: child2, c3: child3 };
+
+    const a1 = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      route: "auto",
+      routeMode: "orthogonal",
+      start: { elementId: "p", anchor: "auto", isPrecise: true, normalizedAnchor: { x: 0.25, y: 1 } },
+      end: { elementId: "c1", anchor: "auto", isPrecise: true, normalizedAnchor: { x: 0.5, y: 0 } },
+      points: [{ x: 250, y: 180 }, { x: 100, y: 300 }],
+    });
+
+    const a2 = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      route: "auto",
+      routeMode: "orthogonal",
+      start: { elementId: "p", anchor: "auto", isPrecise: true, normalizedAnchor: { x: 0.5, y: 1 } },
+      end: { elementId: "c2", anchor: "auto", isPrecise: true, normalizedAnchor: { x: 0.5, y: 0 } },
+      points: [{ x: 300, y: 180 }, { x: 300, y: 300 }],
+    });
+
+    const a3 = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      route: "auto",
+      routeMode: "orthogonal",
+      start: { elementId: "p", anchor: "auto", isPrecise: true, normalizedAnchor: { x: 0.75, y: 1 } },
+      end: { elementId: "c3", anchor: "auto", isPrecise: true, normalizedAnchor: { x: 0.5, y: 0 } },
+      points: [{ x: 350, y: 180 }, { x: 500, y: 300 }],
+    });
+
+    const g1 = arrowGeom(a1, (id) => elMap[id], THEME.light);
+    const g2 = arrowGeom(a2, (id) => elMap[id], THEME.light);
+    const g3 = arrowGeom(a3, (id) => elMap[id], THEME.light);
+
+    // Each departure X must be distinct: 250, 300, 350
+    expect(g1.pts[0].x).toBe(250);
+    expect(g2.pts[0].x).toBe(300);
+    expect(g3.pts[0].x).toBe(350);
+
+    // Second point (initial vertical descent) maintains the separate tracks
+    expect(g1.pts[1].x).toBe(250);
+    expect(g3.pts[1].x).toBe(350);
+  });
+
+  test("edgeNormalizedAnchor clamps points to the nearest perimeter edge", () => {
+    const { edgeNormalizedAnchor } = require("../src/lib/geometry");
+    const el = makeEl({ x: 100, y: 100, width: 200, height: 100 });
+
+    // Near top edge at 25% width (x = 150, y = 105) -> should snap to top edge { x: 0.25, y: 0 }
+    const top = edgeNormalizedAnchor(el, { x: 150, y: 105 });
+    expect(top.x).toBeCloseTo(0.25);
+    expect(top.y).toBe(0);
+
+    // Near bottom edge at 75% width (x = 250, y = 195) -> should snap to bottom edge { x: 0.75, y: 1 }
+    const bottom = edgeNormalizedAnchor(el, { x: 250, y: 195 });
+    expect(bottom.x).toBeCloseTo(0.75);
+    expect(bottom.y).toBe(1);
+
+    // Near left edge at 40% height (x = 105, y = 140) -> should snap to left edge { x: 0, y: 0.4 }
+    const left = edgeNormalizedAnchor(el, { x: 105, y: 140 });
+    expect(left.x).toBe(0);
+    expect(left.y).toBeCloseTo(0.4);
+  });
+
+  test("anchorPoint does not force face center on non-diagram shapes", () => {
+    const el = makeEl({ x: 100, y: 100, width: 200, height: 100 });
+    // Center is (200, 150). Toward (250, 50).
+    const regular = anchorPoint(el, { x: 250, y: 50 }, false);
+    // Ray intersection preserves angled offset: should NOT be clamped to cx=200
+    expect(regular.x).not.toBe(200);
+
+    // When forceCenter is true (diagram mode), it clamps to center (200, 100)
+    const forced = anchorPoint(el, { x: 250, y: 50 }, true);
+    expect(forced).toEqual({ x: 200, y: 100 });
+  });
 });
+

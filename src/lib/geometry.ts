@@ -20,7 +20,12 @@ export type ArrowGeom = {
 
 export function elementBounds(e: BoardElement): Bounds {
   if (e.type === "arrow" || e.type === "freehand") {
-    const pts = (e.points || []).map((p) => ({ x: e.x + p.x, y: e.y + p.y }));
+    const pts = (e.points || [])
+      .filter(
+        (p): p is Point =>
+          !!p && typeof p.x === "number" && typeof p.y === "number",
+      )
+      .map((p) => ({ x: e.x + p.x, y: e.y + p.y }));
     if (!pts.length) return { minX: e.x, minY: e.y, maxX: e.x, maxY: e.y };
     const xs = pts.map((p) => p.x);
     const ys = pts.map((p) => p.y);
@@ -112,7 +117,13 @@ export function distPointToSeg(p: Point, a: Point, b: Point): number {
 /** Collision distance from world point to element centerline (for eraser/hit). */
 export function distToElement(p: Point, e: BoardElement): number {
   if (e.type === "arrow" || e.type === "freehand") {
-    const pts = (e.points || []).map((q) => ({ x: e.x + q.x, y: e.y + q.y }));
+    const pts = (e.points || [])
+      .filter(
+        (q): q is Point =>
+          !!q && typeof q.x === "number" && typeof q.y === "number",
+      )
+      .map((q) => ({ x: e.x + q.x, y: e.y + q.y }));
+    if (!pts.length) return Infinity;
     if (pts.length === 1) return Math.hypot(p.x - pts[0].x, p.y - pts[0].y);
     let m = Infinity;
     for (let i = 0; i < pts.length - 1; i++)
@@ -126,6 +137,35 @@ export function distToElement(p: Point, e: BoardElement): number {
   return Math.hypot(dx, dy);
 }
 
+/** Hit test world point against routed arrow path and label point. */
+export function hitTestArrow(
+  p: Point,
+  el: BoardElement,
+  getElement: (id: string) => BoardElement | undefined,
+  th: Theme,
+  tolerance = 16,
+): boolean {
+  if (el.type !== "arrow") return false;
+  try {
+    const geom = arrowGeom(el, getElement, th);
+    for (let i = 1; i < geom.pts.length; i++) {
+      if (distPointToSeg(p, geom.pts[i - 1], geom.pts[i]) <= tolerance) {
+        return true;
+      }
+    }
+    if (
+      Math.hypot(p.x - geom.labelPoint.x, p.y - geom.labelPoint.y) <=
+      tolerance * 1.5
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+
 /* ---- Arrow handles, mirroring the original board (jojopen.com) ----
    Orthogonal arrows expose axis-constrained segment handles; other modes
    expose waypoint handles on manual routes plus insert (+) handles. */
@@ -138,7 +178,12 @@ export type ArrowHandle =
 
 /** Absolute (world) raw points of an arrow. */
 export function rawPoints(el: BoardElement): Point[] {
-  return (el.points || []).map((p) => ({ x: el.x + p.x, y: el.y + p.y }));
+  return (el.points || [])
+    .filter(
+      (p): p is Point =>
+        !!p && typeof p.x === "number" && typeof p.y === "number",
+    )
+    .map((p) => ({ x: el.x + p.x, y: el.y + p.y }));
 }
 
 /** Handles from a display point list (original computes them on routed points). */
@@ -224,7 +269,11 @@ export function hitArrowHandle(
 
 /** De-dupe + drop collinear middle points (original sA). */
 export function cleanupArrowPoints(pts: Point[]): Point[] {
-  const n = pts.filter((p, i, arr) => {
+  const valid = (pts || []).filter(
+    (p): p is Point =>
+      !!p && typeof p.x === "number" && typeof p.y === "number",
+  );
+  const n = valid.filter((p, i, arr) => {
     if (!i) return true;
     const q = arr[i - 1];
     return !(Math.abs(p.x - q.x) < 0.5 && Math.abs(p.y - q.y) < 0.5);
@@ -489,7 +538,8 @@ function smoothPath(pts: Point[]): string {
   return d;
 }
 
-function midByLength(pts: Point[]): Point {
+export function pointAlongPolyline(pts: Point[], fraction: number): Point {
+  if (pts.length < 2) return pts[0] || { x: 0, y: 0 };
   let total = 0;
   const lens: number[] = [];
   for (let i = 0; i < pts.length - 1; i++) {
@@ -497,10 +547,12 @@ function midByLength(pts: Point[]): Point {
     lens.push(l);
     total += l;
   }
+  if (total <= 0) return pts[0];
+  const target = Math.max(0, Math.min(1, fraction)) * total;
   let acc = 0;
   for (let i = 0; i < lens.length; i++) {
-    if (acc + lens[i] >= total / 2) {
-      const t = lens[i] ? (total / 2 - acc) / lens[i] : 0;
+    if (acc + lens[i] >= target) {
+      const t = lens[i] ? (target - acc) / lens[i] : 0;
       return {
         x: pts[i].x + (pts[i + 1].x - pts[i].x) * t,
         y: pts[i].y + (pts[i + 1].y - pts[i].y) * t,
@@ -508,12 +560,78 @@ function midByLength(pts: Point[]): Point {
     }
     acc += lens[i];
   }
-  return pts[Math.floor(pts.length / 2)];
+  return pts[pts.length - 1];
+}
+
+export function projectOntoPolyline(
+  pts: Point[],
+  p: Point,
+): { point: Point; t: number } {
+  if (pts.length < 2) return { point: pts[0] || { x: 0, y: 0 }, t: 0.5 };
+  let total = 0;
+  const lens: number[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const l = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+    lens.push(l);
+    total += l;
+  }
+  if (total <= 0) return { point: pts[0], t: 0.5 };
+
+  let bestDist = Infinity;
+  let bestDistFromStart = total * 0.5;
+
+  let currentDist = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const l2 = dx * dx + dy * dy || 1;
+    let segT = ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2;
+    segT = Math.max(0, Math.min(1, segT));
+    const proj = { x: a.x + segT * dx, y: a.y + segT * dy };
+    const dist = Math.hypot(p.x - proj.x, p.y - proj.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestDistFromStart = currentDist + segT * lens[i];
+    }
+    currentDist += lens[i];
+  }
+
+  // Constrain label to stay on the line between endpoints
+  const pad = Math.min(24, total * 0.15);
+  const clampedDist = Math.max(pad, Math.min(total - pad, bestDistFromStart));
+  const t = total > 0 ? clampedDist / total : 0.5;
+
+  return {
+    point: pointAlongPolyline(pts, t),
+    t,
+  };
+}
+
+function midByLength(pts: Point[]): Point {
+  return pointAlongPolyline(pts, 0.5);
 }
 
 function unit(from: Point, to: Point): Point {
   const l = Math.hypot(to.x - from.x, to.y - from.y) || 1;
   return { x: (to.x - from.x) / l, y: (to.y - from.y) / l };
+}
+
+/** Evaluate a point on a cubic Bézier at parameter t (0..1). */
+function cubicAt(p0: Point, c1: Point, c2: Point, p3: Point, t: number): Point {
+  const u = 1 - t;
+  return {
+    x: u * u * u * p0.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * p3.x,
+    y: u * u * u * p0.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p3.y,
+  };
+}
+
+/** Sample a cubic Bézier into n+1 polyline points for hit testing & tangents. */
+function sampleCubic(p0: Point, c1: Point, c2: Point, p3: Point, n: number): Point[] {
+  const pts: Point[] = [];
+  for (let i = 0; i <= n; i++) pts.push(cubicAt(p0, c1, c2, p3, i / n));
+  return pts;
 }
 
 export function arrowGeom(
@@ -523,10 +641,17 @@ export function arrowGeom(
 ): ArrowGeom {
   const sEl = el.start?.elementId ? getElement(el.start.elementId) : undefined;
   const tEl = el.end?.elementId ? getElement(el.end.elementId) : undefined;
-  const raw = el.points || [
-    { x: 0, y: 0 },
-    { x: 100, y: 0 },
-  ];
+  const valid = (el.points || []).filter(
+    (p): p is Point =>
+      !!p && typeof p.x === "number" && typeof p.y === "number",
+  );
+  const raw =
+    valid.length >= 2
+      ? valid
+      : [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+        ];
   const first = { x: el.x + (raw[0]?.x ?? 0), y: el.y + (raw[0]?.y ?? 0) };
   const last = {
     x: el.x + (raw[raw.length - 1]?.x ?? 0),
@@ -558,8 +683,14 @@ export function arrowGeom(
       anchorPoint(tEl, sEl ? centerOf(sEl) : first);
   const mode = el.routeMode || "orthogonal";
 
-  // Auto route between two distinct bound shapes: side-aware obstacle
-  // avoidance like the original (stubs + rounded orthogonal runs).
+  let d = "";
+  let pts: Point[] = [p0, p1];
+
+  const stored = rawPoints(el);
+  const seq = [...stored];
+  if (sEl && el.start && seq.length) seq[0] = p0;
+  if (tEl && el.end && seq.length) seq[seq.length - 1] = p1;
+
   if (
     mode === "orthogonal" &&
     el.route !== "manual" &&
@@ -569,111 +700,43 @@ export function arrowGeom(
   ) {
     const routed = autoOrthogonal(elementBounds(sEl), elementBounds(tEl));
     if (routed && routed.length >= 2) {
-      const a = routed[0];
-      const z = routed[routed.length - 1];
-      const d = roundedPath(routed);
-      const lp = midByLength(routed);
-      const off = (el as any).labelPoint;
-      return {
-        d,
-        p0: a,
-        p1: z,
-        pts: routed,
-        tan0: unit(routed[1], routed[0]),
-        tan1: unit(routed[routed.length - 2], z),
-        labelPoint: off ? { x: lp.x + off.dx, y: lp.y + off.dy } : lp,
-        stroke: th.arrow,
-      };
+      d = roundedPath(routed);
+      pts = routed;
+    } else {
+      d = `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`;
+      pts = [p0, p1];
     }
-  }
-
-  // Manual orthogonal routes render their stored waypoints (rounded),
-  // with endpoints snapped to their bindings like the original (kg).
-  if (
-    mode === "orthogonal" &&
-    (el.route === "manual" || (sEl && tEl && sEl.id === tEl.id))
-  ) {
-    const stored = rawPoints(el);
-    if (stored.length >= 3) {
-      const seq = [...stored];
-      if (sEl && el.start) seq[0] = p0;
-      if (tEl && el.end) seq[seq.length - 1] = p1;
-      const d = roundedPath(seq);
-      const lp = midByLength(seq);
-      const off = (el as any).labelPoint;
-      return {
-        d,
-        p0: seq[0],
-        p1: seq[seq.length - 1],
-        pts: seq,
-        tan0: unit(seq[1], seq[0]),
-        tan1: unit(seq[seq.length - 2], seq[seq.length - 1]),
-        labelPoint: off ? { x: lp.x + off.dx, y: lp.y + off.dy } : lp,
-        stroke: th.arrow,
-      };
-    }
-  }
-
-  // Draggable label offset (dx/dy in world units).
-  let labelPoint = (el as any).labelPoint
-    ? {
-        x: (p0.x + p1.x) / 2 + (el as any).labelPoint.dx,
-        y: (p0.y + p1.y) / 2 + (el as any).labelPoint.dy,
-      }
-    : { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
-  let d = "";
-  let pts: Point[] = [p0, p1];
-  if (mode === "straight") {
-    const stored = rawPoints(el);
-    // Snap stored ends to bindings (original kg); keep hand bends.
-    const seq = [...stored];
-    if (sEl && el.start && seq.length) seq[0] = p0;
-    if (tEl && el.end && seq.length) seq[seq.length - 1] = p1;
-    pts = seq.length > 2 ? seq : [p0, p1];
-    d = `M${pts.map((p) => `${p.x} ${p.y}`).join(" L")}`;
-  } else if (mode === "curved") {
-    const stored = rawPoints(el);
-    const seq = [...stored];
-    if (sEl && el.start && seq.length) seq[0] = p0;
-    if (tEl && el.end && seq.length) seq[seq.length - 1] = p1;
-    if (el.route === "manual" && seq.length >= 3) {
+  } else if (seq.length >= 3) {
+    if (mode === "curved") {
       d = smoothPath(seq);
       pts = seq;
-      const lp = midByLength(seq);
-      const off = (el as any).labelPoint;
-      labelPoint = off ? { x: lp.x + off.dx, y: lp.y + off.dy } : lp;
-    } else if (Math.abs(p1.x - p0.x) >= Math.abs(p1.y - p0.y)) {
-      const mx = (p0.x + p1.x) / 2;
-      d = `M${p0.x} ${p0.y} C${mx} ${p0.y} ${mx} ${p1.y} ${p1.x} ${p1.y}`;
+    } else if (mode === "orthogonal") {
+      d = roundedPath(seq);
+      pts = seq;
     } else {
-      const my = (p0.y + p1.y) / 2;
-      d = `M${p0.x} ${p0.y} C${p0.x} ${my} ${p1.x} ${my} ${p1.x} ${p1.y}`;
+      d = `M${seq.map((p) => `${p.x} ${p.y}`).join(" L")}`;
+      pts = seq;
     }
-  } else if (Math.abs(p1.x - p0.x) >= Math.abs(p1.y - p0.y)) {
-    if (Math.abs(p1.y - p0.y) < 1) d = `M${p0.x} ${p0.y} H${p1.x}`;
-    else {
-      const mx = (p0.x + p1.x) / 2;
-      d = `M${p0.x} ${p0.y} H${mx} V${p1.y} H${p1.x}`;
-      pts = [p0, { x: mx, y: p0.y }, { x: mx, y: p1.y }, p1];
-      labelPoint = { x: mx, y: (p0.y + p1.y) / 2 };
-    }
-  } else if (Math.abs(p1.x - p0.x) < 1) {
-    d = `M${p0.x} ${p0.y} V${p1.y}`;
   } else {
-    const my = (p0.y + p1.y) / 2;
-    d = `M${p0.x} ${p0.y} V${my} H${p1.x} V${p1.y}`;
-    pts = [p0, { x: p0.x, y: my }, { x: p1.x, y: my }, p1];
-    labelPoint = { x: (p0.x + p1.x) / 2, y: my };
+    // 2-point arrows in free space or bound without obstacles are straight lines
+    d = `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`;
+    pts = [p0, p1];
   }
+
+  const rawT = (el as any).labelT ?? (el as any).labelRatio;
+  const labelT =
+    typeof rawT === "number" ? Math.max(0.05, Math.min(0.95, rawT)) : 0.5;
+  const labelPoint = pointAlongPolyline(pts, labelT);
+
   const t = unit(p0, p1);
-  // End tangents follow the drawn polyline legs (original head orientation).
   const leg0 = pts.length > 1 ? unit(pts[1], pts[0]) : { x: -t.x, y: -t.y };
   const leg1 =
     pts.length > 1 ? unit(pts[pts.length - 2], pts[pts.length - 1]) : t;
+
   return {
     d,
-    p0,
-    p1,
+    p0: pts[0] ?? p0,
+    p1: pts[pts.length - 1] ?? p1,
     pts,
     tan0: leg0,
     tan1: leg1,
@@ -687,17 +750,23 @@ export function arrowHead(
   end: "start" | "end",
   color: string,
 ): string {
-  // Head points along the end tangent (original: last two routed points).
+  const p = (pt: Point) => `${pt.x.toFixed(2)} ${pt.y.toFixed(2)}`;
+  const n = end === "end" ? geom.p1 : geom.p0;
   const t = end === "end" ? geom.tan1 : geom.tan0;
-  const a = end === "end" ? geom.p1 : geom.p0;
-  const ang = Math.atan2(t.y, t.x);
-  const len = 10;
-  const wid = 4.4;
-  const x1 = a.x - len * Math.cos(ang) + wid * Math.sin(ang);
-  const y1 = a.y - len * Math.sin(ang) - wid * Math.cos(ang);
-  const x2 = a.x - len * Math.cos(ang) - wid * Math.sin(ang);
-  const y2 = a.y - len * Math.sin(ang) + wid * Math.cos(ang);
-  return `<path d="M${a.x} ${a.y} L${x1} ${y1} L${x2} ${y2} Z" fill="${color}"/>`;
+  const c = 12;
+  const v = c * 0.42;
+  const ox = t.x;
+  const oy = t.y;
+  const fx = -oy;
+  const fy = ox;
+  const y = (back: number, side: number) => ({
+    x: n.x - ox * back + fx * side,
+    y: n.y - oy * back + fy * side,
+  });
+  const m = y(c, v);
+  const b = y(c, -v);
+  const k = y(c * 0.74, 0);
+  return `<path d="M${p(n)} L${p(m)} L${p(k)} L${p(b)} Z" fill="${color}"/>`;
 }
 
 export const dashArray = (el: BoardElement): string => {

@@ -4027,25 +4027,34 @@ select.input {
 /* Context-bar colour dot and single Layer order control (live parity). */
 .contextbar .colordot {
   position: relative;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
   cursor: pointer;
   flex: 0 0 auto;
-  display: inline-block;
-  overflow: hidden;
   padding: 0;
 }
-.contextbar .colordot input {
-  position: absolute;
-  inset: -6px;
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
-  opacity: 0;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
+.contextbar .colordot:hover,
+.contextbar .colordot.is-on {
+  background: var(--raised);
+}
+.contextbar .colordot .swatch,
+.contextbar .colordot span {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid;
+  transition: transform 0.12s ease;
+  display: block;
+  box-sizing: border-box;
+}
+.contextbar .colordot:hover .swatch,
+.contextbar .colordot:hover span {
+  transform: scale(1.15);
 }
 .layerwrap {
   position: relative;

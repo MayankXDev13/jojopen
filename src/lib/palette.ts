@@ -25,7 +25,7 @@ export const ROLE_COLORS: { light: Palette; dark: Palette; chalk: Palette } = {
     messaging: { fill: "#fbf1d3", stroke: "#bc8810", text: "#573e03" },
     security: { fill: "#ffe9ec", stroke: "#d04a69", text: "#6a1d30" },
     external: { fill: "#ecf1f7", stroke: "#6d7c8f", text: "#303b4a" },
-    neutral: { fill: "#f2f2f2", stroke: "#808080", text: "#353535" },
+    neutral: { fill: "#ffffff", stroke: "#1c1b19", text: "#1c1b19" },
     ink: { fill: "#ffffff", stroke: "#1c1b19", text: "#1c1b19" },
   },
   dark: {
@@ -37,7 +37,7 @@ export const ROLE_COLORS: { light: Palette; dark: Palette; chalk: Palette } = {
     messaging: { fill: "#2e260c", stroke: "#e3b545", text: "#f8eac2" },
     security: { fill: "#361a1f", stroke: "#f18093", text: "#ffd9de" },
     external: { fill: "#20242b", stroke: "#9ba9bc", text: "#dee5ee" },
-    neutral: { fill: "#242424", stroke: "#a4a4a4", text: "#e4e4e4" },
+    neutral: { fill: "#191919", stroke: "#ededec", text: "#ededec" },
     ink: { fill: "#191919", stroke: "#ededec", text: "#ededec" },
   },
   chalk: {

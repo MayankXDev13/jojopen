@@ -112,8 +112,7 @@ function ShortcutsSheet() {
         </div>
         <p className="sheet-foot">
           Hold <kbd>Space</kbd> to pan · hold <kbd>Alt</kbd> while dragging to
-          place freely · scroll to pan, pinch or <kbd>⌘/Ctrl</kbd>+scroll to
-          zoom.
+          duplicate · scroll to pan, pinch or <kbd>⌘/Ctrl</kbd>+scroll to zoom.
         </p>
       </Sheet>
     </Scrim>

@@ -3,6 +3,7 @@ import { elementBounds } from "../lib/geometry";
 import {
   S,
   elements,
+  nextIndex,
   notify,
   persist,
   pushHistory,
@@ -10,11 +11,79 @@ import {
   selectionElements,
   settings,
   sortedElements,
+  theme,
 } from "../state/store";
 import { beginEdit, present, setPanel, setTool } from "../state/actions";
 import { textTool } from "./TextToolController";
+import { deep, uid } from "../lib/dom";
+import { hitTestArrow } from "../lib/geometry";
 
-export const TEXT_EDITABLE = ["text", "shape", "sticky", "container"];
+export const TEXT_EDITABLE = ["text", "shape", "sticky", "container", "arrow"];
+
+function cloneElementsForDrag(
+  originalPositions: Map<string, { x: number; y: number }>,
+): {
+  clonedPositions: Map<string, { x: number; y: number }>;
+  clonedIds: string[];
+} {
+  const origElements = Array.from(originalPositions.keys())
+    .map((id) => S.doc.elements[id])
+    .filter(Boolean);
+
+  const idMap = new Map<string, string>();
+  for (const el of origElements) {
+    idMap.set(el.id, uid());
+  }
+
+  const groupMap = new Map<string, string>();
+  for (const el of origElements) {
+    if (el.groupIds) {
+      for (const gid of el.groupIds) {
+        if (!groupMap.has(gid)) groupMap.set(gid, uid());
+      }
+    }
+  }
+
+  const clonedPositions = new Map<string, { x: number; y: number }>();
+  const clonedIds: string[] = [];
+
+  for (const orig of origElements) {
+    const clone = deep(orig);
+    const newId = idMap.get(orig.id)!;
+    clone.id = newId;
+    clone.index = nextIndex();
+
+    if (clone.frameId && idMap.has(clone.frameId)) {
+      clone.frameId = idMap.get(clone.frameId)!;
+    }
+    if (clone.groupIds) {
+      clone.groupIds = clone.groupIds.map(
+        (gid: string) => groupMap.get(gid) || gid,
+      );
+    }
+    if (clone.type === "arrow") {
+      if (clone.start?.elementId && idMap.has(clone.start.elementId)) {
+        clone.start = {
+          ...clone.start,
+          elementId: idMap.get(clone.start.elementId)!,
+        };
+      }
+      if (clone.end?.elementId && idMap.has(clone.end.elementId)) {
+        clone.end = {
+          ...clone.end,
+          elementId: idMap.get(clone.end.elementId)!,
+        };
+      }
+    }
+
+    S.doc.elements[newId] = clone;
+    clonedIds.push(newId);
+    const origPos = originalPositions.get(orig.id)!;
+    clonedPositions.set(newId, { ...origPos });
+  }
+
+  return { clonedPositions, clonedIds };
+}
 
 export class SelectToolController implements ToolController {
   readonly id = "select";
@@ -60,6 +129,8 @@ export class SelectToolController implements ToolController {
     notify();
   }
 
+  private keyCleanup: (() => void) | null = null;
+
   startMove(
     e: CanvasPointerEvent,
     ctx: ToolContext,
@@ -77,12 +148,38 @@ export class SelectToolController implements ToolController {
       }
     }
     pushHistory("move");
+
+    if (this.keyCleanup) {
+      this.keyCleanup();
+      this.keyCleanup = null;
+    }
+    if (typeof window !== "undefined") {
+      const onKey = (ke: KeyboardEvent) => {
+        if (ke.key === "Alt") {
+          if (S.drag) ke.preventDefault();
+          this.syncAltDuplicate(ke.type === "keydown");
+        }
+      };
+      window.addEventListener("keydown", onKey);
+      window.addEventListener("keyup", onKey);
+      this.keyCleanup = () => {
+        window.removeEventListener("keydown", onKey);
+        window.removeEventListener("keyup", onKey);
+      };
+    }
+
     S.drag = {
       mode: "move",
       start: { x: e.clientX, y: e.clientY },
       positions,
+      originalPositions: new Map(positions),
+      originalIds: Array.from(positions.keys()),
+      clonedIds: null,
+      isDuplicate: false,
       moved: false,
       editId,
+      lastClient: { x: e.clientX, y: e.clientY },
+      lastCtrl: e.ctrlKey || e.metaKey,
     };
     ctx.capturePointer(e.pointerId);
   }
@@ -156,6 +253,11 @@ export class SelectToolController implements ToolController {
       const id = (edgeEl as HTMLElement).dataset.id!;
       const el = S.doc.elements[id];
       if (el) {
+        const wasSelected = S.selection.has(el.id);
+        const editId =
+          !e.shiftKey && wasSelected && S.selection.size === 1 && !el.locked
+            ? el.id
+            : null;
         if (e.shiftKey) {
           if (S.selection.has(el.id)) S.selection.delete(el.id);
           else S.selection.add(el.id);
@@ -163,11 +265,78 @@ export class SelectToolController implements ToolController {
           S.selection = new Set([el.id]);
         }
         notify();
-        if (!el.locked) this.startMove(e, ctx);
+        if (!el.locked) this.startMove(e, ctx, editId);
         return;
       }
     }
     this.startMarquee(e, ctx);
+  }
+
+  syncAltDuplicate(isAlt: boolean): void {
+    const d: any = S.drag;
+    if (!d || d.mode !== "move" || !d.moved) return;
+    if (isAlt && !d.isDuplicate) {
+      for (const [id, pos] of d.originalPositions) {
+        const el = S.doc.elements[id];
+        if (el) {
+          el.x = pos.x;
+          el.y = pos.y;
+        }
+      }
+      const { clonedPositions, clonedIds } = cloneElementsForDrag(
+        d.originalPositions,
+      );
+      d.clonedIds = clonedIds;
+      d.positions = clonedPositions;
+      d.isDuplicate = true;
+      S.selection = new Set(clonedIds);
+      if (d.lastClient) {
+        this.applyMoveDelta(d.lastClient, isAlt, d.lastCtrl);
+      } else {
+        notify();
+      }
+    } else if (!isAlt && d.isDuplicate) {
+      if (d.clonedIds) {
+        for (const id of d.clonedIds) {
+          delete S.doc.elements[id];
+        }
+        d.clonedIds = null;
+      }
+      d.positions = d.originalPositions;
+      d.isDuplicate = false;
+      S.selection = new Set(d.originalIds);
+      if (d.lastClient) {
+        this.applyMoveDelta(d.lastClient, isAlt, d.lastCtrl);
+      } else {
+        notify();
+      }
+    }
+  }
+
+  applyMoveDelta(
+    clientPos: { x: number; y: number },
+    altKey: boolean,
+    ctrlKey: boolean = false,
+  ): void {
+    const d: any = S.drag;
+    if (!d || d.mode !== "move") return;
+    const z = S.camera.zoom;
+    let dx = (clientPos.x - d.start.x) / z;
+    let dy = (clientPos.y - d.start.y) / z;
+    const g = settings();
+    if (g.snapToGrid && !ctrlKey) {
+      dx = Math.round(dx / g.gridSize) * g.gridSize;
+      dy = Math.round(dy / g.gridSize) * g.gridSize;
+    }
+    for (const [id, pos] of d.positions) {
+      const el = S.doc.elements[id];
+      if (!el) continue;
+      if (el.type === "arrow" && (el.start?.elementId || el.end?.elementId))
+        continue;
+      el.x = pos.x + dx;
+      el.y = pos.y + dy;
+    }
+    scheduleNotify();
   }
 
   onPointerMove(e: CanvasPointerEvent, ctx: ToolContext): void {
@@ -175,14 +344,23 @@ export class SelectToolController implements ToolController {
     const z = S.camera.zoom;
 
     if (d && d.mode === "move") {
+      d.lastClient = { x: e.clientX, y: e.clientY };
+      d.lastCtrl = e.ctrlKey || e.metaKey;
+
       let dx = (e.clientX - d.start.x) / z;
       let dy = (e.clientY - d.start.y) / z;
       const g = settings();
-      if (g.snapToGrid && !e.altKey) {
+      const bypassSnap = e.ctrlKey || e.metaKey;
+      if (g.snapToGrid && !bypassSnap) {
         dx = Math.round(dx / g.gridSize) * g.gridSize;
         dy = Math.round(dy / g.gridSize) * g.gridSize;
       }
-      d.moved = Math.abs(dx) + Math.abs(dy) > 0;
+      if (Math.abs(dx) + Math.abs(dy) > 0) d.moved = true;
+
+      if (d.moved) {
+        this.syncAltDuplicate(e.altKey);
+      }
+
       for (const [id, pos] of d.positions) {
         const el = S.doc.elements[id];
         if (!el) continue;
@@ -201,7 +379,7 @@ export class SelectToolController implements ToolController {
       let dx = (e.clientX - d.start.x) / z;
       let dy = (e.clientY - d.start.y) / z;
       const g = settings();
-      if (g.snapToGrid && !e.altKey) {
+      if (g.snapToGrid && !e.altKey && !e.ctrlKey && !e.metaKey) {
         dx = Math.round(dx / g.gridSize) * g.gridSize;
         dy = Math.round(dy / g.gridSize) * g.gridSize;
       }
@@ -246,12 +424,18 @@ export class SelectToolController implements ToolController {
   }
 
   onPointerUp(e: CanvasPointerEvent, ctx: ToolContext): void {
+    if (this.keyCleanup) {
+      this.keyCleanup();
+      this.keyCleanup = null;
+    }
+
     const d: any = S.drag;
     if (S.marquee) this.finishMarquee(ctx);
 
     if (d && d.mode === "move") {
       if (
         !d.moved &&
+        !e.altKey &&
         d.editId &&
         S.doc.elements[d.editId] &&
         !S.doc.elements[d.editId].locked
@@ -263,6 +447,9 @@ export class SelectToolController implements ToolController {
         notify();
         persist();
         return;
+      }
+      if (d.isDuplicate && S.history.length) {
+        S.history[S.history.length - 1].label = "duplicate";
       }
       S.drag = null;
       S.panning = false;
@@ -317,14 +504,57 @@ export class SelectToolController implements ToolController {
     if (edgeEl && !(target?.closest?.(".node") as HTMLElement | null)) {
       const el = S.doc.elements[edgeEl.dataset.id!];
       if (el && el.type === "arrow" && !el.locked) {
+        S.selection = new Set([el.id]);
         beginEdit(el.id);
+        return;
+      }
+    }
+
+    const w = { x: e.worldX, y: e.worldY };
+    const tolerance = 24 / (S.camera.zoom || 1);
+    const th = theme();
+    const arrows = sortedElements().filter((el) => el.type === "arrow");
+    for (let i = arrows.length - 1; i >= 0; i--) {
+      const arrow = arrows[i];
+      if (
+        hitTestArrow(
+          w,
+          arrow,
+          (id) => S.doc.elements[id],
+          th,
+          tolerance,
+        )
+      ) {
+        if (!arrow.locked) {
+          S.selection = new Set([arrow.id]);
+          beginEdit(arrow.id);
+          return;
+        }
+      }
+    }
+
+    if (S.selection.size === 1) {
+      const selId = [...S.selection][0];
+      const selEl = S.doc.elements[selId];
+      if (
+        selEl &&
+        selEl.type === "arrow" &&
+        !selEl.locked &&
+        hitTestArrow(
+          w,
+          selEl,
+          (id) => S.doc.elements[id],
+          th,
+          tolerance * 2,
+        )
+      ) {
+        beginEdit(selEl.id);
         return;
       }
     }
 
     const nodeEl = target?.closest?.(".node") as HTMLElement | null;
     if (!nodeEl) {
-      const w = ctx.toWorld(e.clientX, e.clientY);
       setTool("text");
       textTool.createTextAt(w, { autoSize: true });
       return;

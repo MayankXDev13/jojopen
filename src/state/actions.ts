@@ -1161,7 +1161,7 @@ export function toggleTheme() {
 }
 
 export function toggleBw() {
-  settings().palette = paletteOn() ? "mono" : "roles";
+  settings().palette = (settings().palette ?? "roles") === "mono" ? "roles" : "mono";
   notify();
   persist();
 }
@@ -1170,7 +1170,6 @@ export function toggleSnap() {
   settings().snapToGrid = !settings().snapToGrid;
   notify();
   persist();
-  toast(settings().snapToGrid ? "Snap to dots on" : "Snap off");
 }
 
 export function toggleGrid() {
@@ -1232,38 +1231,12 @@ export function autoColor() {
 }
 
 export function randomColors() {
-  /* Persistent mode: first activation repaints everything (one undoable
-     step, existing behavior) and stays active so new shapes/arrows
-     auto-receive palette colors; activating again toggles it off. */
-  if (useBoardStore.getState().randomMode) {
-    useBoardStore.setState({ randomMode: false } as any);
-    notify();
-    persist();
-    toast("Random colors off");
-    return;
-  }
   pushHistory("random colors");
-  if (!paletteOn()) settings().palette = "roles";
-  /* Store colour keys, not resolved paints: `colorFor()` maps them through
-     COLOR_TO_ROLE so the colours follow the active theme. */
-  const keys = [...COLOR_KEYS].sort(() => Math.random() - 0.5);
-  elements()
-    // Original random set: shapes, containers, arrows and freehand (text excluded).
-    .filter(
-      (e) =>
-        e.type === "shape" ||
-        e.type === "container" ||
-        e.type === "arrow" ||
-        e.type === "freehand",
-    )
-    .forEach((e, i) => {
-      e.color = keys[i % keys.length];
-      e.colorLocked = true;
-    });
-  useBoardStore.setState({ randomMode: true } as any);
-  persist();
+  const isRandom = settings().palette === "random";
+  settings().palette = isRandom ? "roles" : "random";
+  useBoardStore.setState({ randomMode: !isRandom } as any);
   notify();
-  toast("Random colors");
+  persist();
 }
 
 export function toggleNoFill() {
@@ -1298,6 +1271,18 @@ export function setRoute(route: string) {
   notify();
   persist();
 }
+
+export function toggleDash() {
+  pushHistory("dash");
+  const arrows = selectionElements().filter((e) => e.type === "arrow");
+  const allDashed = arrows.length > 0 && arrows.every((e) => (e as any).dash === "dashed");
+  arrows.forEach((e) => {
+    (e as any).dash = allDashed ? "solid" : "dashed";
+  });
+  notify();
+  persist();
+}
+
 
 /** Forget hand-made bends and route automatically around boxes (original Re-route). */
 export function rerouteSelection() {

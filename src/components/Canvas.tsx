@@ -160,8 +160,10 @@ export function Canvas() {
   const toolClass = SHAPE_TOOLS.includes(S.tool) ? "shape" : S.tool;
   const panning = S.panning || S.drag?.mode === "pan";
   const list = selectionElements();
-  const selBounds = S.editingId ? null : list.length ? boundsOf(list) : null;
   const single = list.length === 1 ? list[0] : null;
+  const isSingleArrow = single?.type === "arrow";
+  const selBounds =
+    S.editingId || isSingleArrow ? null : list.length ? boundsOf(list) : null;
   const resizable =
     !!single && !single.locked && !["arrow", "freehand"].includes(single.type);
   const sugId = (S as any).suggestedBinding as string | null;
@@ -170,7 +172,7 @@ export function Canvas() {
 
   return (
     <div
-      className={`canvas tool-${S.space ? "hand" : toolClass}${panning ? " panning" : ""}`}
+      className={`canvas tool-${S.space ? "hand" : toolClass}${panning ? " panning" : ""}${(S.drag as any)?.isDuplicate ? " is-duplicate" : ""}`}
       id="canvas"
       ref={ref}
       style={{ background: th.board }}

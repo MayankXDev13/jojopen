@@ -176,11 +176,6 @@ export function diagramSVG(
       );
     if (e.label) {
       const lines = wrapText(e.label, 170, 11);
-      const tw = Math.max(...lines.map((l) => l.length)) * 5.6 + 14;
-      const thh = 16 + (lines.length - 1) * 12;
-      labelBits.push(
-        `<rect x="${e.labelAt.x - tw / 2}" y="${e.labelAt.y - thh / 2}" width="${tw}" height="${thh}" rx="6" fill="${th.labelPill}"/>`,
-      );
       lines.forEach((ln, i) =>
         labelBits.push(
           `<text x="${e.labelAt.x}" y="${e.labelAt.y + 3.5 - (lines.length - 1) * 6 + i * 12}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10.5" fill="${th.muted}">${esc(ln)}</text>`,

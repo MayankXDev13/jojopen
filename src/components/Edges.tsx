@@ -81,8 +81,42 @@ export function Edges() {
                   ? "2 5"
                   : undefined;
         const strokeWidth = el.dash === "thick" ? 2.6 : 1.7;
+        const hasLabel = !!(el.label && S.editingId !== el.id);
+        const font = fontFor(el);
+        const fontSize = 14 * (el.textScale ?? 1);
+        const padX = 8;
+        const padY = 4;
+        const charW = fontSize * 0.58;
+        const pillW = Math.max(
+          28,
+          (el.label?.length || 0) * charW + padX * 2,
+        );
+        const pillH = fontSize + padY * 2;
+        const maskId = hasLabel ? `label-mask-${el.id}` : undefined;
+
         return (
           <g key={el.id}>
+            {hasLabel ? (
+              <defs>
+                <mask id={maskId}>
+                  <rect
+                    x="-50000"
+                    y="-50000"
+                    width="100000"
+                    height="100000"
+                    fill="white"
+                  />
+                  <rect
+                    x={geom.labelPoint.x - pillW / 2}
+                    y={geom.labelPoint.y - pillH / 2}
+                    width={pillW}
+                    height={pillH}
+                    rx={4}
+                    fill="black"
+                  />
+                </mask>
+              </defs>
+            ) : null}
             <path
               d={geom.d}
               fill="none"
@@ -91,6 +125,7 @@ export function Edges() {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeDasharray={dash}
+              mask={maskId ? `url(#${maskId})` : undefined}
               data-id={el.id}
             />
             {el.endHead !== "none" && el.kind !== "line" ? (
@@ -116,44 +151,30 @@ export function Edges() {
               className="hit"
               data-id={el.id}
             />
-            {el.label && S.editingId !== el.id
-              ? (() => {
-                  const font = fontFor(el);
-                  const fontSize = 14 * (el.textScale ?? 1);
-                  const padX = 8;
-                  const padY = 4;
-                  const charW = fontSize * 0.58;
-                  const pillW = Math.max(
-                    28,
-                    el.label.length * charW + padX * 2,
-                  );
-                  const pillH = fontSize + padY * 2;
-                  return (
-                    <g data-id={el.id} data-label="1" cursor="move">
-                      <rect
-                        x={geom.labelPoint.x - pillW / 2}
-                        y={geom.labelPoint.y - pillH / 2}
-                        width={pillW}
-                        height={pillH}
-                        rx={6}
-                        fill={th.labelPill}
-                      />
-                      <text
-                        x={geom.labelPoint.x}
-                        y={geom.labelPoint.y}
-                        dominantBaseline="central"
-                        textAnchor="middle"
-                        fontFamily={font}
-                        fontSize={fontSize}
-                        fill={paint.stroke || th.muted}
-                        style={{ pointerEvents: "none", userSelect: "none" }}
-                      >
-                        {el.label}
-                      </text>
-                    </g>
-                  );
-                })()
-              : null}
+            {hasLabel ? (
+              <g data-id={el.id} data-label="1" cursor="move">
+                <rect
+                  x={geom.labelPoint.x - pillW / 2}
+                  y={geom.labelPoint.y - pillH / 2}
+                  width={pillW}
+                  height={pillH}
+                  rx={6}
+                  fill="transparent"
+                />
+                <text
+                  x={geom.labelPoint.x}
+                  y={geom.labelPoint.y}
+                  dominantBaseline="central"
+                  textAnchor="middle"
+                  fontFamily={font}
+                  fontSize={fontSize}
+                  fill={paint.stroke || th.muted}
+                  style={{ pointerEvents: "none", userSelect: "none" }}
+                >
+                  {el.label}
+                </text>
+              </g>
+            ) : null}
           </g>
         );
       })}

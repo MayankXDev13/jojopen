@@ -459,7 +459,7 @@ describe("Geometry: Arrow Routing and Handles", () => {
     expect(geom3.pts.length).toBe(3);
   });
 
-  test("2-point curved arrow between diagonal points renders smooth S-curve without overshoot", () => {
+  test("2-point curved arrow between diagonal points stays straight until bent by user", () => {
     const arrow = makeEl({
       type: "arrow",
       x: 0,
@@ -471,12 +471,11 @@ describe("Geometry: Arrow Routing and Handles", () => {
       ],
     });
     const geom = arrowGeom(arrow, () => undefined, THEME.light);
-    expect(geom.d).toContain("C200 100 200 200 300 200");
-    // Points are sampled along the curve
-    expect(geom.pts.length).toBeGreaterThan(2);
+    expect(geom.d).toBe("M100 100 L300 200");
+    expect(geom.pts.length).toBe(2);
   });
 
-  test("bound curved arrow with auto route ignores stale multi-point bends", () => {
+  test("bound curved arrow with auto route ignores stale multi-point bends and stays straight between anchors", () => {
     const sEl = makeEl({ id: "s", type: "shape", x: 100, y: 100, width: 80, height: 60 });
     const tEl = makeEl({ id: "t", type: "shape", x: 300, y: 250, width: 80, height: 60 });
     const arrow = makeEl({
@@ -496,11 +495,9 @@ describe("Geometry: Arrow Routing and Handles", () => {
       ],
     });
     const geom = arrowGeom(arrow, (id) => (id === "s" ? sEl : tEl), THEME.light);
-    // Should NOT route through (180, 50) detour; should use clean S-curve
-    expect(geom.d).toContain("C");
-    // Verify it doesn't overshoot way up to y=50
-    const minY = Math.min(...geom.pts.map((p) => p.y));
-    expect(minY).toBeGreaterThanOrEqual(100);
+    // Should NOT route through (180, 50) detour; should stay clean straight line between anchors
+    expect(geom.d).toMatch(/^M[\d.]+ [\d.]+ L[\d.]+ [\d.]+$/);
+    expect(geom.pts.length).toBe(2);
   });
 
   test("arrowGeom preserves precise normalizedAnchor without collapsing to midpoint", () => {

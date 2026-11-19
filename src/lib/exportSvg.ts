@@ -146,12 +146,20 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
               : e.dash === "dotted"
                 ? "2 5"
                 : "";
-      let s = `<path d="${g.d}" fill="none" stroke="${paint.stroke}" stroke-width="${e.dash === "thick" ? 2.6 : 1.7}" stroke-linecap="round" stroke-linejoin="round" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
+      let maskDef = "";
+      let maskAttr = "";
+      if (e.label) {
+        const w = Math.max(28, e.label.length * 6.4 + 16);
+        const h = 20;
+        const maskId = `export-mask-${e.id}`;
+        maskDef = `<defs><mask id="${maskId}"><rect x="-50000" y="-50000" width="100000" height="100000" fill="white"/><rect x="${g.labelPoint.x - w / 2}" y="${g.labelPoint.y - h / 2}" width="${w}" height="${h}" rx="4" fill="black"/></mask></defs>`;
+        maskAttr = `mask="url(#${maskId})"`;
+      }
+      let s = `${maskDef}<path d="${g.d}" fill="none" stroke="${paint.stroke}" stroke-width="${e.dash === "thick" ? 2.6 : 1.7}" stroke-linecap="round" stroke-linejoin="round" ${dash ? `stroke-dasharray="${dash}"` : ""} ${maskAttr}/>`;
       if (e.kind !== "line") s += arrowHead(g, "end", paint.stroke);
       if (e.kind === "bidirectional") s += arrowHead(g, "start", paint.stroke);
       if (e.label) {
-        const w = Math.max(28, e.label.length * 6.4 + 14);
-        s += `<g><rect x="${g.labelPoint.x - w / 2}" y="${g.labelPoint.y - 10}" width="${w}" height="20" rx="6" fill="${th.labelPill}"/><text x="${g.labelPoint.x}" y="${g.labelPoint.y + 4}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="${th.muted}">${esc(e.label)}</text></g>`;
+        s += `<g><text x="${g.labelPoint.x}" y="${g.labelPoint.y + 4}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="${th.muted}">${esc(e.label)}</text></g>`;
       }
       return s;
     }

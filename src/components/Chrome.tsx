@@ -352,6 +352,9 @@ export function TopBar() {
 export function Toolbar() {
   useVersion();
   if (S.zen) return null;
+  const activeTool = TOOLBAR.some((t) => t !== "sep" && t.tool === S.tool)
+    ? S.tool
+    : "select";
   return (
     <div
       className="toolbar collapsible"
@@ -365,12 +368,12 @@ export function Toolbar() {
         ) : (
           <button
             key={t.tool}
-            className={`iconbtn${i > 0 ? " more" : ""}${S.tool === t.tool ? " is-active" : ""}`}
+            className={`iconbtn${t.tool !== activeTool ? " more" : ""}${activeTool === t.tool ? " is-active" : ""}`}
             data-act="tool"
             data-tool={t.tool}
             title={`${t.label}${KEY_HINT[t.tool] ? ` (${KEY_HINT[t.tool]})` : ""}`}
             aria-label={t.label}
-            aria-pressed={S.tool === t.tool}
+            aria-pressed={activeTool === t.tool}
             onClick={() => setTool(t.tool)}
           >
             <Icon name={t.icon} size={18} />
@@ -720,10 +723,7 @@ export function ContextBar() {
   const hasShape = list.some((e) => e.type === "shape");
   const hasArrow = list.some((e) => e.type === "arrow");
   const hasText = list.some(
-    (e) =>
-      e.type === "shape" ||
-      e.type === "sticky" ||
-      e.type === "text",
+    (e) => e.type === "shape" || e.type === "sticky" || e.type === "text",
   );
   const hasScale = list.some(
     (e) =>
@@ -753,8 +753,7 @@ export function ContextBar() {
               <span
                 className="swatch"
                 style={{
-                  background:
-                    c.fill === "transparent" ? "transparent" : c.fill,
+                  background: c.fill === "transparent" ? "transparent" : c.fill,
                   borderColor: c.stroke,
                 }}
               />
@@ -777,8 +776,7 @@ export function ContextBar() {
               <span
                 className="swatch"
                 style={{
-                  background:
-                    c.fill === "transparent" ? "transparent" : c.fill,
+                  background: c.fill === "transparent" ? "transparent" : c.fill,
                   borderColor: c.stroke,
                 }}
               />
@@ -863,10 +861,9 @@ export function ContextBar() {
             ["curved", "curve", "Curved route"],
             ["straight", "straight", "Straight route"],
           ].map(([r, icon, title]) => {
-            const active =
-              list
-                .filter((e) => e.type === "arrow")
-                .every((e) => (e.routeMode || "orthogonal") === r);
+            const active = list
+              .filter((e) => e.type === "arrow")
+              .every((e) => (e.routeMode || "orthogonal") === r);
             return (
               <button
                 key={r}

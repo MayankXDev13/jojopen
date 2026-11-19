@@ -207,37 +207,29 @@ select {
   text-align: center;
 }
 .node.sticky {
-  background: linear-gradient(160deg, #ffe680, #ffe066);
-  box-shadow: 0 8px 16px -8px rgba(63, 54, 6, 0.38);
-  border-radius: 3px;
+  background: transparent;
+  filter: drop-shadow(rgba(0, 0, 0, 0.35) 0px 2px 2px)
+    drop-shadow(rgba(0, 0, 0, 0.35) 0px 10px 16px);
+  border-radius: 0;
 }
 .node.sticky .lbl {
+  position: absolute;
+  inset: 0;
+  display: block;
   align-items: flex-start;
   justify-content: flex-start;
   text-align: left;
-  padding: 14px 14px 20px;
+  padding: 18px 16px 16px;
   white-space: pre-wrap;
   font-family: var(--hand);
-  font-size: 16px;
-  color: #3f3606;
+  font-size: 19px;
+  line-height: 1.3;
+  color: #2b2504;
+  overflow: hidden;
+  pointer-events: none;
 }
 .node.sticky:after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 26px;
-  height: 26px;
-  background:
-    linear-gradient(
-      to top left,
-      rgba(63, 54, 6, 0.3) 0%,
-      rgba(63, 54, 6, 0.1) 46%,
-      transparent 56%
-    ),
-    linear-gradient(to top left, #fff7cf 48%, transparent 50%);
-  clip-path: polygon(100% 0, 18% 100%, 100% 100%);
-  border-bottom-right-radius: 3px;
+  display: none;
 }
 .node.container .frame {
   position: absolute;

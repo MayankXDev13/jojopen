@@ -103,6 +103,7 @@ export const settings = () => S.doc.settings;
 export const resolvedTheme = (): "light" | "dark" =>
   S.themePref === "dark" ||
   (S.themePref === "system" &&
+    typeof window !== "undefined" &&
     !!window.matchMedia?.("(prefers-color-scheme: dark)").matches)
     ? "dark"
     : "light";
@@ -208,6 +209,14 @@ export function colorFor(el: BoardElement) {
       return { fill: "transparent", stroke: paint.stroke, text: theme().muted };
     }
     return paint;
+  }
+  if (el.type === "sticky") {
+    const th = theme();
+    return {
+      fill: th.sticky,
+      stroke: (th as any).stickyFold || "#c8ac3f",
+      text: th.stickyInk,
+    };
   }
   if (el.type === "arrow") {
     return { fill: "transparent", stroke: theme().arrow, text: theme().muted };

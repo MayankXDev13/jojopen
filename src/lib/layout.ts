@@ -1,10 +1,14 @@
 /* Auto-layout for the diagram language: ranked layers + orthogonal routing. */
 
-import { clamp } from './dom';
-import type { ParsedDiagram, ParsedEdge, ParsedNode } from './dsl';
+import { clamp } from "./dom";
+import type { ParsedDiagram, ParsedEdge, ParsedNode } from "./dsl";
 
 export type LayoutBox = { x: number; y: number; w: number; h: number };
-export type GroupBox = LayoutBox & { key: string; label: string; depth: number };
+export type GroupBox = LayoutBox & {
+  key: string;
+  label: string;
+  depth: number;
+};
 export type LayoutEdge = ParsedEdge & {
   d: string;
   pts: { x: number; y: number }[];
@@ -20,22 +24,26 @@ export type Layout = {
   parsed: ParsedDiagram;
 };
 
-export function wrapText(text: string, maxW: number, fontSize: number): string[] {
+export function wrapText(
+  text: string,
+  maxW: number,
+  fontSize: number,
+): string[] {
   const cw = fontSize * 0.56;
   const maxChars = Math.max(4, Math.floor(maxW / cw));
   const words = String(text).split(/\s+/);
   const lines: string[] = [];
-  let cur = '';
+  let cur = "";
   for (const w of words) {
     if (!cur) cur = w;
-    else if ((cur + ' ' + w).length <= maxChars) cur += ' ' + w;
+    else if ((cur + " " + w).length <= maxChars) cur += " " + w;
     else {
       lines.push(cur);
       cur = w;
     }
   }
   if (cur) lines.push(cur);
-  return lines.length ? lines : [''];
+  return lines.length ? lines : [""];
 }
 
 export function nodeSize(n: ParsedNode): { w: number; h: number } {
@@ -45,9 +53,9 @@ export function nodeSize(n: ParsedNode): { w: number; h: number } {
   let w = clamp(longest * 7.2 + 46, 104, 250);
   if (n.icon) w += 6;
   let h = 64;
-  if (n.shape === 'person') h = 78;
-  if (n.shape === 'ellipse') h = 76;
-  if (n.shape === 'cylinder') h = 78;
+  if (n.shape === "person") h = 78;
+  if (n.shape === "ellipse") h = 76;
+  if (n.shape === "cylinder") h = 78;
   if (lines.length > 1) h += 16;
   return { w: Math.round(w), h: Math.round(h) };
 }
@@ -57,7 +65,15 @@ const center = (b: LayoutBox) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
 export function layoutDiagram(p: ParsedDiagram): Layout {
   const nodes = [...p.nodes.values()];
   if (!nodes.length && !p.groups.size) {
-    return { nodes: {}, groups: [], edges: [], width: 240, height: 120, direction: p.direction, parsed: p };
+    return {
+      nodes: {},
+      groups: [],
+      edges: [],
+      width: 240,
+      height: 120,
+      direction: p.direction,
+      parsed: p,
+    };
   }
   const byKey = new Map(nodes.map((n) => [n.key, n]));
   const adj = new Map<string, string[]>(nodes.map((n) => [n.key, []]));
@@ -69,7 +85,9 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
     indeg.set(e.to, (indeg.get(e.to) || 0) + 1);
   }
   const rank = new Map<string, number>(nodes.map((n) => [n.key, 0]));
-  const q = nodes.filter((n) => (indeg.get(n.key) || 0) === 0).map((n) => n.key);
+  const q = nodes
+    .filter((n) => (indeg.get(n.key) || 0) === 0)
+    .map((n) => n.key);
   const seen = new Set<string>();
   while (q.length) {
     const u = q.shift()!;
@@ -88,8 +106,8 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
     }
   }
 
-  const dir = p.direction || 'right';
-  const horizontal = dir === 'right' || dir === 'left';
+  const dir = p.direction || "right";
+  const horizontal = dir === "right" || dir === "left";
   const ranks = new Map<number, ParsedNode[]>();
   for (const n of nodes) {
     const r = rank.get(n.key) || 0;
@@ -106,8 +124,13 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
     const list = ranks.get(r)!.sort((a, b) => a.order - b.order);
     list.forEach((n) => sizes.set(n.key, nodeSize(n)));
     const size = (n: ParsedNode) => sizes.get(n.key)!;
-    const primary = Math.max(...list.map((n) => (horizontal ? size(n).w : size(n).h)));
-    const crossTotal = list.reduce((s, n) => s + (horizontal ? size(n).h : size(n).w) + gapCross, -gapCross);
+    const primary = Math.max(
+      ...list.map((n) => (horizontal ? size(n).w : size(n).h)),
+    );
+    const crossTotal = list.reduce(
+      (s, n) => s + (horizontal ? size(n).h : size(n).w) + gapCross,
+      -gapCross,
+    );
     let cross = -crossTotal / 2;
     for (const n of list) {
       if (horizontal) {
@@ -121,7 +144,7 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
     cursor += primary + gapPrimary;
   }
   /* mirror for left/up */
-  if (dir === 'left' || dir === 'up') {
+  if (dir === "left" || dir === "up") {
     let minP = Infinity;
     let maxP = -Infinity;
     for (const b of boxes.values()) {
@@ -175,14 +198,19 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
     const pad = 26;
     const top = 30;
     const box = {
-      key: k, label: g.label, depth: depth(k),
-      x: minX - pad, y: minY - pad - top,
-      w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 + top,
+      key: k,
+      label: g.label,
+      depth: depth(k),
+      x: minX - pad,
+      y: minY - pad - top,
+      w: maxX - minX + pad * 2,
+      h: maxY - minY + pad * 2 + top,
     };
     gBoxes.push(box);
     return box;
   };
-  for (const k of [...p.groups.keys()].sort((a, b) => depth(b) - depth(a))) groupBox(k);
+  for (const k of [...p.groups.keys()].sort((a, b) => depth(b) - depth(a)))
+    groupBox(k);
 
   /* normalize */
   let minX = 0;
@@ -232,16 +260,23 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
     const r1 = rank.get(e.to) ?? 0;
     const lo = Math.min(r0, r1);
     const hi = Math.max(r0, r1);
-    const between = lo + 1 < hi
-      ? nodes
-        .filter((n) => {
-          const r = rank.get(n.key) ?? 0;
-          return r > lo && r < hi;
-        })
-        .map((n) => boxes.get(n.key))
-        .filter(Boolean) as LayoutBox[]
-      : [];
-    const geom = routeDiagramEdge(a, b, dir, e, between.length ? { between, offset: 22 + (skipN++ % 3) * 14 } : null);
+    const between =
+      lo + 1 < hi
+        ? (nodes
+            .filter((n) => {
+              const r = rank.get(n.key) ?? 0;
+              return r > lo && r < hi;
+            })
+            .map((n) => boxes.get(n.key))
+            .filter(Boolean) as LayoutBox[])
+        : [];
+    const geom = routeDiagramEdge(
+      a,
+      b,
+      dir,
+      e,
+      between.length ? { between, offset: 22 + (skipN++ % 3) * 14 } : null,
+    );
     outEdges.push({ ...e, ...geom });
   }
   let width2 = width;
@@ -256,7 +291,15 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
       height2 = Math.max(height2, e.labelAt.y + 26);
     }
   }
-  return { nodes: Object.fromEntries(boxes), groups: gBoxes.sort((a, b) => a.depth - b.depth), edges: outEdges, width: width2, height: height2, direction: dir, parsed: p };
+  return {
+    nodes: Object.fromEntries(boxes),
+    groups: gBoxes.sort((a, b) => a.depth - b.depth),
+    edges: outEdges,
+    width: width2,
+    height: height2,
+    direction: dir,
+    parsed: p,
+  };
 }
 
 export function routeDiagramEdge(
@@ -265,8 +308,12 @@ export function routeDiagramEdge(
   dir: string,
   e: ParsedEdge,
   skipInfo: { between: LayoutBox[]; offset: number } | null,
-): { d: string; pts: { x: number; y: number }[]; labelAt: { x: number; y: number } } {
-  const horizontal = dir === 'right' || dir === 'left';
+): {
+  d: string;
+  pts: { x: number; y: number }[];
+  labelAt: { x: number; y: number };
+} {
+  const horizontal = dir === "right" || dir === "left";
 
   /* A long edge that jumps over intermediate ranks routes around them instead of
      slicing through the nodes and their labels. */
@@ -275,17 +322,23 @@ export function routeDiagramEdge(
     if (horizontal) {
       const minY = Math.min(...between.map((n) => n.y));
       const maxY = Math.max(...between.map((n) => n.y + n.h));
-      const p0 = { x: dir === 'right' ? a.x + a.w : a.x, y: center(a).y };
-      const p1 = { x: dir === 'right' ? b.x : b.x + b.w, y: center(b).y };
+      const p0 = { x: dir === "right" ? a.x + a.w : a.x, y: center(a).y };
+      const p1 = { x: dir === "right" ? b.x : b.x + b.w, y: center(b).y };
       const y = Math.max(maxY, p0.y, p1.y) + offset;
-      const turn = p1.x - (dir === 'right' ? 14 : -14);
-      const pts = [p0, { x: p0.x, y }, { x: turn, y }, { x: turn, y: p1.y }, p1];
+      const turn = p1.x - (dir === "right" ? 14 : -14);
+      const pts = [
+        p0,
+        { x: p0.x, y },
+        { x: turn, y },
+        { x: turn, y: p1.y },
+        p1,
+      ];
       const d = `M${p0.x} ${p0.y} V${y} H${turn} V${p1.y} H${p1.x}`;
       return { d, pts, labelAt: { x: (p0.x + p1.x) / 2, y } };
     }
     const maxX = Math.max(...between.map((n) => n.x + n.w));
-    const p0 = { x: center(a).x, y: dir === 'down' ? a.y + a.h : a.y };
-    const p1 = { x: center(b).x, y: dir === 'down' ? b.y : b.y + b.h };
+    const p0 = { x: center(a).x, y: dir === "down" ? a.y + a.h : a.y };
+    const p1 = { x: center(b).x, y: dir === "down" ? b.y : b.y + b.h };
     const x = maxX + offset;
     const pts = [p0, { x, y: p0.y }, { x, y: p1.y }, p1];
     const d = `M${p0.x} ${p0.y} H${x} V${p1.y} H${p1.x}`;
@@ -297,7 +350,7 @@ export function routeDiagramEdge(
   let p0: { x: number; y: number };
   let p1: { x: number; y: number };
   if (horizontal) {
-    const rightward = dir === 'right';
+    const rightward = dir === "right";
     const forward = rightward ? bc.x >= ac.x : bc.x <= ac.x;
     if (forward) {
       p0 = { x: rightward ? a.x + a.w : a.x, y: ac.y };
@@ -307,7 +360,7 @@ export function routeDiagramEdge(
       p1 = { x: bc.x, y: b.y };
     }
   } else {
-    const downward = dir === 'down';
+    const downward = dir === "down";
     const forward = downward ? bc.y >= ac.y : bc.y <= ac.y;
     if (forward) {
       p0 = { x: ac.x, y: downward ? a.y + a.h : a.y };
@@ -317,13 +370,13 @@ export function routeDiagramEdge(
       p1 = { x: b.x, y: bc.y };
     }
   }
-  const route = e.route || 'orthogonal';
-  let d = '';
+  const route = e.route || "orthogonal";
+  let d = "";
   let pts = [p0, p1];
   let labelAt = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
-  if (route === 'straight' || route === 'line') {
+  if (route === "straight" || route === "line") {
     d = `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`;
-  } else if (route === 'curved') {
+  } else if (route === "curved") {
     if (horizontal) {
       const mx = (p0.x + p1.x) / 2;
       d = `M${p0.x} ${p0.y} C${mx} ${p0.y} ${mx} ${p1.y} ${p1.x} ${p1.y}`;

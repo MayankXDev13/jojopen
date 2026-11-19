@@ -9,10 +9,10 @@
    Selection stays a `Set` (never persisted: `partialize` excludes it);
    use `useSelectionIds()` where an array is needed. */
 
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { blankDoc, type BoardDoc } from '../lib/model';
-import type { PanelName } from './store';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { blankDoc, type BoardDoc } from "../lib/model";
+import type { PanelName } from "./store";
 
 export type Camera = { x: number; y: number; zoom: number };
 
@@ -20,7 +20,7 @@ export type BoardState = {
   /* persistent */
   doc: BoardDoc;
   camera: Camera;
-  themePref: 'system' | 'light' | 'dark';
+  themePref: "system" | "light" | "dark";
   randomMode: boolean;
 
   /* reactivity version (bumped by notify; components subscribe via useVersion) */
@@ -102,8 +102,8 @@ export type BoardState = {
 const initialTransient = {
   selection: new Set<string>(),
   editingId: null as string | null,
-  tool: 'select',
-  panel: 'none' as string,
+  tool: "select",
+  panel: "none" as string,
   zen: false,
   toast: null as string | null,
   toastTimer: 0,
@@ -131,24 +131,24 @@ const initialTransient = {
   timeline: [] as { json: string; label: string; at: number }[],
   lastSaved: null as number | null,
   paletteIndex: 0,
-  paletteQ: '',
-  iconQuery: '',
+  paletteQ: "",
+  iconQuery: "",
   iconCursor: 0,
-  boardQuery: '',
+  boardQuery: "",
   layoutPicker: false,
   colorPop: false,
   codeFor: null as string | null,
   codeDraft: null as string | null,
-  mermaidText: '',
-  mermaidError: '',
+  mermaidText: "",
+  mermaidError: "",
   exportOpts: null as any,
   connectProvider: null as string | null,
   connectModel: null as string | null,
   assistant: {
     messages: [] as any[],
     busy: false,
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-20250514',
+    provider: "anthropic",
+    model: "claude-sonnet-4-20250514",
     abort: null as AbortController | null,
   },
   clipboard: null as any,
@@ -161,20 +161,26 @@ export const useBoardStore = create<BoardState>()(
     (set) => ({
       doc: blankDoc(),
       camera: { x: 80, y: 80, zoom: 1 },
-      themePref: 'system' as const,
+      themePref: "system" as const,
       randomMode: false,
       version: 0,
       ...initialTransient,
       set: (patch) => set(patch),
-      setSelection: (ids) => set({ selection: ids instanceof Set ? ids : new Set(ids) }),
+      setSelection: (ids) =>
+        set({ selection: ids instanceof Set ? ids : new Set(ids) }),
       bump: () => set((s) => ({ version: s.version + 1 })),
     }),
     {
-      name: 'jojopen.prefs.v1',
+      name: "jojopen.prefs.v1",
       storage: createJSONStorage(() => localStorage),
       /* Only UI prefs persist here; the board document keeps its existing
          multi-key storage flow (KEY_DOC / board copies / boards list). */
-      partialize: (s) => ({ camera: s.camera, themePref: s.themePref, randomMode: s.randomMode }) as BoardState,
+      partialize: (s) =>
+        ({
+          camera: s.camera,
+          themePref: s.themePref,
+          randomMode: s.randomMode,
+        }) as BoardState,
     },
   ),
 );
@@ -197,7 +203,8 @@ export const usePanel = () => useBoardStore((s) => s.panel);
 export const useVersion = () => useBoardStore((s) => s.version);
 
 /** Selection as a Set for call sites migrated from the legacy `S.selection`. */
-export const selectionSet = (): Set<string> => useBoardStore.getState().selection;
+export const selectionSet = (): Set<string> =>
+  useBoardStore.getState().selection;
 
 /** Non-hook read of the whole state for actions/commands. */
 export const getBoardState = () => useBoardStore.getState();

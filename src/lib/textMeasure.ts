@@ -9,7 +9,7 @@ export const TEXT_MAX_WRAP_WIDTH_ZOOMED_OUT = 2000;
 let ctx: CanvasRenderingContext2D | null = null;
 function measureCtx(): CanvasRenderingContext2D | null {
   try {
-    if (!ctx) ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) ctx = document.createElement("canvas").getContext("2d");
     return ctx;
   } catch {
     return null;
@@ -29,18 +29,22 @@ export function maxWrapForZoom(zoom: number): number {
 }
 
 /** Wrap originalText at maxW using real widths; preserves explicit newlines. */
-export function wrapMeasured(text: string, maxW: number, font: string): string[] {
+export function wrapMeasured(
+  text: string,
+  maxW: number,
+  font: string,
+): string[] {
   const c = measureCtx();
-  const paras = String(text ?? '').split('\n');
-  if (!c) return paras.flatMap((p) => (p ? [p] : ['']));
+  const paras = String(text ?? "").split("\n");
+  if (!c) return paras.flatMap((p) => (p ? [p] : [""]));
   const out: string[] = [];
   for (const para of paras) {
     if (!para) {
-      out.push('');
+      out.push("");
       continue;
     }
     const words = para.split(/(\s+)/);
-    let cur = '';
+    let cur = "";
     for (const w of words) {
       const trial = cur + w;
       if (!cur || c.measureText(trial).width <= maxW) cur = trial;
@@ -48,7 +52,7 @@ export function wrapMeasured(text: string, maxW: number, font: string): string[]
         if (cur.trim()) out.push(cur.trimEnd());
         // Break very long words.
         if (c.measureText(w).width > maxW && w.trim()) {
-          let chunk = '';
+          let chunk = "";
           for (const ch of w) {
             if (c.measureText(chunk + ch).width <= maxW) chunk += ch;
             else {
@@ -60,12 +64,16 @@ export function wrapMeasured(text: string, maxW: number, font: string): string[]
         } else cur = w.trimStart();
       }
     }
-    out.push(cur.trimEnd() || '');
+    out.push(cur.trimEnd() || "");
   }
-  return out.length ? out : [''];
+  return out.length ? out : [""];
 }
 
-export function measureLines(lines: string[], font: string, lineHeight: number): { width: number; height: number } {
+export function measureLines(
+  lines: string[],
+  font: string,
+  lineHeight: number,
+): { width: number; height: number } {
   const c = measureCtx();
   if (!c) {
     const longest = Math.max(...lines.map((l) => l.length), 1);
@@ -74,8 +82,9 @@ export function measureLines(lines: string[], font: string, lineHeight: number):
   c.font = font;
   let w = 0;
   for (const l of lines) w = Math.max(w, c.measureText(l).width);
-  const m = c.measureText('Mg');
-  const lh = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent || 14) * lineHeight;
+  const m = c.measureText("Mg");
+  const lh =
+    (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent || 14) * lineHeight;
   return { width: Math.ceil(w), height: Math.ceil(lh * lines.length) };
 }
 
@@ -96,13 +105,15 @@ export function fitTextBox(opts: {
   const maxWrap = opts.autoSize
     ? maxWrapForZoom(opts.zoom ?? 1)
     : Math.max(60, opts.fixedWidth ?? 200);
-  const lines = wrapMeasured(opts.text || '', maxWrap, font);
+  const lines = wrapMeasured(opts.text || "", maxWrap, font);
   const m = measureLines(lines, font, lh);
   const width = opts.autoSize
     ? Math.max(60, Math.ceil(m.width + (opts.padX ?? 16)))
     : Math.max(60, Math.round(opts.fixedWidth ?? 200));
   // For fixed width re-wrap at exact width so commit matches editor.
-  const finalLines = opts.autoSize ? lines : wrapMeasured(opts.text || '', width - (opts.padX ?? 16), font);
+  const finalLines = opts.autoSize
+    ? lines
+    : wrapMeasured(opts.text || "", width - (opts.padX ?? 16), font);
   const finalM = opts.autoSize ? m : measureLines(finalLines, font, lh);
   return {
     width,

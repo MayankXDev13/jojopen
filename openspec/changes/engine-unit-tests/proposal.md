@@ -15,9 +15,11 @@ JojoPen relies on complex computational geometry, ink smoothing, and diagram DSL
 ## Capabilities
 
 ### New Capabilities
+
 None. This change introduces developer-facing automated verification tooling and refactoring safety. It does not alter end-user application capabilities or canvas behavior.
 
 ### Modified Capabilities
+
 None. All existing canvas and engine behavior specifications remain unchanged (`skip_specs: true`).
 
 ## Impact

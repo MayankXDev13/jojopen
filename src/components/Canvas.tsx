@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { boundsOf, elementBounds } from '../lib/geometry';
+import { useEffect, useRef } from "react";
+import { boundsOf, elementBounds } from "../lib/geometry";
 import {
   S,
   selectionElements,
@@ -9,21 +9,24 @@ import {
   toWorld,
   zoomAt,
   scheduleNotify,
-} from '../state/store';
+} from "../state/store";
 
-import { placeImage } from '../state/actions';
-import { useVersion } from '../state/boardStore';
-import { Edges } from './Edges';
-import { NodeView } from './NodeView';
-import { TextEditor } from './TextEditor';
-import type { ToolContext } from '../tools/types';
-import { createCanvasPointerEvent, resolveActiveTool } from '../tools/dispatcher';
-import { SHAPE_TOOLS } from '../tools/ShapeToolController';
-import { laserTool } from '../tools/LaserToolController';
-import { arrowTool } from '../tools/ArrowToolController';
-import { selectTool } from '../tools/SelectToolController';
+import { placeImage } from "../state/actions";
+import { useVersion } from "../state/boardStore";
+import { Edges } from "./Edges";
+import { NodeView } from "./NodeView";
+import { TextEditor } from "./TextEditor";
+import type { ToolContext } from "../tools/types";
+import {
+  createCanvasPointerEvent,
+  resolveActiveTool,
+} from "../tools/dispatcher";
+import { SHAPE_TOOLS } from "../tools/ShapeToolController";
+import { laserTool } from "../tools/LaserToolController";
+import { arrowTool } from "../tools/ArrowToolController";
+import { selectTool } from "../tools/SelectToolController";
 
-const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+const HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 export function Canvas() {
   useVersion();
@@ -53,15 +56,22 @@ export function Canvas() {
     if (S.present || S.replay || S.sot.replay) return;
     if (S.editingId) return;
 
-    if ((S as any).suggestedBinding && S.tool !== 'arrow' && S.tool !== 'line') {
+    if (
+      (S as any).suggestedBinding &&
+      S.tool !== "arrow" &&
+      S.tool !== "line"
+    ) {
       (S as any).suggestedBinding = null;
     }
 
     const ce = createCanvasPointerEvent(e, toWorld);
     const ctx = getToolContext();
 
-    const edgeEl = (e.target as Element)?.closest?.('.edges [data-id]');
-    if (edgeEl && (S.tool === 'select' || S.tool === 'arrow' || S.tool === 'line')) {
+    const edgeEl = (e.target as Element)?.closest?.(".edges [data-id]");
+    if (
+      edgeEl &&
+      (S.tool === "select" || S.tool === "arrow" || S.tool === "line")
+    ) {
       if (arrowTool.onEdgeDown(ce, edgeEl, ctx)) {
         return;
       }
@@ -100,12 +110,12 @@ export function Canvas() {
     selectTool.startResize(ce, handle, ctx);
     const move = (ev: PointerEvent) => onPointerMove(ev);
     const up = (ev: PointerEvent) => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
       onPointerUp(ev);
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
   };
 
   useEffect(() => {
@@ -121,25 +131,25 @@ export function Canvas() {
         S.camera.y -= e.deltaY;
         scheduleNotify();
       }
-
     };
-    c.addEventListener('wheel', onWheel, { passive: false });
+    c.addEventListener("wheel", onWheel, { passive: false });
     const onContext = (e: MouseEvent) => e.preventDefault();
-    c.addEventListener('contextmenu', onContext);
+    c.addEventListener("contextmenu", onContext);
     return () => {
-      c.removeEventListener('wheel', onWheel);
-      c.removeEventListener('contextmenu', onContext);
+      c.removeEventListener("wheel", onWheel);
+      c.removeEventListener("contextmenu", onContext);
     };
   }, []);
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const f = e.dataTransfer?.files?.[0];
-    if (!f || !f.type.startsWith('image/')) return;
+    if (!f || !f.type.startsWith("image/")) return;
     const fr = new FileReader();
     fr.onload = () => {
       const img = new Image();
-      img.onload = () => placeImage(String(fr.result), img.naturalWidth, img.naturalHeight);
+      img.onload = () =>
+        placeImage(String(fr.result), img.naturalWidth, img.naturalHeight);
       img.src = String(fr.result);
     };
     fr.readAsDataURL(f);
@@ -147,19 +157,20 @@ export function Canvas() {
 
   const th = theme();
   const g = settings();
-  const toolClass = SHAPE_TOOLS.includes(S.tool) ? 'shape' : S.tool;
-  const panning = S.panning || S.drag?.mode === 'pan';
+  const toolClass = SHAPE_TOOLS.includes(S.tool) ? "shape" : S.tool;
+  const panning = S.panning || S.drag?.mode === "pan";
   const list = selectionElements();
   const selBounds = S.editingId ? null : list.length ? boundsOf(list) : null;
   const single = list.length === 1 ? list[0] : null;
-  const resizable = !!single && !single.locked && !['arrow', 'freehand'].includes(single.type);
+  const resizable =
+    !!single && !single.locked && !["arrow", "freehand"].includes(single.type);
   const sugId = (S as any).suggestedBinding as string | null;
   const sugEl = sugId ? S.doc.elements[sugId] : null;
   const sugBounds = sugEl ? elementBounds(sugEl) : null;
 
   return (
     <div
-      className={`canvas tool-${S.space ? 'hand' : toolClass}${panning ? ' panning' : ''}`}
+      className={`canvas tool-${S.space ? "hand" : toolClass}${panning ? " panning" : ""}`}
       id="canvas"
       ref={ref}
       style={{ background: th.board }}
@@ -168,14 +179,14 @@ export function Canvas() {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onPointerLeave={() => {
-        if (S.tool === 'laser') laserTool.clear();
+        if (S.tool === "laser") laserTool.clear();
       }}
       onDoubleClick={onDoubleClick}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
     >
       <div
-        className={`grid${g.showGrid ? ' on' : ''}`}
+        className={`grid${g.showGrid ? " on" : ""}`}
         id="grid"
         style={{
           backgroundImage: `radial-gradient(circle, ${th.dot} 1px, transparent 1.15px)`,
@@ -186,7 +197,9 @@ export function Canvas() {
       <div
         className="world"
         id="world"
-        style={{ transform: `translate(${S.camera.x}px,${S.camera.y}px) scale(${S.camera.zoom})` }}
+        style={{
+          transform: `translate(${S.camera.x}px,${S.camera.y}px) scale(${S.camera.zoom})`,
+        }}
       >
         <Edges />
         <div id="nodes">
@@ -196,9 +209,9 @@ export function Canvas() {
               el={el}
               selected={S.selection.has(el.id)}
               slideNumber={
-                el.type === 'slide'
+                el.type === "slide"
                   ? ([...Object.values(S.doc.elements)] as any[])
-                      .filter((x) => x.type === 'slide')
+                      .filter((x) => x.type === "slide")
                       .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
                       .findIndex((s: any) => s.id === el.id) + 1
                   : undefined
@@ -235,7 +248,7 @@ export function Canvas() {
               key={h}
               className="h"
               data-h={h}
-              style={{ display: resizable ? undefined : 'none' }}
+              style={{ display: resizable ? undefined : "none" }}
               onPointerDown={(e) => resizable && startResize(e, h)}
             />
           ))}
@@ -249,7 +262,7 @@ export function Canvas() {
             top: sugBounds.minY * S.camera.zoom + S.camera.y - 4,
             width: (sugBounds.maxX - sugBounds.minX) * S.camera.zoom + 8,
             height: (sugBounds.maxY - sugBounds.minY) * S.camera.zoom + 8,
-            borderColor: '#4d7cfe',
+            borderColor: "#4d7cfe",
           }}
         />
       ) : null}

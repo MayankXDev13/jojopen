@@ -7,19 +7,19 @@ Date: 16 Nov 2026. Scope: the single-file app at [`legacy/index.html`](../legacy
 
 One `index.html` holds the complete app:
 
-| Layer | Where | Notes |
-|---|---|---|
-| Design tokens + CSS | lines 9–411 | light/dark/chalkboard palettes driven by `data-theme`, `data-style` and per-theme CSS variables |
-| Markup shell | lines 1870–1935 | static chrome; panels, overlays and canvas nodes are rendered into host divs |
-| Icons | `ICO` map | hand-written inline SVG paths, `ico(name, size)` helper |
-| Model | `MAKE`, `baseElement`, `normalizeDoc` | mutable plain objects in `S.doc.elements` keyed by id |
-| State | `const S = {…}` | one mutable global, no framework, no reactive graph |
-| Render | `renderCanvas` / `renderChrome` / `renderPanel` / `renderOverlays` | imperative `innerHTML` replacement per surface |
-| Diagram engine | DSL parser, layout, Mermaid import, SVG builder | pure string/geometry code |
-| Recording | `sot*` functions | document snapshots per edit, GIF encoder handwritten, MP4 via `MediaRecorder` |
-| Export | `exportSVG`, `rasterize`, `download` | SVG string → data URL → canvas → PNG |
-| Input | delegated `data-act` / `data-tool` clicks, pointer handlers | inline editors are DOM textareas appended to `body` |
-| Hotkeys | `COMMANDS` table + `onKeyDown` | single keyboard entry point with text-target suppression |
+| Layer               | Where                                                              | Notes                                                                                           |
+| ------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Design tokens + CSS | lines 9–411                                                        | light/dark/chalkboard palettes driven by `data-theme`, `data-style` and per-theme CSS variables |
+| Markup shell        | lines 1870–1935                                                    | static chrome; panels, overlays and canvas nodes are rendered into host divs                    |
+| Icons               | `ICO` map                                                          | hand-written inline SVG paths, `ico(name, size)` helper                                         |
+| Model               | `MAKE`, `baseElement`, `normalizeDoc`                              | mutable plain objects in `S.doc.elements` keyed by id                                           |
+| State               | `const S = {…}`                                                    | one mutable global, no framework, no reactive graph                                             |
+| Render              | `renderCanvas` / `renderChrome` / `renderPanel` / `renderOverlays` | imperative `innerHTML` replacement per surface                                                  |
+| Diagram engine      | DSL parser, layout, Mermaid import, SVG builder                    | pure string/geometry code                                                                       |
+| Recording           | `sot*` functions                                                   | document snapshots per edit, GIF encoder handwritten, MP4 via `MediaRecorder`                   |
+| Export              | `exportSVG`, `rasterize`, `download`                               | SVG string → data URL → canvas → PNG                                                            |
+| Input               | delegated `data-act` / `data-tool` clicks, pointer handlers        | inline editors are DOM textareas appended to `body`                                             |
+| Hotkeys             | `COMMANDS` table + `onKeyDown`                                     | single keyboard entry point with text-target suppression                                        |
 
 Data model: a board doc (`elements`, `files`, `recordings`, `settings`) persisted to
 `localStorage` (`jojopen.doc.v1`), plus one copy per board (`jojopen.board.<id>`) and a
@@ -39,17 +39,17 @@ with per-child reveal steps.
 
 ## 3. Risks found
 
-| Risk | Impact | Resolution in the port |
-|---|---|---|
-| `renderCanvas` replaces `#nodes` with `innerHTML` on every frame | loses focus, selection, IME state; expensive on large boards | React renders keyed `NodeView`s; the store only notifies |
-| `renderChrome` rebuilds toolbars on almost every interaction | delegated listeners must be re-installed, click targets flicker | components are declarative and stable |
-| Global mutable `S` with implicit render calls | easy to forget `renderAll()`, hard to test modules | one store module owns `S`, `notify()` and persistence; engine modules accept environment objects |
-| Inline editor was appended to `document.body` | coordinates and theming are implicit; blur ordering is fragile | editor is a React child of the canvas, positioned from the camera |
-| `uid()` mapped bytes with `x & 63` over a 62-character alphabet | ~3% of ids contain the literal string `undefined` | fixed alphabet includes `-` and `_` so 64 values are valid |
-| Sticky-note edits were written to `label` but rendered from `text` | note edits silently disappeared | commit writes `text` for stickies |
-| `shapeMarkup` divides positions by user dimensions | negative `width`/`height` during creation logged SVG attribute errors | dimensions clamped to `>= 2` before building markup |
-| `dsl.ts` referenced an out-of-scope `diag` helper at end of parse | unclosed-group warning threw instead of being reported | warning is pushed directly to `diags` |
-| Pointer-down on the canvas focused the canvas after the editor mounted | the new text editor blurred instantly and removed the element | creation paths cancel the pointerdown default, so focus stays in the editor |
+| Risk                                                                   | Impact                                                                | Resolution in the port                                                                           |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `renderCanvas` replaces `#nodes` with `innerHTML` on every frame       | loses focus, selection, IME state; expensive on large boards          | React renders keyed `NodeView`s; the store only notifies                                         |
+| `renderChrome` rebuilds toolbars on almost every interaction           | delegated listeners must be re-installed, click targets flicker       | components are declarative and stable                                                            |
+| Global mutable `S` with implicit render calls                          | easy to forget `renderAll()`, hard to test modules                    | one store module owns `S`, `notify()` and persistence; engine modules accept environment objects |
+| Inline editor was appended to `document.body`                          | coordinates and theming are implicit; blur ordering is fragile        | editor is a React child of the canvas, positioned from the camera                                |
+| `uid()` mapped bytes with `x & 63` over a 62-character alphabet        | ~3% of ids contain the literal string `undefined`                     | fixed alphabet includes `-` and `_` so 64 values are valid                                       |
+| Sticky-note edits were written to `label` but rendered from `text`     | note edits silently disappeared                                       | commit writes `text` for stickies                                                                |
+| `shapeMarkup` divides positions by user dimensions                     | negative `width`/`height` during creation logged SVG attribute errors | dimensions clamped to `>= 2` before building markup                                              |
+| `dsl.ts` referenced an out-of-scope `diag` helper at end of parse      | unclosed-group warning threw instead of being reported                | warning is pushed directly to `diags`                                                            |
+| Pointer-down on the canvas focused the canvas after the editor mounted | the new text editor blurred instantly and removed the element         | creation paths cancel the pointerdown default, so focus stays in the editor                      |
 
 ## 4. Feature inventory
 

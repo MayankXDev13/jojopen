@@ -23,9 +23,11 @@
 ## Capabilities
 
 ### New Capabilities
+
 <!-- None: Pure architectural refactor with skip_specs: true -->
 
 ### Modified Capabilities
+
 <!-- None: Pure architectural refactor with skip_specs: true -->
 
 ## Impact

@@ -1,5 +1,5 @@
-import type { CanvasPointerEvent, ToolContext, ToolController } from './types';
-import { MAKE } from '../lib/model';
+import type { CanvasPointerEvent, ToolContext, ToolController } from "./types";
+import { MAKE } from "../lib/model";
 import {
   S,
   addElement,
@@ -8,33 +8,39 @@ import {
   pushHistory,
   scheduleNotify,
   settings,
-} from '../state/store';
-import { setTool } from '../state/actions';
+} from "../state/store";
+import { setTool } from "../state/actions";
 
-export const SHAPE_TOOLS = ['rectangle', 'ellipse', 'diamond', 'cylinder', 'frame'];
+export const SHAPE_TOOLS = [
+  "rectangle",
+  "ellipse",
+  "diamond",
+  "cylinder",
+  "frame",
+];
 
 export class ShapeToolController implements ToolController {
-  readonly id = 'shape';
+  readonly id = "shape";
 
   onPointerDown(e: CanvasPointerEvent, ctx: ToolContext): void {
-    pushHistory('add ' + S.tool);
+    pushHistory("add " + S.tool);
     const kind = S.tool;
-    const shape = kind === 'frame' ? null : kind;
+    const shape = kind === "frame" ? null : kind;
     const w = { x: e.worldX, y: e.worldY };
     const el = shape
-      ? MAKE.shape({ x: w.x, y: w.y, width: 1, height: 1, shape, label: '' })
-      : MAKE.container({ x: w.x, y: w.y, width: 1, height: 1, label: 'Group' });
+      ? MAKE.shape({ x: w.x, y: w.y, width: 1, height: 1, shape, label: "" })
+      : MAKE.container({ x: w.x, y: w.y, width: 1, height: 1, label: "Group" });
 
     addElement(el);
     S.selection = new Set([el.id]);
-    S.drag = { mode: 'create', id: el.id, start: w, toolKind: kind };
+    S.drag = { mode: "create", id: el.id, start: w, toolKind: kind };
     ctx.capturePointer(e.pointerId);
     notify();
   }
 
   onPointerMove(e: CanvasPointerEvent, ctx: ToolContext): void {
     const d: any = S.drag;
-    if (!d || d.mode !== 'create') return;
+    if (!d || d.mode !== "create") return;
     const el = S.doc.elements[d.id];
     if (!el) return;
 
@@ -60,11 +66,11 @@ export class ShapeToolController implements ToolController {
 
   onPointerUp(): void {
     const d: any = S.drag;
-    if (d && d.mode === 'create') {
+    if (d && d.mode === "create") {
       const el = S.doc.elements[d.id];
       if (el) {
         if (el.width < 8 && el.height < 8) {
-          if (d.toolKind === 'frame') {
+          if (d.toolKind === "frame") {
             el.width = 400;
             el.height = 240;
             el.x -= 200;
@@ -75,13 +81,13 @@ export class ShapeToolController implements ToolController {
             el.x -= 80;
             el.y -= 32;
           }
-          if (!el.label) el.label = d.toolKind === 'frame' ? 'Group' : '';
+          if (!el.label) el.label = d.toolKind === "frame" ? "Group" : "";
         }
         el.width = Math.max(16, el.width);
         el.height = Math.max(16, el.height);
         S.selection = new Set([el.id]);
       }
-      setTool('select');
+      setTool("select");
       S.drag = null;
       S.panning = false;
       notify();
@@ -90,7 +96,7 @@ export class ShapeToolController implements ToolController {
   }
 
   getCursor(): string {
-    return 'crosshair';
+    return "crosshair";
   }
 }
 

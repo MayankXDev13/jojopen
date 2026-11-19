@@ -1,13 +1,18 @@
 /* The lightweight timeline replay (the old `S.replay` surface). */
 
-import { clamp } from '../lib/dom';
-import { S, notify, snapshot, toast } from './store';
+import { clamp } from "../lib/dom";
+import { S, notify, snapshot, toast } from "./store";
 
 export function openReplay() {
   const entries = S.timeline.slice(-90).map((e: any) => ({ ...e }));
-  if (!entries.length) return toast('Draw something first');
-  entries.push({ json: snapshot(), label: 'Now', at: Date.now() });
-  S.replay = { list: entries, index: entries.length - 1, playing: false, timer: null };
+  if (!entries.length) return toast("Draw something first");
+  entries.push({ json: snapshot(), label: "Now", at: Date.now() });
+  S.replay = {
+    list: entries,
+    index: entries.length - 1,
+    playing: false,
+    timer: null,
+  };
   notify();
 }
 

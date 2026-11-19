@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from "bun:test";
 import {
   elementBounds,
   boundsOf,
@@ -14,14 +14,14 @@ import {
   anchorPoint,
   hitArrowHandle,
   arrowGeom,
-} from '../src/lib/geometry';
-import type { BoardElement } from '../src/lib/model';
-import { THEME } from '../src/lib/palette';
+} from "../src/lib/geometry";
+import type { BoardElement } from "../src/lib/model";
+import { THEME } from "../src/lib/palette";
 
 function makeEl(partial: Partial<BoardElement>): BoardElement {
   return {
-    id: 'el-1',
-    type: 'shape',
+    id: "el-1",
+    type: "shape",
     version: 1,
     x: 0,
     y: 0,
@@ -40,16 +40,16 @@ function makeEl(partial: Partial<BoardElement>): BoardElement {
   };
 }
 
-describe('Geometry: Bounds and Containment', () => {
-  test('elementBounds computes correct bounding box for shape', () => {
+describe("Geometry: Bounds and Containment", () => {
+  test("elementBounds computes correct bounding box for shape", () => {
     const el = makeEl({ x: 20, y: 30, width: 200, height: 100 });
     const b = elementBounds(el);
     expect(b).toEqual({ minX: 20, minY: 30, maxX: 220, maxY: 130 });
   });
 
-  test('elementBounds handles arrow/freehand with relative points', () => {
+  test("elementBounds handles arrow/freehand with relative points", () => {
     const arrow = makeEl({
-      type: 'arrow',
+      type: "arrow",
       x: 100,
       y: 50,
       points: [
@@ -62,11 +62,11 @@ describe('Geometry: Bounds and Containment', () => {
     expect(b).toEqual({ minX: 100, minY: 30, maxX: 200, maxY: 130 });
   });
 
-  test('boundsOf returns null for empty list', () => {
+  test("boundsOf returns null for empty list", () => {
     expect(boundsOf([])).toBeNull();
   });
 
-  test('boundsOf aggregates multiple elements and computes width/height', () => {
+  test("boundsOf aggregates multiple elements and computes width/height", () => {
     const el1 = makeEl({ x: 0, y: 0, width: 50, height: 50 });
     const el2 = makeEl({ x: 100, y: 200, width: 100, height: 50 });
     const b = boundsOf([el1, el2]);
@@ -79,7 +79,7 @@ describe('Geometry: Bounds and Containment', () => {
     expect(b!.height).toBe(250);
   });
 
-  test('pointInElement checks boundaries accurately', () => {
+  test("pointInElement checks boundaries accurately", () => {
     const el = makeEl({ x: 10, y: 10, width: 50, height: 50 });
     expect(pointInElement(10, 10, el)).toBe(true);
     expect(pointInElement(35, 35, el)).toBe(true);
@@ -91,8 +91,8 @@ describe('Geometry: Bounds and Containment', () => {
   });
 });
 
-describe('Geometry: Distance Calculations', () => {
-  test('distPointToSeg calculates perpendicular and endpoint distances', () => {
+describe("Geometry: Distance Calculations", () => {
+  test("distPointToSeg calculates perpendicular and endpoint distances", () => {
     const a = { x: 0, y: 0 };
     const b = { x: 10, y: 0 };
 
@@ -106,7 +106,7 @@ describe('Geometry: Distance Calculations', () => {
     expect(distPointToSeg({ x: 13, y: 4 }, a, b)).toBe(5);
   });
 
-  test('distToElement computes distance to box or polyline', () => {
+  test("distToElement computes distance to box or polyline", () => {
     const box = makeEl({ x: 10, y: 10, width: 20, height: 20 });
     // Inside box
     expect(distToElement({ x: 15, y: 15 }, box)).toBe(0);
@@ -116,7 +116,7 @@ describe('Geometry: Distance Calculations', () => {
     expect(distToElement({ x: 33, y: 34 }, box)).toBeCloseTo(5);
 
     const arrow = makeEl({
-      type: 'arrow',
+      type: "arrow",
       x: 0,
       y: 0,
       points: [
@@ -128,10 +128,13 @@ describe('Geometry: Distance Calculations', () => {
   });
 });
 
-describe('Geometry: Anchor and Snapping Math', () => {
-  test('normalizedAnchorOf computes normalized coordinates clamped 0..1', () => {
+describe("Geometry: Anchor and Snapping Math", () => {
+  test("normalizedAnchorOf computes normalized coordinates clamped 0..1", () => {
     const el = makeEl({ x: 100, y: 100, width: 200, height: 100 });
-    expect(normalizedAnchorOf(el, { x: 200, y: 150 })).toEqual({ x: 0.5, y: 0.5 });
+    expect(normalizedAnchorOf(el, { x: 200, y: 150 })).toEqual({
+      x: 0.5,
+      y: 0.5,
+    });
     expect(normalizedAnchorOf(el, { x: 100, y: 100 })).toEqual({ x: 0, y: 0 });
     expect(normalizedAnchorOf(el, { x: 300, y: 200 })).toEqual({ x: 1, y: 1 });
     // Outside clamped
@@ -139,38 +142,44 @@ describe('Geometry: Anchor and Snapping Math', () => {
     expect(normalizedAnchorOf(el, { x: 400, y: 300 })).toEqual({ x: 1, y: 1 });
   });
 
-  test('suggestedBinding finds topmost element and returns normalized anchor', () => {
-    const bottom = makeEl({ id: 'bottom', x: 0, y: 0, width: 100, height: 100 });
-    const top = makeEl({ id: 'top', x: 20, y: 20, width: 60, height: 60 });
+  test("suggestedBinding finds topmost element and returns normalized anchor", () => {
+    const bottom = makeEl({
+      id: "bottom",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+    });
+    const top = makeEl({ id: "top", x: 20, y: 20, width: 60, height: 60 });
     const list = [bottom, top];
 
     // Inside top
     const res1 = suggestedBinding(list, { x: 50, y: 50 });
     expect(res1).not.toBeNull();
-    expect(res1!.el.id).toBe('top');
+    expect(res1!.el.id).toBe("top");
     expect(res1!.anchor.x).toBeCloseTo(0.5);
     expect(res1!.anchor.y).toBeCloseTo(0.5);
 
     // Inside bottom only
     const res2 = suggestedBinding(list, { x: 10, y: 10 });
     expect(res2).not.toBeNull();
-    expect(res2!.el.id).toBe('bottom');
+    expect(res2!.el.id).toBe("bottom");
 
     // Excluded id
-    const res3 = suggestedBinding(list, { x: 50, y: 50 }, 'top');
+    const res3 = suggestedBinding(list, { x: 50, y: 50 }, "top");
     expect(res3).not.toBeNull();
-    expect(res3!.el.id).toBe('bottom');
+    expect(res3!.el.id).toBe("bottom");
 
     // Miss
     expect(suggestedBinding(list, { x: 200, y: 200 })).toBeNull();
   });
 
-  test('centerOf calculates element center accurately', () => {
+  test("centerOf calculates element center accurately", () => {
     const el = makeEl({ x: 40, y: 60, width: 200, height: 100 });
     expect(centerOf(el)).toEqual({ x: 140, y: 110 });
   });
 
-  test('anchorPoint calculates ray intersection with bounding edges', () => {
+  test("anchorPoint calculates ray intersection with bounding edges", () => {
     const el = makeEl({ x: 100, y: 100, width: 100, height: 100 });
     // Center is (150, 150)
     // Ray right toward (300, 150) -> should intersect right edge at (200, 150)
@@ -184,44 +193,44 @@ describe('Geometry: Anchor and Snapping Math', () => {
   });
 });
 
-describe('Geometry: Arrow Routing and Handles', () => {
-  test('arrowHandlesFor creates segment handles for orthogonal routing', () => {
+describe("Geometry: Arrow Routing and Handles", () => {
+  test("arrowHandlesFor creates segment handles for orthogonal routing", () => {
     const pts = [
       { x: 0, y: 0 },
       { x: 100, y: 0 },
       { x: 100, y: 100 },
     ];
-    const handles = arrowHandlesFor(pts, 'orthogonal', 'auto', 1);
+    const handles = arrowHandlesFor(pts, "orthogonal", "auto", 1);
     expect(handles.length).toBe(2);
     expect(handles[0]).toEqual({
-      kind: 'segment',
+      kind: "segment",
       index: 0,
-      axis: 'h',
+      axis: "h",
       point: { x: 50, y: 0 },
     });
     expect(handles[1]).toEqual({
-      kind: 'segment',
+      kind: "segment",
       index: 1,
-      axis: 'v',
+      axis: "v",
       point: { x: 100, y: 50 },
     });
   });
 
-  test('arrowHandlesFor creates waypoints and insert handles for manual routing', () => {
+  test("arrowHandlesFor creates waypoints and insert handles for manual routing", () => {
     const pts = [
       { x: 0, y: 0 },
       { x: 50, y: 50 },
       { x: 100, y: 100 },
     ];
-    const handles = arrowHandlesFor(pts, 'straight', 'manual', 1);
-    const waypoints = handles.filter((h) => h.kind === 'waypoint');
-    const inserts = handles.filter((h) => h.kind === 'insert');
+    const handles = arrowHandlesFor(pts, "straight", "manual", 1);
+    const waypoints = handles.filter((h) => h.kind === "waypoint");
+    const inserts = handles.filter((h) => h.kind === "insert");
     expect(waypoints.length).toBe(1);
     expect(waypoints[0].point).toEqual({ x: 50, y: 50 });
     expect(inserts.length).toBe(2);
   });
 
-  test('cleanupArrowPoints removes duplicate and collinear points', () => {
+  test("cleanupArrowPoints removes duplicate and collinear points", () => {
     const noisy = [
       { x: 0, y: 0 },
       { x: 0.1, y: 0.2 }, // Duplicate (<0.5)
@@ -238,12 +247,12 @@ describe('Geometry: Arrow Routing and Handles', () => {
     ]);
   });
 
-  test('hitArrowHandle detects endpoints and handles within radius', () => {
+  test("hitArrowHandle detects endpoints and handles within radius", () => {
     const arrow = makeEl({
-      type: 'arrow',
+      type: "arrow",
       x: 0,
       y: 0,
-      routeMode: 'orthogonal',
+      routeMode: "orthogonal",
       points: [
         { x: 0, y: 0 },
         { x: 100, y: 0 },
@@ -254,31 +263,31 @@ describe('Geometry: Arrow Routing and Handles', () => {
     // Hit start endpoint (<= 10px)
     const hitStart = hitArrowHandle(arrow, { x: 5, y: 0 }, toScreen, 1);
     expect(hitStart).not.toBeNull();
-    expect(hitStart!.handle.kind).toBe('endpoint');
-    expect((hitStart!.handle as any).which).toBe('start');
+    expect(hitStart!.handle.kind).toBe("endpoint");
+    expect((hitStart!.handle as any).which).toBe("start");
 
     // Hit end endpoint
     const hitEnd = hitArrowHandle(arrow, { x: 96, y: 0 }, toScreen, 1);
     expect(hitEnd).not.toBeNull();
-    expect(hitEnd!.handle.kind).toBe('endpoint');
-    expect((hitEnd!.handle as any).which).toBe('end');
+    expect(hitEnd!.handle.kind).toBe("endpoint");
+    expect((hitEnd!.handle as any).which).toBe("end");
 
     // Hit segment handle at midpoint (50, 0)
     const hitMid = hitArrowHandle(arrow, { x: 53, y: 0 }, toScreen, 1);
     expect(hitMid).not.toBeNull();
-    expect(hitMid!.handle.kind).toBe('segment');
+    expect(hitMid!.handle.kind).toBe("segment");
 
     // Miss
     const miss = hitArrowHandle(arrow, { x: 50, y: 50 }, toScreen, 1);
     expect(miss).toBeNull();
   });
 
-  test('arrowGeom generates geometry for straight and bound arrows', () => {
+  test("arrowGeom generates geometry for straight and bound arrows", () => {
     const arrow = makeEl({
-      type: 'arrow',
+      type: "arrow",
       x: 0,
       y: 0,
-      routeMode: 'straight',
+      routeMode: "straight",
       points: [
         { x: 10, y: 10 },
         { x: 90, y: 90 },
@@ -287,7 +296,7 @@ describe('Geometry: Arrow Routing and Handles', () => {
     const geom = arrowGeom(arrow, () => undefined, THEME.light);
     expect(geom.p0).toEqual({ x: 10, y: 10 });
     expect(geom.p1).toEqual({ x: 90, y: 90 });
-    expect(geom.d).toContain('M10 10 L90 90');
+    expect(geom.d).toContain("M10 10 L90 90");
     expect(geom.pts.length).toBe(2);
   });
 });

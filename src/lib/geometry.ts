@@ -1,7 +1,7 @@
 /* Geometry: bounds, anchors, arrow paths. */
 
-import type { BoardElement, Point } from './model';
-import type { Theme } from './palette';
+import type { BoardElement, Point } from "./model";
+import type { Theme } from "./palette";
 
 export type Bounds = { minX: number; minY: number; maxX: number; maxY: number };
 
@@ -19,17 +19,24 @@ export type ArrowGeom = {
 };
 
 export function elementBounds(e: BoardElement): Bounds {
-  if (e.type === 'arrow' || e.type === 'freehand') {
+  if (e.type === "arrow" || e.type === "freehand") {
     const pts = (e.points || []).map((p) => ({ x: e.x + p.x, y: e.y + p.y }));
     if (!pts.length) return { minX: e.x, minY: e.y, maxX: e.x, maxY: e.y };
     const xs = pts.map((p) => p.x);
     const ys = pts.map((p) => p.y);
-    return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
+    return {
+      minX: Math.min(...xs),
+      minY: Math.min(...ys),
+      maxX: Math.max(...xs),
+      maxY: Math.max(...ys),
+    };
   }
   return { minX: e.x, minY: e.y, maxX: e.x + e.width, maxY: e.y + e.height };
 }
 
-export function boundsOf(list: BoardElement[]): (Bounds & { width: number; height: number }) | null {
+export function boundsOf(
+  list: BoardElement[],
+): (Bounds & { width: number; height: number }) | null {
   if (!list.length) return null;
   let minX = Infinity;
   let minY = Infinity;
@@ -50,16 +57,29 @@ export const pointInElement = (x: number, y: number, e: BoardElement) => {
   return x >= b.minX && x <= b.maxX && y >= b.minY && y <= b.maxY;
 };
 
-export function nextFrameElement(list: BoardElement[], point: Point, excludeId?: string): BoardElement | null {
+export function nextFrameElement(
+  list: BoardElement[],
+  point: Point,
+  excludeId?: string,
+): BoardElement | null {
   const hit = list
     .slice()
     .reverse()
-    .find((e) => e.id !== excludeId && e.type !== 'arrow' && e.type !== 'freehand' && pointInElement(point.x, point.y, e));
+    .find(
+      (e) =>
+        e.id !== excludeId &&
+        e.type !== "arrow" &&
+        e.type !== "freehand" &&
+        pointInElement(point.x, point.y, e),
+    );
   return hit || null;
 }
 
 /** Normalized anchor of a world point inside an element (0..1). */
-export function normalizedAnchorOf(e: BoardElement, p: Point): { x: number; y: number } {
+export function normalizedAnchorOf(
+  e: BoardElement,
+  p: Point,
+): { x: number; y: number } {
   const b = elementBounds(e);
   const w = Math.max(1, b.maxX - b.minX);
   const h = Math.max(1, b.maxY - b.minY);
@@ -91,11 +111,12 @@ export function distPointToSeg(p: Point, a: Point, b: Point): number {
 
 /** Collision distance from world point to element centerline (for eraser/hit). */
 export function distToElement(p: Point, e: BoardElement): number {
-  if (e.type === 'arrow' || e.type === 'freehand') {
+  if (e.type === "arrow" || e.type === "freehand") {
     const pts = (e.points || []).map((q) => ({ x: e.x + q.x, y: e.y + q.y }));
     if (pts.length === 1) return Math.hypot(p.x - pts[0].x, p.y - pts[0].y);
     let m = Infinity;
-    for (let i = 0; i < pts.length - 1; i++) m = Math.min(m, distPointToSeg(p, pts[i], pts[i + 1]));
+    for (let i = 0; i < pts.length - 1; i++)
+      m = Math.min(m, distPointToSeg(p, pts[i], pts[i + 1]));
     return m;
   }
   const b = elementBounds(e);
@@ -110,10 +131,10 @@ export function distToElement(p: Point, e: BoardElement): number {
    expose waypoint handles on manual routes plus insert (+) handles. */
 
 export type ArrowHandle =
-  | { kind: 'endpoint'; index: number; which: 'start' | 'end'; point: Point }
-  | { kind: 'waypoint'; index: number; point: Point }
-  | { kind: 'insert'; index: number; point: Point }
-  | { kind: 'segment'; index: number; axis: 'h' | 'v'; point: Point };
+  | { kind: "endpoint"; index: number; which: "start" | "end"; point: Point }
+  | { kind: "waypoint"; index: number; point: Point }
+  | { kind: "insert"; index: number; point: Point }
+  | { kind: "segment"; index: number; axis: "h" | "v"; point: Point };
 
 /** Absolute (world) raw points of an arrow. */
 export function rawPoints(el: BoardElement): Point[] {
@@ -121,29 +142,49 @@ export function rawPoints(el: BoardElement): Point[] {
 }
 
 /** Handles from a display point list (original computes them on routed points). */
-export function arrowHandlesFor(pts: Point[], routeMode: string | undefined, route: string | undefined, zoom: number): ArrowHandle[] {
+export function arrowHandlesFor(
+  pts: Point[],
+  routeMode: string | undefined,
+  route: string | undefined,
+  zoom: number,
+): ArrowHandle[] {
   if (pts.length < 2) return [];
   const out: ArrowHandle[] = [];
-  if (routeMode === 'orthogonal') {
+  if (routeMode === "orthogonal") {
     for (let r = 0; r < pts.length - 1; r++) {
       const d = pts[r];
       const f = pts[r + 1];
-      const axis = Math.abs(d.y - f.y) < 0.5 ? 'h' : Math.abs(d.x - f.x) < 0.5 ? 'v' : null;
+      const axis =
+        Math.abs(d.y - f.y) < 0.5
+          ? "h"
+          : Math.abs(d.x - f.x) < 0.5
+            ? "v"
+            : null;
       if (!axis || Math.hypot(f.x - d.x, f.y - d.y) * zoom < 28) continue;
-      out.push({ kind: 'segment', index: r, axis, point: { x: (d.x + f.x) / 2, y: (d.y + f.y) / 2 } });
+      out.push({
+        kind: "segment",
+        index: r,
+        axis,
+        point: { x: (d.x + f.x) / 2, y: (d.y + f.y) / 2 },
+      });
     }
     return out;
   }
-  const base = route === 'manual' ? pts : [pts[0], pts[pts.length - 1]];
+  const base = route === "manual" ? pts : [pts[0], pts[pts.length - 1]];
   // Waypoints only exist on manual routes (original shows none on auto).
-  if (route === 'manual') {
-    for (let r = 1; r < base.length - 1; r++) out.push({ kind: 'waypoint', index: r, point: base[r] });
+  if (route === "manual") {
+    for (let r = 1; r < base.length - 1; r++)
+      out.push({ kind: "waypoint", index: r, point: base[r] });
   }
   for (let r = 0; r < base.length - 1; r++) {
     const d = base[r];
     const f = base[r + 1];
     if (Math.hypot(f.x - d.x, f.y - d.y) * zoom < 36) continue;
-    out.push({ kind: 'insert', index: r, point: { x: (d.x + f.x) / 2, y: (d.y + f.y) / 2 } });
+    out.push({
+      kind: "insert",
+      index: r,
+      point: { x: (d.x + f.x) / 2, y: (d.y + f.y) / 2 },
+    });
   }
   return out;
 }
@@ -158,17 +199,21 @@ export function hitArrowHandle(
   screen: { x: number; y: number },
   toScreen: (p: Point) => { x: number; y: number },
   zoom: number,
-): { handle: ArrowHandle | { kind: 'endpoint'; index: number; which: 'start' | 'end'; point: Point } } | null {
-  if (el.type !== 'arrow' || el.locked) return null;
+): {
+  handle:
+    | ArrowHandle
+    | { kind: "endpoint"; index: number; which: "start" | "end"; point: Point };
+} | null {
+  if (el.type !== "arrow" || el.locked) return null;
   const a = rawPoints(el);
-  const ends: Array<{ which: 'start' | 'end'; index: number; point: Point }> = [
-    { which: 'start', index: 0, point: a[0] },
-    { which: 'end', index: a.length - 1, point: a[a.length - 1] },
+  const ends: Array<{ which: "start" | "end"; index: number; point: Point }> = [
+    { which: "start", index: 0, point: a[0] },
+    { which: "end", index: a.length - 1, point: a[a.length - 1] },
   ];
   for (const e of ends) {
     const s = toScreen(e.point);
     if (Math.hypot(s.x - screen.x, s.y - screen.y) <= 10)
-      return { handle: { kind: 'endpoint', ...e } };
+      return { handle: { kind: "endpoint", ...e } };
   }
   for (const h of arrowHandles(el, zoom)) {
     const s = toScreen(h.point);
@@ -220,24 +265,62 @@ export function anchorPoint(e: BoardElement, toward: Point): Point {
    Bound arrows with route auto pick exit/enter sides, leave 16px stubs,
    then run orthogonally outside both expanded boxes. */
 
-type Side = 'left' | 'right' | 'top' | 'bottom';
-const SIDES: Side[] = ['left', 'right', 'top', 'bottom'];
+type Side = "left" | "right" | "top" | "bottom";
+const SIDES: Side[] = ["left", "right", "top", "bottom"];
 const STUB = 16;
 
 function sideNormal(s: Side): Point {
-  return s === 'left' ? { x: -1, y: 0 } : s === 'right' ? { x: 1, y: 0 } : s === 'top' ? { x: 0, y: -1 } : { x: 0, y: 1 };
+  return s === "left"
+    ? { x: -1, y: 0 }
+    : s === "right"
+      ? { x: 1, y: 0 }
+      : s === "top"
+        ? { x: 0, y: -1 }
+        : { x: 0, y: 1 };
 }
 
 /** Point on a side, clamped 6px inside like the original. */
 function sidePoint(b: Bounds, side: Side, along?: number): Point {
-  if (side === 'left') return { x: b.minX, y: Math.min(Math.max(along ?? (b.minY + b.maxY) / 2, b.minY + 6), b.maxY - 6) };
-  if (side === 'right') return { x: b.maxX, y: Math.min(Math.max(along ?? (b.minY + b.maxY) / 2, b.minY + 6), b.maxY - 6) };
-  if (side === 'top') return { x: Math.min(Math.max(along ?? (b.minX + b.maxX) / 2, b.minX + 6), b.maxX - 6), y: b.minY };
-  return { x: Math.min(Math.max(along ?? (b.minX + b.maxX) / 2, b.minX + 6), b.maxX - 6), y: b.maxY };
+  if (side === "left")
+    return {
+      x: b.minX,
+      y: Math.min(
+        Math.max(along ?? (b.minY + b.maxY) / 2, b.minY + 6),
+        b.maxY - 6,
+      ),
+    };
+  if (side === "right")
+    return {
+      x: b.maxX,
+      y: Math.min(
+        Math.max(along ?? (b.minY + b.maxY) / 2, b.minY + 6),
+        b.maxY - 6,
+      ),
+    };
+  if (side === "top")
+    return {
+      x: Math.min(
+        Math.max(along ?? (b.minX + b.maxX) / 2, b.minX + 6),
+        b.maxX - 6,
+      ),
+      y: b.minY,
+    };
+  return {
+    x: Math.min(
+      Math.max(along ?? (b.minX + b.maxX) / 2, b.minX + 6),
+      b.maxX - 6,
+    ),
+    y: b.maxY,
+  };
 }
 
 function expand(b: Bounds, pad: number): Bounds {
-  return { minX: b.minX - pad, minY: b.minY - pad, maxX: b.maxX + pad, maxY: b.maxY + pad };
+  return {
+    minX: b.minX - pad,
+    minY: b.minY - pad,
+    maxX: b.maxX + pad,
+    maxY: b.maxY + pad,
+  };
 }
 
 function segCrossesBox(a: Point, b: Point, box: Bounds): boolean {
@@ -245,12 +328,18 @@ function segCrossesBox(a: Point, b: Point, box: Bounds): boolean {
   if (Math.abs(a.y - b.y) < 1e-6) {
     const y = a.y;
     if (y <= box.minY || y >= box.maxY) return false;
-    return Math.max(Math.min(a.x, b.x), box.minX) < Math.min(Math.max(a.x, b.x), box.maxX);
+    return (
+      Math.max(Math.min(a.x, b.x), box.minX) <
+      Math.min(Math.max(a.x, b.x), box.maxX)
+    );
   }
   if (Math.abs(a.x - b.x) < 1e-6) {
     const x = a.x;
     if (x <= box.minX || x >= box.maxX) return false;
-    return Math.max(Math.min(a.y, b.y), box.minY) < Math.min(Math.max(a.y, b.y), box.maxY);
+    return (
+      Math.max(Math.min(a.y, b.y), box.minY) <
+      Math.min(Math.max(a.y, b.y), box.maxY)
+    );
   }
   // Diagonal (shouldn't happen in orthogonal paths): sample midpoint.
   const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -260,19 +349,28 @@ function segCrossesBox(a: Point, b: Point, box: Bounds): boolean {
 function pathHitsBoxes(pts: Point[], boxes: Bounds[]): boolean {
   // Skip first/last segments (stubs touching their own box).
   for (let i = 1; i < pts.length - 2; i++) {
-    for (const b of boxes) if (segCrossesBox(pts[i], pts[i + 1], b)) return true;
+    for (const b of boxes)
+      if (segCrossesBox(pts[i], pts[i + 1], b)) return true;
   }
   return false;
 }
 
 function pathLen(pts: Point[]): number {
   let l = 0;
-  for (let i = 0; i < pts.length - 1; i++) l += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+  for (let i = 0; i < pts.length - 1; i++)
+    l += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
   return l;
 }
 
 /** Push a middle track outside both boxes; returns null if impossible. */
-function freeTrack(horizontal: boolean, ideal: number, spanMin: number, spanMax: number, boxes: Bounds[], pad: number): number | null {
+function freeTrack(
+  horizontal: boolean,
+  ideal: number,
+  spanMin: number,
+  spanMax: number,
+  boxes: Bounds[],
+  pad: number,
+): number | null {
   const lo = Math.min(spanMin, spanMax);
   const hi = Math.max(spanMin, spanMax);
   const blocked = (t: number) =>
@@ -282,7 +380,9 @@ function freeTrack(horizontal: boolean, ideal: number, spanMin: number, spanMax:
         : t > b.minX && t < b.maxX && hi > b.minY && lo < b.maxY,
     );
   if (!blocked(ideal)) return ideal;
-  const cands = boxes.flatMap((b) => (horizontal ? [b.minY - pad, b.maxY + pad] : [b.minX - pad, b.maxX + pad]));
+  const cands = boxes.flatMap((b) =>
+    horizontal ? [b.minY - pad, b.maxY + pad] : [b.minX - pad, b.maxX + pad],
+  );
   let best: number | null = null;
   for (const c of cands) {
     if (blocked(c)) continue;
@@ -307,7 +407,9 @@ function autoOrthogonal(a: Bounds, b: Bounds): Point[] | null {
       // Natural sides face the peer; penalize backsides like the original.
       const toB = { x: bc.x - ac.x, y: bc.y - ac.y };
       const toA = { x: ac.x - bc.x, y: ac.y - bc.y };
-      const pen = (n1.x * toB.x + n1.y * toB.y < 0 ? 400 : 0) + (n2.x * toA.x + n2.y * toA.y < 0 ? 400 : 0);
+      const pen =
+        (n1.x * toB.x + n1.y * toB.y < 0 ? 400 : 0) +
+        (n2.x * toA.x + n2.y * toA.y < 0 ? 400 : 0);
       const p0 = sidePoint(a, s1);
       const p1 = sidePoint(b, s2);
       const q0 = { x: p0.x + n1.x * STUB, y: p0.y + n1.y * STUB };
@@ -344,7 +446,7 @@ function autoOrthogonal(a: Bounds, b: Bounds): Point[] | null {
 
 /** Rounded orthogonal path (original Lt, radius 8). */
 function roundedPath(pts: Point[], r = 8): string {
-  if (pts.length < 2) return '';
+  if (pts.length < 2) return "";
   const q = (p: Point, q2: Point, t: number): Point => {
     const l = Math.hypot(q2.x - p.x, q2.y - p.y) || 1;
     return { x: p.x + ((q2.x - p.x) / l) * t, y: p.y + ((q2.y - p.y) / l) * t };
@@ -354,7 +456,11 @@ function roundedPath(pts: Point[], r = 8): string {
     const o = pts[i - 1];
     const c = pts[i];
     const n = pts[i + 1];
-    const f = Math.min(r, Math.hypot(c.x - o.x, c.y - o.y) / 2, Math.hypot(n.x - c.x, n.y - c.y) / 2);
+    const f = Math.min(
+      r,
+      Math.hypot(c.x - o.x, c.y - o.y) / 2,
+      Math.hypot(n.x - c.x, n.y - c.y) / 2,
+    );
     const g = q(c, o, f);
     const y = q(c, n, f);
     d += ` L${g.x} ${g.y} Q${c.x} ${c.y} ${y.x} ${y.y}`;
@@ -395,7 +501,10 @@ function midByLength(pts: Point[]): Point {
   for (let i = 0; i < lens.length; i++) {
     if (acc + lens[i] >= total / 2) {
       const t = lens[i] ? (total / 2 - acc) / lens[i] : 0;
-      return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, y: pts[i].y + (pts[i + 1].y - pts[i].y) * t };
+      return {
+        x: pts[i].x + (pts[i + 1].x - pts[i].x) * t,
+        y: pts[i].y + (pts[i + 1].y - pts[i].y) * t,
+      };
     }
     acc += lens[i];
   }
@@ -414,13 +523,22 @@ export function arrowGeom(
 ): ArrowGeom {
   const sEl = el.start?.elementId ? getElement(el.start.elementId) : undefined;
   const tEl = el.end?.elementId ? getElement(el.end.elementId) : undefined;
-  const raw = el.points || [{ x: 0, y: 0 }, { x: 100, y: 0 }];
+  const raw = el.points || [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+  ];
   const first = { x: el.x + (raw[0]?.x ?? 0), y: el.y + (raw[0]?.y ?? 0) };
-  const last = { x: el.x + (raw[raw.length - 1]?.x ?? 0), y: el.y + (raw[raw.length - 1]?.y ?? 0) };
+  const last = {
+    x: el.x + (raw[raw.length - 1]?.x ?? 0),
+    y: el.y + (raw[raw.length - 1]?.y ?? 0),
+  };
   let p0 = first;
   let p1 = last;
   // Precise bindings aim at normalizedAnchor; otherwise fall back to edge toward peer.
-  const precisePoint = (bindEl: BoardElement, binding: NonNullable<BoardElement['start']>) => {
+  const precisePoint = (
+    bindEl: BoardElement,
+    binding: NonNullable<BoardElement["start"]>,
+  ) => {
     if (binding.isPrecise && binding.normalizedAnchor) {
       const b = elementBounds(bindEl);
       const ax = b.minX + binding.normalizedAnchor.x * (b.maxX - b.minX);
@@ -430,13 +548,25 @@ export function arrowGeom(
     }
     return null;
   };
-  if (sEl && el.start) p0 = precisePoint(sEl, el.start) ?? anchorPoint(sEl, tEl ? centerOf(tEl) : last);
-  if (tEl && el.end) p1 = precisePoint(tEl, el.end) ?? anchorPoint(tEl, sEl ? centerOf(sEl) : first);
-  const mode = el.routeMode || 'orthogonal';
+  if (sEl && el.start)
+    p0 =
+      precisePoint(sEl, el.start) ??
+      anchorPoint(sEl, tEl ? centerOf(tEl) : last);
+  if (tEl && el.end)
+    p1 =
+      precisePoint(tEl, el.end) ??
+      anchorPoint(tEl, sEl ? centerOf(sEl) : first);
+  const mode = el.routeMode || "orthogonal";
 
   // Auto route between two distinct bound shapes: side-aware obstacle
   // avoidance like the original (stubs + rounded orthogonal runs).
-  if (mode === 'orthogonal' && el.route !== 'manual' && sEl && tEl && sEl.id !== tEl.id) {
+  if (
+    mode === "orthogonal" &&
+    el.route !== "manual" &&
+    sEl &&
+    tEl &&
+    sEl.id !== tEl.id
+  ) {
     const routed = autoOrthogonal(elementBounds(sEl), elementBounds(tEl));
     if (routed && routed.length >= 2) {
       const a = routed[0];
@@ -459,7 +589,10 @@ export function arrowGeom(
 
   // Manual orthogonal routes render their stored waypoints (rounded),
   // with endpoints snapped to their bindings like the original (kg).
-  if (mode === 'orthogonal' && (el.route === 'manual' || (sEl && tEl && sEl.id === tEl.id))) {
+  if (
+    mode === "orthogonal" &&
+    (el.route === "manual" || (sEl && tEl && sEl.id === tEl.id))
+  ) {
     const stored = rawPoints(el);
     if (stored.length >= 3) {
       const seq = [...stored];
@@ -483,24 +616,27 @@ export function arrowGeom(
 
   // Draggable label offset (dx/dy in world units).
   let labelPoint = (el as any).labelPoint
-    ? { x: (p0.x + p1.x) / 2 + (el as any).labelPoint.dx, y: (p0.y + p1.y) / 2 + (el as any).labelPoint.dy }
+    ? {
+        x: (p0.x + p1.x) / 2 + (el as any).labelPoint.dx,
+        y: (p0.y + p1.y) / 2 + (el as any).labelPoint.dy,
+      }
     : { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
-  let d = '';
+  let d = "";
   let pts: Point[] = [p0, p1];
-  if (mode === 'straight') {
+  if (mode === "straight") {
     const stored = rawPoints(el);
     // Snap stored ends to bindings (original kg); keep hand bends.
     const seq = [...stored];
     if (sEl && el.start && seq.length) seq[0] = p0;
     if (tEl && el.end && seq.length) seq[seq.length - 1] = p1;
     pts = seq.length > 2 ? seq : [p0, p1];
-    d = `M${pts.map((p) => `${p.x} ${p.y}`).join(' L')}`;
-  } else if (mode === 'curved') {
+    d = `M${pts.map((p) => `${p.x} ${p.y}`).join(" L")}`;
+  } else if (mode === "curved") {
     const stored = rawPoints(el);
     const seq = [...stored];
     if (sEl && el.start && seq.length) seq[0] = p0;
     if (tEl && el.end && seq.length) seq[seq.length - 1] = p1;
-    if (el.route === 'manual' && seq.length >= 3) {
+    if (el.route === "manual" && seq.length >= 3) {
       d = smoothPath(seq);
       pts = seq;
       const lp = midByLength(seq);
@@ -532,14 +668,28 @@ export function arrowGeom(
   const t = unit(p0, p1);
   // End tangents follow the drawn polyline legs (original head orientation).
   const leg0 = pts.length > 1 ? unit(pts[1], pts[0]) : { x: -t.x, y: -t.y };
-  const leg1 = pts.length > 1 ? unit(pts[pts.length - 2], pts[pts.length - 1]) : t;
-  return { d, p0, p1, pts, tan0: leg0, tan1: leg1, labelPoint, stroke: th.arrow };
+  const leg1 =
+    pts.length > 1 ? unit(pts[pts.length - 2], pts[pts.length - 1]) : t;
+  return {
+    d,
+    p0,
+    p1,
+    pts,
+    tan0: leg0,
+    tan1: leg1,
+    labelPoint,
+    stroke: th.arrow,
+  };
 }
 
-export function arrowHead(geom: ArrowGeom, end: 'start' | 'end', color: string): string {
+export function arrowHead(
+  geom: ArrowGeom,
+  end: "start" | "end",
+  color: string,
+): string {
   // Head points along the end tangent (original: last two routed points).
-  const t = end === 'end' ? geom.tan1 : geom.tan0;
-  const a = end === 'end' ? geom.p1 : geom.p0;
+  const t = end === "end" ? geom.tan1 : geom.tan0;
+  const a = end === "end" ? geom.p1 : geom.p0;
   const ang = Math.atan2(t.y, t.x);
   const len = 10;
   const wid = 4.4;
@@ -551,9 +701,9 @@ export function arrowHead(geom: ArrowGeom, end: 'start' | 'end', color: string):
 }
 
 export const dashArray = (el: BoardElement): string => {
-  if (el.kind === 'async') return '7 5';
-  if (el.kind === 'optional') return '2 5';
-  if (el.dash === 'dashed') return '7 5';
-  if (el.dash === 'dotted') return '2 5';
-  return '';
+  if (el.kind === "async") return "7 5";
+  if (el.kind === "optional") return "2 5";
+  if (el.dash === "dashed") return "7 5";
+  if (el.dash === "dotted") return "2 5";
+  return "";
 };

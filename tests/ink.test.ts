@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from "bun:test";
 import {
   pressureFromEvent,
   simulatePressure,
@@ -8,27 +8,39 @@ import {
   snapAngle15,
   strokeOutlinePath,
   type InkPoint,
-} from '../src/lib/ink';
+} from "../src/lib/ink";
 
-describe('Ink: Pressure & Event Dynamics', () => {
-  test('pressureFromEvent recognizes stylus pen pressure vs mouse', () => {
+describe("Ink: Pressure & Event Dynamics", () => {
+  test("pressureFromEvent recognizes stylus pen pressure vs mouse", () => {
     // Mouse event
-    const mouseEvt = { pressure: 0.5, pointerType: 'mouse' } as any;
-    expect(pressureFromEvent(mouseEvt, 0.5)).toEqual({ pressure: 0.5, isPen: false });
+    const mouseEvt = { pressure: 0.5, pointerType: "mouse" } as any;
+    expect(pressureFromEvent(mouseEvt, 0.5)).toEqual({
+      pressure: 0.5,
+      isPen: false,
+    });
 
     // Pen event
-    const penEvt = { pressure: 0.72, pointerType: 'pen' } as any;
-    expect(pressureFromEvent(penEvt, 0.5)).toEqual({ pressure: 0.72, isPen: true });
+    const penEvt = { pressure: 0.72, pointerType: "pen" } as any;
+    expect(pressureFromEvent(penEvt, 0.5)).toEqual({
+      pressure: 0.72,
+      isPen: true,
+    });
 
     // Pen clamping
-    const penLow = { pressure: 0.02, pointerType: 'pen' } as any;
-    expect(pressureFromEvent(penLow, 0.5)).toEqual({ pressure: 0.1, isPen: true });
+    const penLow = { pressure: 0.02, pointerType: "pen" } as any;
+    expect(pressureFromEvent(penLow, 0.5)).toEqual({
+      pressure: 0.1,
+      isPen: true,
+    });
 
-    const penHigh = { pressure: 1.5, pointerType: 'pen' } as any;
-    expect(pressureFromEvent(penHigh, 0.5)).toEqual({ pressure: 1.0, isPen: true });
+    const penHigh = { pressure: 1.5, pointerType: "pen" } as any;
+    expect(pressureFromEvent(penHigh, 0.5)).toEqual({
+      pressure: 1.0,
+      isPen: true,
+    });
   });
 
-  test('simulatePressure scales inversely with movement speed', () => {
+  test("simulatePressure scales inversely with movement speed", () => {
     // Slow movement -> high pressure (thick stroke)
     const slowPressure = simulatePressure(1, 100);
     expect(slowPressure).toBeCloseTo(0.9, 1);
@@ -44,8 +56,8 @@ describe('Ink: Pressure & Event Dynamics', () => {
   });
 });
 
-describe('Ink: Smoothing and Streamline', () => {
-  test('streamline interpolates between previous and next points', () => {
+describe("Ink: Smoothing and Streamline", () => {
+  test("streamline interpolates between previous and next points", () => {
     const prev: InkPoint = { x: 0, y: 0, pressure: 0.2 };
     const next: InkPoint = { x: 100, y: 50, pressure: 0.8 };
 
@@ -62,7 +74,7 @@ describe('Ink: Smoothing and Streamline', () => {
     expect(mid.pressure).toBe(0.5);
   });
 
-  test('chaikin rounds corners and subdivides segments', () => {
+  test("chaikin rounds corners and subdivides segments", () => {
     // Short paths (<3 points) returned unchanged
     const shortPath: InkPoint[] = [
       { x: 0, y: 0, pressure: 0.5 },
@@ -84,8 +96,8 @@ describe('Ink: Smoothing and Streamline', () => {
   });
 });
 
-describe('Ink: Simplification, Snapping, and Outlines', () => {
-  test('simplify reduces collinear points using RDP algorithm', () => {
+describe("Ink: Simplification, Snapping, and Outlines", () => {
+  test("simplify reduces collinear points using RDP algorithm", () => {
     // Points along a straight line with tiny collinear steps
     const line: InkPoint[] = [
       { x: 0, y: 0, pressure: 0.5 },
@@ -120,7 +132,7 @@ describe('Ink: Simplification, Snapping, and Outlines', () => {
     expect(simplifiedSpike[1]).toEqual({ x: 50, y: 100, pressure: 0.5 });
   });
 
-  test('snapAngle15 snaps angles to nearest 15-degree increment', () => {
+  test("snapAngle15 snaps angles to nearest 15-degree increment", () => {
     const origin = { x: 0, y: 0 };
 
     // 0 deg (horizontal right)
@@ -146,14 +158,14 @@ describe('Ink: Simplification, Snapping, and Outlines', () => {
     expect(distAfter).toBeCloseTo(distBefore);
   });
 
-  test('strokeOutlinePath generates valid SVG path commands', () => {
+  test("strokeOutlinePath generates valid SVG path commands", () => {
     // Empty
-    expect(strokeOutlinePath([], 4)).toBe('');
+    expect(strokeOutlinePath([], 4)).toBe("");
 
     // Single point creates circle dot
     const dotPath = strokeOutlinePath([{ x: 50, y: 50, pressure: 0.5 }], 10);
-    expect(dotPath).toContain('M');
-    expect(dotPath).toContain('a');
+    expect(dotPath).toContain("M");
+    expect(dotPath).toContain("a");
 
     // Multi-point stroke generates closed polygon path
     const stroke: InkPoint[] = [
@@ -162,8 +174,8 @@ describe('Ink: Simplification, Snapping, and Outlines', () => {
       { x: 100, y: 50, pressure: 0.4 },
     ];
     const path = strokeOutlinePath(stroke, 8);
-    expect(path.startsWith('M')).toBe(true);
-    expect(path.endsWith('Z')).toBe(true);
-    expect(path).toContain('L');
+    expect(path.startsWith("M")).toBe(true);
+    expect(path.endsWith("Z")).toBe(true);
+    expect(path).toContain("L");
   });
 });

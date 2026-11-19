@@ -1,14 +1,16 @@
-import { clamp } from '../lib/dom';
-import { boundsOf } from '../lib/geometry';
-import { normalizeDoc, type BoardElement } from '../lib/model';
-import { S, notify, theme } from '../state/store';
-import { closeReplay, replayStep, replayToggle } from '../state/replay';
-import { Icon } from './Icon';
-import { SceneView } from './SceneView';
-import { useViewport } from './useViewport';
+import { clamp } from "../lib/dom";
+import { boundsOf } from "../lib/geometry";
+import { normalizeDoc, type BoardElement } from "../lib/model";
+import { S, notify, theme } from "../state/store";
+import { closeReplay, replayStep, replayToggle } from "../state/replay";
+import { Icon } from "./Icon";
+import { SceneView } from "./SceneView";
+import { useViewport } from "./useViewport";
 
 const elementsOf = (doc: any): BoardElement[] =>
-  (Object.values(doc.elements) as BoardElement[]).sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0));
+  (Object.values(doc.elements) as BoardElement[]).sort(
+    (a: any, b: any) => (a.index ?? 0) - (b.index ?? 0),
+  );
 
 function parseEntry(json: string) {
   try {
@@ -38,7 +40,7 @@ export function TimelineReplay() {
       <div className="replay" role="dialog" aria-label="Sands of Time replay">
         <div className="replay-bar" style={{ marginBottom: 2 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Sands of Time</span>
-          <span className="replay-label">{entry.label || 'Edit'}</span>
+          <span className="replay-label">{entry.label || "Edit"}</span>
         </div>
         <div
           className="scene-wrap"
@@ -65,7 +67,7 @@ export function TimelineReplay() {
             <Icon name="prev" size={16} />
           </button>
           <button onClick={replayToggle} title="Play">
-            <Icon name={r.playing ? 'pause' : 'play'} size={16} />
+            <Icon name={r.playing ? "pause" : "play"} size={16} />
           </button>
           <button onClick={() => replayStep(1)} title="Next step">
             <Icon name="next" size={16} />
@@ -81,7 +83,7 @@ export function TimelineReplay() {
               notify();
             }}
           >
-            <i style={{ width: ((r.index + 1) / r.list.length) * 100 + '%' }} />
+            <i style={{ width: ((r.index + 1) / r.list.length) * 100 + "%" }} />
           </div>
           <span className="replay-label">
             {r.index + 1} / {r.list.length}

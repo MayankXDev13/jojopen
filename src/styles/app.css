@@ -131,7 +131,6 @@ select {
   left: 0;
   top: 0;
   transform-origin: 0 0;
-  will-change: transform;
 }
 #slides {
   position: absolute;
@@ -173,7 +172,6 @@ select {
   position: absolute;
   transform-origin: 0 0;
   cursor: default;
-  will-change: transform;
 }
 .node:not(.slide) {
   z-index: 3;

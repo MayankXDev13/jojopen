@@ -13,7 +13,7 @@ import {
   sortedElements,
   theme,
 } from "../state/store";
-import { beginEdit, present, setPanel, setTool } from "../state/actions";
+import { beginEdit, present, setPanel, setTool, syncEnclosedShapes } from "../state/actions";
 import { textTool } from "./TextToolController";
 import { deep, uid } from "../lib/dom";
 import { hitTestArrow } from "../lib/geometry";
@@ -121,10 +121,29 @@ export class SelectToolController implements ToolController {
       r.top + Math.max(m.y0, m.y1),
     );
     if (!m.additive) S.selection.clear();
-    for (const el of elements()) {
+    const all = elements();
+    const enclosed = all.filter((el) => {
       const bb = elementBounds(el);
-      if (bb.maxX >= a.x && bb.minX <= b.x && bb.maxY >= a.y && bb.minY <= b.y)
-        S.selection.add(el.id);
+      return (
+        bb.minX >= a.x &&
+        bb.maxX <= b.x &&
+        bb.minY >= a.y &&
+        bb.maxY <= b.y
+      );
+    });
+    const targets = enclosed.length
+      ? enclosed
+      : all.filter((el) => {
+          const bb = elementBounds(el);
+          return (
+            bb.maxX >= a.x &&
+            bb.minX <= b.x &&
+            bb.maxY >= a.y &&
+            bb.minY <= b.y
+          );
+        });
+    for (const el of targets) {
+      S.selection.add(el.id);
     }
     notify();
   }
@@ -453,6 +472,7 @@ export class SelectToolController implements ToolController {
       }
       S.drag = null;
       S.panning = false;
+      syncEnclosedShapes();
       notify();
       persist();
       return;
@@ -461,6 +481,7 @@ export class SelectToolController implements ToolController {
     if (d && d.mode === "resize") {
       S.drag = null;
       S.panning = false;
+      syncEnclosedShapes();
       notify();
       persist();
       return;

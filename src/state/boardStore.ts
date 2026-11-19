@@ -69,6 +69,7 @@ export type BoardState = {
   iconQuery: string;
   iconCursor: number;
   boardQuery: string;
+  activeCollection: string;
   layoutPicker: boolean;
   colorPop: boolean;
 
@@ -135,6 +136,7 @@ const initialTransient = {
   iconQuery: "",
   iconCursor: 0,
   boardQuery: "",
+  activeCollection: "col-jojo",
   layoutPicker: false,
   colorPop: false,
   codeFor: null as string | null,

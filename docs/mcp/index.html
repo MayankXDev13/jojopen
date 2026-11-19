@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connect your AI · JojoPen</title>
+<meta name="description" content="Let Claude, Codex, Cursor or any MCP client draw diagrams, boards and slide decks in JojoPen.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+:root{--bg:#f6f5f2;--panel:#fff;--line:#e4e2dc;--text:#1c1c1c;--muted:#6b6b6b;--code:#f0eee9;--accent:#1c1c1c;--on:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#121212;--panel:#1b1b1b;--line:#2c2c2c;--text:#ececec;--muted:#9a9a9a;--code:#232323;--accent:#ececec;--on:#121212}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:760px;margin:0 auto;padding:28px 16px 80px}
+nav{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px}
+nav a{color:var(--muted);text-decoration:none;transition:color .15s ease}
+nav a:hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;height:38px;padding:0 14px;border-radius:11px;background:var(--accent);color:var(--on)!important;font-weight:600;text-decoration:none;transition:opacity .15s ease}
+.btn:hover{opacity:.88}
+h1{font-size:34px;line-height:1.15;letter-spacing:-.02em;margin:40px 0 10px}
+h2{font-size:21px;margin:44px 0 10px;letter-spacing:-.01em}
+h3{font-size:16px;margin:22px 0 6px}
+p,li{color:var(--text)}.lead{font-size:18px;color:var(--muted);margin:0 0 8px}
+.muted{color:var(--muted)}
+code{font:13.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:2px 6px;border-radius:6px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow-x:auto;margin:10px 0;position:relative}
+pre code{background:none;padding:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 18px 14px;margin:14px 0}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:13px}
+td:first-child{white-space:nowrap;font-weight:600}
+td code{white-space:nowrap;display:inline-block;margin:1px 2px}
+.tip{border-left:3px solid var(--line);padding:2px 0 2px 14px;color:var(--muted)}
+ul{padding-left:20px;margin:12px 0}
+li{margin:6px 0}
+a{color:inherit}
+@media (max-width:560px){h1{font-size:28px}td:first-child{white-space:normal}}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="/">← JojoPen</a><a class="btn" href="/">Open JojoPen</a></nav>
+
+<h1>Connect your AI to JojoPen</h1>
+<p class="lead">Let Claude, Codex, Cursor or any MCP client draw on your boards: diagrams, notes, slide decks, styling, sharing and export. Anything you can do with a board, your AI can do too.</p>
+<p class="muted">You need a JojoPen account (sign in with Google and pick a username). Your AI signs in once with your approval; no password or key is shared with it.</p>
+
+<h2>1. Add JojoPen to your AI app</h2>
+<p>The server address is <code>https://jojopen.com/mcp</code>.</p>
+
+<div class="card">
+<h3>Claude Code</h3>
+<p>Run once in your terminal, then type <code>/mcp</code> in Claude Code and pick <b>jojopen</b> to sign in.</p>
+<pre><code>claude mcp add --transport http jojopen https://jojopen.com/mcp</code></pre>
+</div>
+
+<div class="card">
+<h3>Claude app (desktop and web)</h3>
+<p><b>Settings → Connectors → Add custom connector</b>. Name it JojoPen and paste <code>https://jojopen.com/mcp</code>. Claude opens JojoPen to sign you in.</p>
+</div>
+
+<div class="card">
+<h3>Codex</h3>
+<p>Add this to <code>~/.codex/config.toml</code>, then run <code>codex mcp login jojopen</code>.</p>
+<pre><code>[mcp_servers.jojopen]
+url = "https://jojopen.com/mcp"</code></pre>
+</div>
+
+<div class="card">
+<h3>Cursor</h3>
+<p>Add this to <code>~/.cursor/mcp.json</code> (or your project's <code>.cursor/mcp.json</code>). Cursor asks you to sign in on first use.</p>
+<pre><code>{
+  "mcpServers": {
+    "jojopen": { "url": "https://jojopen.com/mcp" }
+  }
+}</code></pre>
+</div>
+
+<div class="card">
+<h3>Any other MCP client</h3>
+<p>Use Streamable HTTP at <code>https://jojopen.com/mcp</code> with OAuth 2.1. The client registers itself and opens the JojoPen sign-in page.</p>
+</div>
+
+<h2>2. Approve it</h2>
+<p>JojoPen shows which app is asking and what it may do: <b>see your boards</b> and <b>create and change boards</b>. Untick the second to connect read-only. You can reconnect any time to change this.</p>
+
+<h2>3. Ask for something</h2>
+<pre><code>Draw the architecture of a URL shortener on JojoPen and give me the link.</code></pre>
+<pre><code>Turn my "checkout" board into a 5-slide deck I can present tomorrow.</code></pre>
+<pre><code>Make the board public, switch it to chalkboard style and export a PNG.</code></pre>
+<p class="tip">Your AI sees a picture of every change it makes, plus notes on what to fix (too many boxes, long labels, arrows pointing backwards), so it can tidy up before sharing the link.</p>
+
+<h2>What your AI can do</h2>
+<table>
+<thead>
+<tr><th>Area</th><th>Tools</th></tr>
+</thead>
+<tbody>
+<tr><td>Boards</td><td><code>create_board</code> <code>list_boards</code> <code>get_board</code> <code>rename_board</code> <code>move_board</code> <code>delete_board</code> <code>set_visibility</code> <code>list_collections</code> <code>create_collection</code></td></tr>
+<tr><td>Look</td><td><code>set_board_style</code>: sketch, clean or chalkboard; font; colours by meaning, random or black &amp; white; light or dark; dots; snapping</td></tr>
+<tr><td>Diagrams</td><td><code>create_diagram</code> <code>update_diagram</code> (whole diagram, or small edits like "add one box") <code>get_diagram</code> <code>validate_dsl</code> <code>search_icons</code> <code>clean_diagram</code> <code>get_preview</code></td></tr>
+<tr><td>Notes &amp; drawing</td><td><code>add_sticky</code> <code>add_text</code> <code>draw_on_board</code> (shapes, arrows, icons, text)</td></tr>
+<tr><td>Slides</td><td><code>create_deck</code> <code>design_slide</code></td></tr>
+<tr><td>Export</td><td><code>export</code>: PNG, SVG, or a PDF of the slides</td></tr>
+<tr><td>Account</td><td><code>whoami</code></td></tr>
+</tbody>
+</table>
+<p class="muted">Boards your AI makes replay step by step in the app (the hourglass), in the order it drew them.</p>
+
+<h2>Privacy and safety</h2>
+<ul>
+<li>New boards are <b>private</b> until you (or your AI, when you ask) make them unlisted or public.</li>
+<li>Your AI only reaches <b>your</b> boards. Links to other people's boards are refused.</li>
+<li>Deleting a board needs an explicit confirmation from the AI, and AI apps ask you first.</li>
+<li>Each connection can make up to 120 calls a minute.</li>
+<li>If you have a board open while your AI changes it, the board updates in front of you. If you were editing at the same moment, JojoPen asks which version to keep.</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+<h3>New tools don't show up</h3>
+<p>AI apps remember the tool list from when they connected. Reconnect: in Claude Code, <code>/mcp</code> → jojopen → Reconnect; elsewhere, restart the app.</p>
+<h3>"This connection is read-only"</h3>
+<p>It was approved without write access. Reconnect (Claude Code: <code>/mcp</code> → jojopen → Re-authenticate) and keep "Create and change boards" ticked.</p>
+<h3>"Pick a username first"</h3>
+<p>Open <a href="/">jojopen.com</a>, sign in and choose a username; it becomes the first part of your board links.</p>
+
+<footer style="margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;display:flex;gap:18px">
+  <a href="https://jojopen.com/privacy" style="color:var(--muted)">Privacy</a>
+  <a href="https://jojopen.com/terms" style="color:var(--muted)">Terms</a>
+</footer>
+</main>
+</body>
+</html>

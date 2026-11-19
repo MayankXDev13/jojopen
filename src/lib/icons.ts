@@ -14,6 +14,8 @@ export const ICONS: Record<string, string> = {
   line: '<path d="M4 16L16 4"/>',
   text: '<path d="M5 5h10M10 5v11"/>',
   pen: '<path d="M13.5 3.5l3 3L7 16H4v-3z"/>',
+  pencil:
+    '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
   sticky: '<path d="M4 4h12v8l-4 4H4zM12 16v-4h4"/>',
   image:
     '<path d="M5 4h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM17 13l-4-4-7 7M7.5 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/>',

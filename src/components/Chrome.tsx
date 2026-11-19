@@ -120,6 +120,10 @@ function MainMenu() {
     closeOverlays();
     window.open(`https://jojopen.com/${path}`, "_blank", "noopener,noreferrer");
   };
+  const docs = (path: string) => () => {
+    closeOverlays();
+    window.open(`/${path}`, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="mainmenu" ref={ref} role="menu" aria-label="Main menu">
@@ -144,7 +148,7 @@ function MainMenu() {
       <button role="menuitem" type="button" onClick={open(openShortcuts)}>
         Keyboard shortcuts <span className="menu-hint">?</span>
       </button>
-      <button role="menuitem" type="button" onClick={open(openConnect)}>
+      <button role="menuitem" type="button" onClick={docs("docs/mcp/")}>
         Connect your AI app (guide)
       </button>
       <span className="menu-sep" />
@@ -176,10 +180,10 @@ function MainMenu() {
       </button>
       <span className="menu-sep" />
       <div className="menu-row">
-        <button role="menuitem" type="button" onClick={external("privacy")}>
+        <button role="menuitem" type="button" onClick={docs("privacy/")}>
           Privacy
         </button>
-        <button role="menuitem" type="button" onClick={external("terms")}>
+        <button role="menuitem" type="button" onClick={docs("terms/")}>
           Terms
         </button>
       </div>
@@ -242,10 +246,11 @@ export function TopBar() {
             onClick={openRename}
             title="Rename or change link"
           >
-            {S.doc.name || "Untitled board"}
+            <span>{S.doc.name || "Untitled board"}</span>
+            <Icon name="pencil" size={12} />
           </button>
           <span className="saved" id="saved">
-            <span className="dot-ok" /> Saved on this device
+            <span className="dot-ok" /> Saved to your boards
           </span>
         </div>
       </div>

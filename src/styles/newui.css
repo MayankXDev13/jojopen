@@ -2866,6 +2866,23 @@ select.input {
   gap: 6px;
   align-items: center;
 }
+.board-row {
+  position: relative;
+}
+.board-row .board-del-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.board-row:hover .board-del-btn {
+  opacity: 0.6;
+}
+.board-row .board-del-btn:hover {
+  opacity: 1;
+}
 .profile {
   position: fixed;
   inset: 0;

@@ -7,7 +7,7 @@ import {
   filteredIcons,
   prettyKey,
 } from "../state/commands";
-import { S, notify, slides, toast } from "../state/store";
+import { S, collectionsList, notify, slides, toast } from "../state/store";
 import {
   closeOverlays,
   copyExport,
@@ -335,7 +335,16 @@ function ConnectDialog() {
         <div className="modal-body">
           <p className="note" style={{ marginTop: 0 }}>
             Bring your own key. Requests go straight from this browser to the
-            provider you pick — nothing is sent to JojoPen.
+            provider you pick — nothing is sent to JojoPen.{" "}
+            <a
+              href="/docs/mcp/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "underline", color: "inherit" }}
+            >
+              Or connect via MCP
+            </a>
+            .
           </p>
           <div className="provider-grid">
             {Object.entries(AI_META).map(([id, m]) => (
@@ -642,71 +651,101 @@ function IconSearch() {
 
 function BoardSettings() {
   useVersion();
-  const ref = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const slugRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    ref.current?.focus();
-    ref.current?.select();
+    nameRef.current?.focus();
+    nameRef.current?.select();
   }, []);
+
+  // Compute clean link prefix without any erroneous leading slash
+  const host = (
+    typeof window !== "undefined"
+      ? window.location.host || "jojopen.com"
+      : "jojopen.com"
+  ).replace(/^\/+/, "");
+  const pathname =
+    typeof window !== "undefined" ? window.location.pathname : "";
+  const segments = pathname.split("/").filter(Boolean);
+
+  let prefix = "";
+  let initialSlug = S.doc.id;
+
+  if (segments.length >= 2) {
+    prefix = `${host}/${segments.slice(0, -1).join("/")}/`;
+    initialSlug = segments[segments.length - 1] || S.doc.id;
+  } else if (segments.length === 1 && segments[0] !== "b") {
+    prefix = `${host}/${segments[0]}/`;
+  } else {
+    prefix = `${host}/`;
+  }
+
+  const handleSave = () => {
+    const newName = nameRef.current?.value || "";
+    const newSlug = slugRef.current?.value || "";
+    saveRename(newName, newSlug);
+  };
+
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+
   return (
     <Scrim>
       <div
         className="modal"
         style={{ width: "min(420px,100%)" }}
         role="dialog"
-        aria-label="Board settings"
+        aria-label="Board details"
       >
         <header>
-          <h2>Board settings</h2>
-          <button className="iconbtn" onClick={closeOverlays}>
-            <Icon name="close" size={18} />
-          </button>
+          <h2>Board details</h2>
         </header>
-        <div className="modal-body">
-          <label className="field">
-            <span>Board name</span>
+        <div className="modal-body" style={{ display: "grid", gap: 12 }}>
+          <label className="label-sm">
+            <span>Name</span>
             <input
-              ref={ref}
+              ref={nameRef}
               className="input"
               id="renameInput"
               defaultValue={S.doc.name}
+              placeholder="Board name"
+              onKeyDown={onKey}
             />
           </label>
-          <label className="field">
-            <span>Board link</span>
-            <div className="row">
+          <label className="label-sm">
+            <span>Link</span>
+            <div className="linkfield">
+              <span className="linkprefix" title={prefix}>
+                {prefix}
+              </span>
               <input
-                className="input"
-                style={{ flex: 1 }}
-                readOnly
-                value={location.origin + location.pathname + "#/b/" + S.doc.id}
+                ref={slugRef}
+                id="renameSlug"
+                defaultValue={initialSlug}
+                placeholder="slug"
+                onKeyDown={onKey}
               />
-              <button
-                className="secondary"
-                onClick={() =>
-                  navigator.clipboard
-                    ?.writeText(
-                      location.origin + location.pathname + "#/b/" + S.doc.id,
-                    )
-                    .then(() => toast("Board link copied"))
-                    .catch(() => toast("Copy failed"))
-                }
-              >
-                <Icon name="link" size={14} /> Copy
-              </button>
             </div>
           </label>
-          <div className="row end" style={{ marginTop: 16 }}>
+          <div className="modal-row" style={{ marginTop: 12 }}>
             <button
-              className="secondary"
+              type="button"
+              className="btn"
               data-act="closeOverlay"
               onClick={closeOverlays}
             >
               Cancel
             </button>
             <button
-              className="primary"
+              type="button"
+              className="btn is-primary"
               data-act="saveRename"
-              onClick={() => saveRename(ref.current?.value || "")}
+              onClick={handleSave}
             >
               Save
             </button>

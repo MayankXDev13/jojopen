@@ -2,7 +2,7 @@
    persist and notify as needed. */
 
 import { clamp, deep, download, plural, slug, uid } from "../lib/dom";
-import { boundsOf, arrowGeom } from "../lib/geometry";
+import { boundsOf, arrowGeom, shapeEncloses } from "../lib/geometry";
 import { layoutDiagram } from "../lib/layout";
 import { fitTextBox, wrapMeasured } from "../lib/textMeasure";
 import { parseDSL } from "../lib/dsl";
@@ -722,12 +722,18 @@ export function forgetKey() {
 
 /* ---------- boards ---------- */
 
-export function saveRename(name: string) {
+export function saveRename(name: string, newId?: string) {
   const v = name.trim();
   if (v) {
+    const prevId = useBoardStore.getState().doc.id;
+    const trimmedId = newId?.trim();
+    const id = trimmedId && trimmedId !== prevId ? trimmedId : prevId;
     useBoardStore.setState({
-      doc: { ...useBoardStore.getState().doc, name: v },
+      doc: { ...useBoardStore.getState().doc, name: v, id },
     } as any);
+    if (id !== prevId) {
+      saveBoardCopy();
+    }
     persist(true);
   }
   useBoardStore.setState({ renameOpen: false } as any);
@@ -745,7 +751,9 @@ export function copyBoardLink() {
 
 export function newBoard() {
   saveBoardCopy();
-  useBoardStore.setState({ doc: blankDoc("Untitled board") } as any);
+  const doc = blankDoc("Untitled board");
+  doc.collectionId = S.activeCollection || "col-jojo";
+  useBoardStore.setState({ doc } as any);
   S.selection.clear();
   useBoardStore.setState({ history: [] } as any);
   useBoardStore.setState({ future: [] } as any);
@@ -753,7 +761,7 @@ export function newBoard() {
   useBoardStore.setState({ camera: { x: 80, y: 80, zoom: 1 } } as any);
   useBoardStore.setState({ startOpen: false } as any);
   useBoardStore.setState({ panel: "none" } as any);
-  location.hash = "";
+  if (typeof location !== "undefined") location.hash = "";
   notify();
   persist(true);
   toast("New board");
@@ -761,9 +769,19 @@ export function newBoard() {
 
 export function openBoard(id: string) {
   try {
-    const raw =
+    let raw =
       localStorage.getItem("jojopen.board." + id) ||
       (S.doc.id === id ? JSON.stringify(S.doc) : null);
+    if (!raw) {
+      const b = boardsList().find((x: any) => x.id === id);
+      if (b) {
+        const doc = blankDoc(b.name);
+        doc.id = id;
+        doc.collectionId = b.collectionId || "col-jojo";
+        raw = JSON.stringify(doc);
+        localStorage.setItem("jojopen.board." + id, raw);
+      }
+    }
     if (!raw) return toast("Board not found");
     useBoardStore.setState({ doc: normalizeDoc(JSON.parse(raw)) } as any);
     S.selection.clear();
@@ -1247,6 +1265,51 @@ export function toggleNoFill() {
     e.noFill = !all;
   });
   notify();
+}
+
+/** Automatically ensures enclosing shapes have noFill: true and sit behind their inner shapes. */
+export function syncEnclosedShapes(targetEl?: any) {
+  const shapes = elements().filter((x) => x.type === "shape");
+  if (shapes.length < 2) return;
+
+  if (targetEl && targetEl.type === "shape") {
+    const contained = shapes.filter(
+      (s) => s.id !== targetEl.id && shapeEncloses(targetEl, s),
+    );
+    if (contained.length > 0) {
+      targetEl.noFill = true;
+      const sorted = sortedElements();
+      const elIdx = sorted.findIndex((x) => x.id === targetEl.id);
+      if (elIdx !== -1) {
+        sorted.splice(elIdx, 1);
+        const insertIdx = sorted.findIndex((x) =>
+          contained.some((c) => c.id === x.id),
+        );
+        if (insertIdx !== -1) {
+          sorted.splice(insertIdx, 0, targetEl);
+        } else {
+          sorted.unshift(targetEl);
+        }
+        sorted.forEach((item, i) => {
+          item.index = i + 1;
+        });
+      }
+    }
+    for (const other of shapes) {
+      if (other.id !== targetEl.id && shapeEncloses(other, targetEl)) {
+        other.noFill = true;
+      }
+    }
+  } else {
+    for (const outer of shapes) {
+      const hasContained = shapes.some(
+        (inner) => inner.id !== outer.id && shapeEncloses(outer, inner),
+      );
+      if (hasContained) {
+        outer.noFill = true;
+      }
+    }
+  }
 }
 
 export function setShape(shape: string) {

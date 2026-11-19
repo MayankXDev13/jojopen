@@ -1,12 +1,10 @@
 import type { BoardElement, Point } from "../lib/model";
 import { arrowGeom, arrowHandlesFor, arrowHead } from "../lib/geometry";
 import { strokeOutlinePath } from "../lib/ink";
-import { getRoughPaths, roughnessForStyle } from "../lib/sketch";
 import {
   S,
   colorFor,
   fontFor,
-  settings,
   sortedElements,
   theme,
 } from "../state/store";
@@ -18,18 +16,6 @@ export function Edges() {
   const list = sortedElements();
   return (
     <svg className="edges" width="10" height="10">
-      <defs>
-        <filter id="roughEdge" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.02"
-            numOctaves="2"
-            seed="5"
-            result="n"
-          />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="1.5" />
-        </filter>
-      </defs>
       {list.map((el) => {
         if (el.type === "freehand") {
           const paint = colorFor(el);
@@ -93,44 +79,19 @@ export function Edges() {
                 : el.dash === "dotted"
                   ? "2 5"
                   : undefined;
-        const roughness = roughnessForStyle(settings().style);
         const strokeWidth = el.dash === "thick" ? 2.6 : 1.7;
-        const isRough = roughness > 0 && !dash;
-        const roughShaft = isRough
-          ? getRoughPaths(el.id, geom.d, {
-              stroke: paint.stroke,
-              strokeWidth,
-              roughness,
-              preserveVertices: true,
-            })
-          : null;
         return (
           <g key={el.id}>
-            {roughShaft ? (
-              roughShaft.map((pt, i) => (
-                <path
-                  key={i}
-                  d={pt.d}
-                  fill="none"
-                  stroke={pt.stroke || paint.stroke}
-                  strokeWidth={pt.strokeWidth || strokeWidth}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  data-id={el.id}
-                />
-              ))
-            ) : (
-              <path
-                d={geom.d}
-                fill="none"
-                stroke={paint.stroke}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray={dash}
-                data-id={el.id}
-              />
-            )}
+            <path
+              d={geom.d}
+              fill="none"
+              stroke={paint.stroke}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={dash}
+              data-id={el.id}
+            />
             {el.endHead !== "none" && el.kind !== "line" ? (
               <g
                 dangerouslySetInnerHTML={{

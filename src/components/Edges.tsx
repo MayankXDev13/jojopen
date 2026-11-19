@@ -1,7 +1,15 @@
 import type { BoardElement, Point } from "../lib/model";
 import { arrowGeom, arrowHandlesFor, arrowHead } from "../lib/geometry";
 import { strokeOutlinePath } from "../lib/ink";
-import { S, colorFor, fontFor, sortedElements, theme } from "../state/store";
+import { getRoughPaths, roughnessForStyle } from "../lib/sketch";
+import {
+  S,
+  colorFor,
+  fontFor,
+  settings,
+  sortedElements,
+  theme,
+} from "../state/store";
 import { useVersion } from "../state/boardStore";
 
 export function Edges() {
@@ -85,19 +93,44 @@ export function Edges() {
                 : el.dash === "dotted"
                   ? "2 5"
                   : undefined;
-        const labelW = Math.max(28, (el.label || "").length * 6.4 + 14);
+        const roughness = roughnessForStyle(settings().style);
+        const strokeWidth = el.dash === "thick" ? 2.6 : 1.7;
+        const isRough = roughness > 0 && !dash;
+        const roughShaft = isRough
+          ? getRoughPaths(el.id, geom.d, {
+              stroke: paint.stroke,
+              strokeWidth,
+              roughness,
+              preserveVertices: true,
+            })
+          : null;
         return (
           <g key={el.id}>
-            <path
-              d={geom.d}
-              fill="none"
-              stroke={paint.stroke}
-              strokeWidth={el.dash === "thick" ? 2.6 : 1.7}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray={dash}
-              data-id={el.id}
-            />
+            {roughShaft ? (
+              roughShaft.map((pt, i) => (
+                <path
+                  key={i}
+                  d={pt.d}
+                  fill="none"
+                  stroke={pt.stroke || paint.stroke}
+                  strokeWidth={pt.strokeWidth || strokeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  data-id={el.id}
+                />
+              ))
+            ) : (
+              <path
+                d={geom.d}
+                fill="none"
+                stroke={paint.stroke}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray={dash}
+                data-id={el.id}
+              />
+            )}
             {el.endHead !== "none" && el.kind !== "line" ? (
               <g
                 dangerouslySetInnerHTML={{

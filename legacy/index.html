@@ -3259,7 +3259,7 @@
         const px = cx - r.left,
           py = cy - r.top;
         const before = toWorld(cx, cy);
-        S.camera.zoom = clamp(S.camera.zoom * factor, 0.08, 4);
+        S.camera.zoom = clamp(S.camera.zoom * factor, 0.08, 8);
         S.camera.x = px - before.x * S.camera.zoom;
         S.camera.y = py - before.y * S.camera.zoom;
         renderCanvas();

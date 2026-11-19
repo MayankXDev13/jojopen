@@ -356,8 +356,11 @@ export function anchorPoint(e: BoardElement, toward: Point): Point {
   if (!dx && !dy) return { x: cx, y: b.maxY };
   const hw = Math.max(1, (b.maxX - b.minX) / 2);
   const hh = Math.max(1, (b.maxY - b.minY) / 2);
-  const t = Math.min(Math.abs(hw / (dx || 1e-6)), Math.abs(hh / (dy || 1e-6)));
-  return { x: cx + dx * t, y: cy + dy * t };
+  if (Math.abs(hw / (dx || 1e-6)) < Math.abs(hh / (dy || 1e-6))) {
+    return { x: dx >= 0 ? b.maxX : b.minX, y: cy };
+  } else {
+    return { x: cx, y: dy >= 0 ? b.maxY : b.minY };
+  }
 }
 
 /* ---- Original-style auto router (jojopen.com) ----
@@ -378,39 +381,14 @@ function sideNormal(s: Side): Point {
         : { x: 0, y: 1 };
 }
 
-/** Point on a side, clamped 6px inside like the original. */
-function sidePoint(b: Bounds, side: Side, along?: number): Point {
-  if (side === "left")
-    return {
-      x: b.minX,
-      y: Math.min(
-        Math.max(along ?? (b.minY + b.maxY) / 2, b.minY + 6),
-        b.maxY - 6,
-      ),
-    };
-  if (side === "right")
-    return {
-      x: b.maxX,
-      y: Math.min(
-        Math.max(along ?? (b.minY + b.maxY) / 2, b.minY + 6),
-        b.maxY - 6,
-      ),
-    };
-  if (side === "top")
-    return {
-      x: Math.min(
-        Math.max(along ?? (b.minX + b.maxX) / 2, b.minX + 6),
-        b.maxX - 6,
-      ),
-      y: b.minY,
-    };
-  return {
-    x: Math.min(
-      Math.max(along ?? (b.minX + b.maxX) / 2, b.minX + 6),
-      b.maxX - 6,
-    ),
-    y: b.maxY,
-  };
+/** Point on a side: always connects to the exact center of the shape face. */
+function sidePoint(b: Bounds, side: Side): Point {
+  const cx = (b.minX + b.maxX) / 2;
+  const cy = (b.minY + b.maxY) / 2;
+  if (side === "left") return { x: b.minX, y: cy };
+  if (side === "right") return { x: b.maxX, y: cy };
+  if (side === "top") return { x: cx, y: b.minY };
+  return { x: cx, y: b.maxY };
 }
 
 function expand(b: Bounds, pad: number): Bounds {
@@ -502,6 +480,36 @@ function autoOrthogonal(
   const boxes = [ea, eb];
   const ac = { x: (a.minX + a.maxX) / 2, y: (a.minY + a.maxY) / 2 };
   const bc = { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 };
+
+  const hintSide = (box: Bounds, p?: Point): Side | null => {
+    if (!p) return null;
+    if (Math.abs(p.x - box.maxX) < 2) return "right";
+    if (Math.abs(p.x - box.minX) < 2) return "left";
+    if (Math.abs(p.y - box.maxY) < 2) return "bottom";
+    if (Math.abs(p.y - box.minY) < 2) return "top";
+    return null;
+  };
+  const h1 = hintSide(a, p0Hint);
+  const h2 = hintSide(b, p1Hint);
+
+  const dx = bc.x - ac.x;
+  const dy = bc.y - ac.y;
+  const horiz = Math.abs(dx) >= Math.abs(dy);
+  const primaryS1: Side = horiz
+    ? dx >= 0
+      ? "right"
+      : "left"
+    : dy >= 0
+      ? "bottom"
+      : "top";
+  const primaryS2: Side = horiz
+    ? dx >= 0
+      ? "left"
+      : "right"
+    : dy >= 0
+      ? "top"
+      : "bottom";
+
   let best: Point[] | null = null;
   let bestScore = Infinity;
   for (const s1 of SIDES) {
@@ -511,82 +519,102 @@ function autoOrthogonal(
       // Natural sides face the peer; penalize backsides like the original.
       const toB = { x: bc.x - ac.x, y: bc.y - ac.y };
       const toA = { x: ac.x - bc.x, y: ac.y - bc.y };
-      const pen =
+      let pen =
         (n1.x * toB.x + n1.y * toB.y < 0 ? 400 : 0) +
         (n2.x * toA.x + n2.y * toA.y < 0 ? 400 : 0);
 
-      const along0 = s1 === "left" || s1 === "right" ? p0Hint?.y : p0Hint?.x;
-      const along1 = s2 === "left" || s2 === "right" ? p1Hint?.y : p1Hint?.x;
-      const p0 = sidePoint(a, s1, along0);
-      const p1 = sidePoint(b, s2, along1);
+      // Prioritize hinted anchor sides and primary facing sides
+      if (h1) {
+        if (s1 !== h1) pen += 500;
+      } else if (s1 !== primaryS1) {
+        pen += 200;
+      }
+      if (h2) {
+        if (s2 !== h2) pen += 500;
+      } else if (s2 !== primaryS2) {
+        pen += 200;
+      }
+
+      const p0 = sidePoint(a, s1);
+      const p1 = sidePoint(b, s2);
 
       const cands: Array<{ pts: Point[]; bonus: number }> = [];
 
-      // Direct straight connection when facing faces overlap
+      // Direct straight connection when facing faces and centers are aligned
       if (s1 === "right" && s2 === "left" && a.maxX <= b.minX) {
-        const overlapMinY = Math.max(a.minY + 6, b.minY + 6);
-        const overlapMaxY = Math.min(a.maxY - 6, b.maxY - 6);
-        if (overlapMinY <= overlapMaxY) {
-          const y =
-            p0Hint && p0Hint.y >= overlapMinY && p0Hint.y <= overlapMaxY
-              ? p0Hint.y
-              : (overlapMinY + overlapMaxY) / 2;
+        if (Math.abs(ac.y - bc.y) < 8) {
+          const y = (ac.y + bc.y) / 2;
           cands.push({
             pts: [
               { x: a.maxX, y },
               { x: b.minX, y },
             ],
-            bonus: -60,
+            bonus: -80,
           });
         }
       } else if (s1 === "left" && s2 === "right" && a.minX >= b.maxX) {
-        const overlapMinY = Math.max(a.minY + 6, b.minY + 6);
-        const overlapMaxY = Math.min(a.maxY - 6, b.maxY - 6);
-        if (overlapMinY <= overlapMaxY) {
-          const y =
-            p0Hint && p0Hint.y >= overlapMinY && p0Hint.y <= overlapMaxY
-              ? p0Hint.y
-              : (overlapMinY + overlapMaxY) / 2;
+        if (Math.abs(ac.y - bc.y) < 8) {
+          const y = (ac.y + bc.y) / 2;
           cands.push({
             pts: [
               { x: a.minX, y },
               { x: b.maxX, y },
             ],
-            bonus: -60,
+            bonus: -80,
           });
         }
       } else if (s1 === "bottom" && s2 === "top" && a.maxY <= b.minY) {
-        const overlapMinX = Math.max(a.minX + 6, b.minX + 6);
-        const overlapMaxX = Math.min(a.maxX - 6, b.maxX - 6);
-        if (overlapMinX <= overlapMaxX) {
-          const x =
-            p0Hint && p0Hint.x >= overlapMinX && p0Hint.x <= overlapMaxX
-              ? p0Hint.x
-              : (overlapMinX + overlapMaxX) / 2;
+        if (Math.abs(ac.x - bc.x) < 8) {
+          const x = (ac.x + bc.x) / 2;
           cands.push({
             pts: [
               { x, y: a.maxY },
               { x, y: b.minY },
             ],
-            bonus: -60,
+            bonus: -80,
           });
         }
       } else if (s1 === "top" && s2 === "bottom" && a.minY >= b.maxY) {
-        const overlapMinX = Math.max(a.minX + 6, b.minX + 6);
-        const overlapMaxX = Math.min(a.maxX - 6, b.maxX - 6);
-        if (overlapMinX <= overlapMaxX) {
-          const x =
-            p0Hint && p0Hint.x >= overlapMinX && p0Hint.x <= overlapMaxX
-              ? p0Hint.x
-              : (overlapMinX + overlapMaxX) / 2;
+        if (Math.abs(ac.x - bc.x) < 8) {
+          const x = (ac.x + bc.x) / 2;
           cands.push({
             pts: [
               { x, y: a.minY },
               { x, y: b.maxY },
             ],
-            bonus: -60,
+            bonus: -80,
           });
         }
+      }
+
+      // Clean corridor midpoint jogs for separated peers
+      if (s1 === "right" && s2 === "left" && b.minX > a.maxX) {
+        const mx = (a.maxX + b.minX) / 2;
+        cands.push({
+          pts: [p0, { x: mx, y: p0.y }, { x: mx, y: p1.y }, p1],
+          bonus: -60,
+        });
+      }
+      if (s1 === "left" && s2 === "right" && a.minX > b.maxX) {
+        const mx = (a.minX + b.maxX) / 2;
+        cands.push({
+          pts: [p0, { x: mx, y: p0.y }, { x: mx, y: p1.y }, p1],
+          bonus: -60,
+        });
+      }
+      if (s1 === "bottom" && s2 === "top" && b.minY > a.maxY) {
+        const my = (a.maxY + b.minY) / 2;
+        cands.push({
+          pts: [p0, { x: p0.x, y: my }, { x: p1.x, y: my }, p1],
+          bonus: -60,
+        });
+      }
+      if (s1 === "top" && s2 === "bottom" && a.minY > b.maxY) {
+        const my = (a.minY + b.maxY) / 2;
+        cands.push({
+          pts: [p0, { x: p0.x, y: my }, { x: p1.x, y: my }, p1],
+          bonus: -60,
+        });
       }
 
       const q0 = { x: p0.x + n1.x * STUB, y: p0.y + n1.y * STUB };

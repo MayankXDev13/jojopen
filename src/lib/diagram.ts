@@ -14,6 +14,7 @@ import {
 import { inferRole } from "./roles";
 import { layoutDiagram, wrapText, type Layout } from "./layout";
 import { parseDSL, type ParsedDiagram, type ParsedNode } from "./dsl";
+import { MAKE, type BoardDoc, type BoardElement } from "./model";
 
 export type DiagramEnv = {
   th: Theme;
@@ -178,7 +179,7 @@ export function diagramSVG(
       const tw = Math.max(...lines.map((l) => l.length)) * 5.6 + 14;
       const thh = 16 + (lines.length - 1) * 12;
       labelBits.push(
-        `<rect x="${e.labelAt.x - tw / 2}" y="${e.labelAt.y - thh / 2}" width="${tw}" height="${thh}" rx="5" fill="${th.labelPill}" stroke="${th.slideEdge}" stroke-width=".8"/>`,
+        `<rect x="${e.labelAt.x - tw / 2}" y="${e.labelAt.y - thh / 2}" width="${tw}" height="${thh}" rx="6" fill="${th.labelPill}"/>`,
       );
       lines.forEach((ln, i) =>
         labelBits.push(
@@ -219,4 +220,216 @@ export function diagramFor(dsl: string, env: DiagramEnv): DiagramRender {
 
 export function clearDiagramCache() {
   cache.clear();
+}
+
+/**
+ * Compiles a DSL diagram into interactive board elements inside a diagram frame.
+ * Shapes, containers, and arrows are created with `frameId: diagramId` so they
+ * are interactive, selectable, and deletable on the canvas.
+ */
+export function compileDiagramDoc(
+  doc: BoardDoc,
+  diagramId: string,
+  dsl?: string,
+): { ast: ParsedDiagram; success: boolean } | null {
+  const d = doc.elements[diagramId];
+  if (!d || d.type !== "diagram") return null;
+
+  const src = dsl !== undefined ? dsl : d.dsl || "";
+  const ast = parseDSL(src);
+  if (ast.diagnostics.some((x) => x.severity === "error")) {
+    return { ast, success: false };
+  }
+
+  const layout = layoutDiagram(ast);
+  const Dt = 48; // Frame internal padding
+
+  d.dsl = src;
+  if (ast.title) d.title = ast.title;
+  d.width = Math.round(layout.width + Dt * 2);
+  d.height = Math.round(layout.height + Dt * 2);
+
+  const f = d.x + Dt;
+  const g = d.y + Dt;
+
+  // Existing children belonging to this diagram frame
+  const existingMap = new Map<string, BoardElement>();
+  for (const el of Object.values(doc.elements)) {
+    if (el.frameId !== diagramId) continue;
+    const meta = el.meta || {};
+    const key = meta.dslKey
+      ? `n:${meta.dslKey}`
+      : meta.dslGroup
+        ? `g:${meta.dslGroup}`
+        : meta.dslEdge
+          ? `e:${meta.dslEdge}`
+          : null;
+    if (key) existingMap.set(key, el);
+  }
+
+  const upserts = new Map<string, BoardElement>();
+
+  // 1. Groups -> Containers
+  for (const grp of layout.groups) {
+    const key = `g:${grp.key}`;
+    const prev = existingMap.get(key) || MAKE.container({ frameId: diagramId });
+    upserts.set(key, {
+      ...prev,
+      label: grp.label,
+      x: Math.round(f + grp.x),
+      y: Math.round(g + grp.y),
+      width: Math.round(grp.w),
+      height: Math.round(grp.h),
+      frameId: diagramId,
+      meta: { ...prev.meta, dslGroup: grp.key },
+    });
+  }
+
+  // 2. Nodes -> Shapes
+  for (const node of ast.nodes.values()) {
+    const b = layout.nodes[node.key];
+    if (!b) continue;
+    const key = `n:${node.key}`;
+    const prev = existingMap.get(key) || MAKE.shape({ frameId: diagramId });
+    upserts.set(key, {
+      ...prev,
+      label: node.label || node.key,
+      shape: node.shape || "rounded",
+      icon: node.icon || null,
+      color: node.color || null,
+      role: node.role || null,
+      colorLocked: !!(node.color || node.role),
+      x: Math.round(f + b.x),
+      y: Math.round(g + b.y),
+      width: Math.round(b.w),
+      height: Math.round(b.h),
+      frameId: diagramId,
+      meta: { ...prev.meta, dslKey: node.key },
+    });
+  }
+
+  // 3. Edges -> Arrows
+  const resolveTarget = (k: string) =>
+    upserts.get(`n:${k}`) ?? upserts.get(`g:${k}`);
+
+  ast.edges.forEach((edge, idx) => {
+    const fromEl = resolveTarget(edge.from);
+    const toEl = resolveTarget(edge.to);
+    if (!fromEl || !toEl) return;
+    const edgeKey = (edge as any).id || `${edge.from}->${edge.to}:${idx}`;
+    const key = `e:${edgeKey}`;
+    const prev = existingMap.get(key) || MAKE.arrow({ frameId: diagramId });
+    const dash =
+      edge.kind === "async"
+        ? "dashed"
+        : edge.kind === "optional"
+          ? "dotted"
+          : "solid";
+    const startHead = edge.kind === "bidirectional" ? "triangle" : "none";
+    const endHead = edge.kind === "line" ? "none" : "triangle";
+    const routeMode =
+      edge.route === "curved" || edge.route === "straight"
+        ? edge.route
+        : "orthogonal";
+
+    const ax = Math.round(fromEl.x + fromEl.width / 2);
+    const ay = Math.round(fromEl.y + fromEl.height / 2);
+    const bx = Math.round(toEl.x + toEl.width / 2);
+    const by = Math.round(toEl.y + toEl.height / 2);
+
+    const dir = ast.direction || "right";
+    const forward =
+      dir === "right"
+        ? toEl.x >= fromEl.x
+        : dir === "down"
+          ? toEl.y >= fromEl.y
+          : dir === "left"
+            ? toEl.x <= fromEl.x
+            : toEl.y <= fromEl.y;
+
+    const startAnchor = forward
+      ? dir === "down"
+        ? { x: 0.5, y: 1 }
+        : dir === "up"
+          ? { x: 0.5, y: 0 }
+          : dir === "left"
+            ? { x: 0, y: 0.5 }
+            : { x: 1, y: 0.5 }
+      : null;
+
+    const endAnchor = forward
+      ? dir === "down"
+        ? { x: 0.5, y: 0 }
+        : dir === "up"
+          ? { x: 0.5, y: 1 }
+          : dir === "left"
+            ? { x: 1, y: 0.5 }
+            : { x: 0, y: 0.5 }
+      : null;
+
+    upserts.set(key, {
+      ...prev,
+      kind: edge.kind,
+      dash,
+      startHead,
+      endHead,
+      routeMode: prev.route === "manual" ? prev.routeMode : routeMode,
+      label: edge.label || "",
+      start: {
+        elementId: fromEl.id,
+        anchor: prev.start?.elementId === fromEl.id ? prev.start.anchor : null,
+        isPrecise: prev.start?.isPrecise ?? !!startAnchor,
+        normalizedAnchor:
+          prev.start?.elementId === fromEl.id && prev.start.normalizedAnchor
+            ? prev.start.normalizedAnchor
+            : startAnchor || undefined,
+      },
+      end: {
+        elementId: toEl.id,
+        anchor: prev.end?.elementId === toEl.id ? prev.end.anchor : null,
+        isPrecise: prev.end?.isPrecise ?? !!endAnchor,
+        normalizedAnchor:
+          prev.end?.elementId === toEl.id && prev.end.normalizedAnchor
+            ? prev.end.normalizedAnchor
+            : endAnchor || undefined,
+      },
+      route: prev.route === "manual" ? "manual" : "auto",
+      x: ax,
+      y: ay,
+      points: [
+        { x: 0, y: 0 },
+        { x: bx - ax, y: by - ay },
+      ],
+      frameId: diagramId,
+      meta: { ...prev.meta, dslEdge: edgeKey },
+    });
+  });
+
+  // Assign indices: containers < shapes < arrows
+  const baseIdx = d.index ?? 0;
+  let counter = 1;
+  for (const c of upserts.values()) {
+    if (c.type === "container") c.index = baseIdx + 0.001 * counter++;
+  }
+  for (const s of upserts.values()) {
+    if (s.type === "shape") s.index = baseIdx + 0.001 * counter++;
+  }
+  for (const a of upserts.values()) {
+    if (a.type === "arrow") a.index = baseIdx + 0.001 * counter++;
+  }
+
+  // Delete removed child elements
+  const keepIds = new Set([...upserts.values()].map((e) => e.id));
+  for (const el of existingMap.values()) {
+    if (!keepIds.has(el.id)) {
+      delete doc.elements[el.id];
+    }
+  }
+
+  // Store upserted elements in doc
+  for (const el of upserts.values()) {
+    doc.elements[el.id] = el;
+  }
+
+  return { ast, success: true };
 }

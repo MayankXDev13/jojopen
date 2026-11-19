@@ -151,7 +151,7 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
       if (e.kind === "bidirectional") s += arrowHead(g, "start", paint.stroke);
       if (e.label) {
         const w = Math.max(28, e.label.length * 6.4 + 14);
-        s += `<g><rect x="${g.labelPoint.x - w / 2}" y="${g.labelPoint.y - 10}" width="${w}" height="20" rx="5" fill="${th.labelPill}" stroke="${th.slideEdge}" stroke-width=".8"/><text x="${g.labelPoint.x}" y="${g.labelPoint.y + 4}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="${th.muted}">${esc(e.label)}</text></g>`;
+        s += `<g><rect x="${g.labelPoint.x - w / 2}" y="${g.labelPoint.y - 10}" width="${w}" height="20" rx="6" fill="${th.labelPill}"/><text x="${g.labelPoint.x}" y="${g.labelPoint.y + 4}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="${th.muted}">${esc(e.label)}</text></g>`;
       }
       return s;
     }
@@ -204,7 +204,10 @@ export function renderSlideSVG(
     `<rect x="${sl.x}" y="${sl.y}" width="${SLIDE_W}" height="${SLIDE_H}" fill="${th.slide}"/>`,
   );
   parts.push(`<g clip-path="url(#clip)">`);
-  for (const e of children) parts.push(elementSVG(e, env));
+  for (const e of children) {
+    if (e.type === "diagram") continue;
+    parts.push(elementSVG(e, env));
+  }
   parts.push("</g></svg>");
   return parts.join("");
 }

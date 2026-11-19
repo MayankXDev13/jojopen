@@ -4,7 +4,7 @@
 import { clamp, deep, download, plural, slug, uid } from "../lib/dom";
 import { boundsOf, arrowGeom, shapeEncloses } from "../lib/geometry";
 import { layoutDiagram } from "../lib/layout";
-import { clearDiagramCache } from "../lib/diagram";
+import { clearDiagramCache, compileDiagramDoc } from "../lib/diagram";
 import { fitTextBox, wrapMeasured } from "../lib/textMeasure";
 import { parseDSL } from "../lib/dsl";
 import { MAKE, SLIDE_H, SLIDE_W, blankDoc, normalizeDoc } from "../lib/model";
@@ -61,6 +61,7 @@ import {
   selectionElements,
   settings,
   slideChildren,
+  slideStepCount,
   slides,
   snapshot,
   sortedElements,
@@ -205,20 +206,18 @@ export function addSlide(layout = "blank", opts: any = {}) {
   ) {
     const a = geo.diagramArea;
     const dsl = opts.diagram || TEMPLATES.slideDiagram;
-    const r = diagram(dsl);
-    addElement(
-      MAKE.diagram({
-        x: slide.x + a.x,
-        y: slide.y + a.y,
-        width: a.w,
-        height: a.h,
-        title: opts.title || "Diagram",
-        dsl,
-        frameId: slide.id,
-        index: slide.index + 0.002,
-      }),
-    );
-    void r;
+    const diag = MAKE.diagram({
+      x: slide.x + a.x,
+      y: slide.y + a.y,
+      width: a.w,
+      height: a.h,
+      title: opts.title || "Diagram",
+      dsl,
+      frameId: slide.id,
+      index: slide.index + 0.002,
+    });
+    addElement(diag);
+    compileDiagramDoc(S.doc, diag.id, dsl);
   }
   useBoardStore.setState({ selection: new Set([slide.id]) } as any);
   persist();
@@ -332,11 +331,13 @@ export function toggleBuilds(id: string, checked: boolean) {
   const sl = S.doc.elements[id];
   if (!sl || sl.type !== "slide") return;
   pushHistory("builds");
-  sl.builds = checked ? slideChildren(sl).map((e) => e.id) : [];
+  sl.animate = checked;
+  sl.builds = [];
   persist();
   notify();
+  const count = slideStepCount(S.doc, sl);
   toast(
-    checked ? `Builds on · ${plural(sl.builds.length, "step")}` : "Builds off",
+    checked ? `Builds on · ${plural(count, "step")}` : "Builds off",
   );
 }
 
@@ -362,7 +363,8 @@ export function buildAdd(id: string, mode: "appear" | "highlight") {
 export function buildReplay(id: string) {
   const sl = S.doc.elements[id];
   if (!sl) return;
-  sl.builds = slideChildren(sl).map((e) => e.id);
+  sl.animate = true;
+  sl.builds = [];
   const idx = slides().findIndex((s) => s.id === id);
   present(Math.max(0, idx));
   if (S.present) {
@@ -422,7 +424,8 @@ export function presentNav(delta: number) {
   const p = S.present;
   if (delta > 0) {
     const sl = list[p.index];
-    if (sl && (sl.builds || []).length > p.steps) {
+    const maxSteps = sl ? slideStepCount(S.doc, sl) : 0;
+    if (sl && maxSteps > p.steps) {
       p.steps++;
       notify();
       return;
@@ -440,7 +443,8 @@ export function presentNav(delta: number) {
     }
     if (p.index > 0) {
       p.index--;
-      p.steps = 0;
+      const prevSl = list[p.index];
+      p.steps = prevSl ? slideStepCount(S.doc, prevSl) : 0;
       notify();
     }
   }
@@ -448,9 +452,27 @@ export function presentNav(delta: number) {
 
 /* ---------- diagram code ---------- */
 
+export function compileDiagram(diagramId: string, dsl?: string) {
+  const res = compileDiagramDoc(S.doc, diagramId, dsl);
+  if (res?.success) {
+    persist();
+    notify();
+  }
+  return res;
+}
+
 export function codeTarget() {
-  const sel = selectionElements().find((e) => e.type === "diagram");
-  return sel || null;
+  const sel = selectionElements();
+  if (!sel.length) return null;
+  const diagramEl = sel.find((e) => e.type === "diagram");
+  if (diagramEl) return diagramEl;
+  for (const el of sel) {
+    if (el.frameId) {
+      const parent = S.doc.elements[el.frameId];
+      if (parent?.type === "diagram") return parent;
+    }
+  }
+  return null;
 }
 
 export function syncCodeDraft() {
@@ -482,11 +504,7 @@ export function updateCodeDraftAndSync(src: string) {
   if (target) {
     const parsed = parseDSL(src);
     if (!parsed.diagnostics.some((d) => d.severity === "error")) {
-      target.dsl = src;
-      if (parsed.title) target.title = parsed.title;
-      const layout = layoutDiagram(parsed);
-      target.width = Math.max(target.width, layout.width);
-      target.height = Math.max(target.height, layout.height);
+      compileDiagramDoc(S.doc, target.id, src);
       clearDiagramCache();
       persist();
     }
@@ -512,9 +530,7 @@ export function tidyCode() {
   }
   pushHistory("tidy diagram");
   if (target) {
-    const layout = layoutDiagram(parsed);
-    target.width = layout.width;
-    target.height = layout.height;
+    compileDiagramDoc(S.doc, target.id, src);
     clearDiagramCache();
     persist();
   }
@@ -531,32 +547,39 @@ export function applyCode() {
   }
   pushHistory("code");
   const target = codeTarget();
-  const layout = layoutDiagram(parsed);
   if (target) {
-    target.dsl = src;
-    target.title = parsed.title || target.title;
-    if (target.width < 40 || target.height < 40) {
-      target.width = layout.width;
-      target.height = layout.height;
-    }
-    useBoardStore.setState({ selection: new Set([target.id]) } as any);
+    compileDiagramDoc(S.doc, target.id, src);
+    clearDiagramCache();
+    persist();
+    fitAll();
+    toast("Diagram updated");
   } else {
     const c = viewportCenter();
+    const layout = layoutDiagram(parsed);
+    const Dt = 48;
+    const w = layout.width + Dt * 2;
+    const h = layout.height + Dt * 2;
     const el = MAKE.diagram({
-      x: c.x - layout.width / 2,
-      y: c.y - layout.height / 2,
-      width: layout.width,
-      height: layout.height,
+      x: Math.round(c.x - w / 2),
+      y: Math.round(c.y - h / 2),
+      width: Math.max(240, w),
+      height: Math.max(180, h),
       title: parsed.title || "Diagram",
       dsl: src,
     });
     addElement(el);
-    useBoardStore.setState({ selection: new Set([el.id]) } as any);
-    useBoardStore.setState({ codeFor: el.id } as any);
+    compileDiagramDoc(S.doc, el.id, src);
+    useBoardStore.setState({
+      selection: new Set([el.id]),
+      codeFor: el.id,
+      codeDraft: src,
+      panel: "code",
+    } as any);
+    persist();
+    notify();
+    fitAll();
+    toast("Diagram added");
   }
-  persist();
-  notify();
-  toast(target ? "Diagram updated" : "Diagram added");
 }
 
 export function validateCode() {
@@ -593,17 +616,21 @@ Orders service -> Redis: cache
 Orders service --> Kafka: order.created`;
   const parsed = parseDSL(dsl);
   const layout = layoutDiagram(parsed);
+  const Dt = 48;
   const c = viewportCenter();
+  const w = layout.width + Dt * 2;
+  const h = layout.height + Dt * 2;
   const el = MAKE.diagram({
-    x: c.x - layout.width / 2,
-    y: c.y - layout.height / 2,
-    width: Math.max(240, layout.width),
-    height: Math.max(180, layout.height),
+    x: Math.round(c.x - w / 2),
+    y: Math.round(c.y - h / 2),
+    width: Math.max(240, w),
+    height: Math.max(180, h),
     title: parsed.title || "URL shortener",
     dsl,
   });
   pushHistory("new diagram");
   addElement(el);
+  compileDiagramDoc(S.doc, el.id, dsl);
   useBoardStore.setState({
     selection: new Set([el.id]),
     codeFor: el.id,
@@ -994,23 +1021,28 @@ export function applyTemplate(id: string) {
     const dsl = id === "system" ? TEMPLATES.system : TEMPLATES.flow;
     const parsed = parseDSL(dsl);
     const layout = layoutDiagram(parsed);
+    const Dt = 48;
     const el = MAKE.diagram({
       x: 0,
       y: 0,
-      width: layout.width,
-      height: layout.height,
+      width: layout.width + Dt * 2,
+      height: layout.height + Dt * 2,
       title:
         parsed.title || (id === "system" ? "URL shortener" : "Sign-up flow"),
       dsl,
     });
     addElement(el);
+    compileDiagramDoc(S.doc, el.id, dsl);
     useBoardStore.setState({
       doc: {
         ...useBoardStore.getState().doc,
         name: id === "system" ? "URL shortener" : "Sign-up flow",
       },
+      selection: new Set([el.id]),
+      codeFor: el.id,
+      codeDraft: dsl,
+      panel: "code",
     } as any);
-    useBoardStore.setState({ selection: new Set([el.id]) } as any);
     notify();
     persist(true);
     fitAll();
@@ -1104,6 +1136,11 @@ export function deleteSelection() {
   for (const id of ids) {
     const e = S.doc.elements[id];
     if (e?.type === "slide") for (const c of slideChildren(e)) ids.push(c.id);
+    if (e?.type === "diagram") {
+      for (const c of elements()) {
+        if (c.frameId === id) ids.push(c.id);
+      }
+    }
   }
   removeElements([...new Set(ids)]);
   S.selection.clear();
@@ -1384,9 +1421,34 @@ export function autoColor() {
 
 export function randomColors() {
   pushHistory("random colors");
-  const isRandom = settings().palette === "random";
-  settings().palette = isRandom ? "roles" : "random";
-  useBoardStore.setState({ randomMode: !isRandom } as any);
+  const isRandom =
+    settings().palette === "random" || useBoardStore.getState().randomMode;
+  const nextMode = !isRandom;
+  settings().palette = nextMode ? "random" : "roles";
+  useBoardStore.setState({ randomMode: nextMode } as any);
+  if (nextMode) {
+    const vibrant = COLOR_KEYS.filter((k) => k !== "gray" && k !== "ink");
+    const keys = [...vibrant].sort(() => Math.random() - 0.5);
+    elements()
+      .filter(
+        (e) =>
+          e.type === "shape" ||
+          e.type === "container" ||
+          e.type === "arrow" ||
+          e.type === "freehand",
+      )
+      .forEach((e, i) => {
+        e.color = keys[i % keys.length];
+        e.colorLocked = true;
+      });
+    toast("Random colors");
+  } else {
+    elements().forEach((e) => {
+      e.colorLocked = false;
+      e.color = null;
+    });
+    toast("Random colors off");
+  }
   notify();
   persist();
 }
@@ -1771,7 +1833,13 @@ export function exportPreview() {
     return withExportTheme(() => {
       if (o.scope === "slides") {
         const s = slides()[0];
-        return s ? renderSlide(s, slideChildren(s), exportEnv()) : "";
+        return s
+          ? renderSlide(
+              s,
+              slideChildren(s).filter((e) => e.type !== "diagram"),
+              exportEnv(),
+            )
+          : "";
       }
       const r = currentExportSVG(o.scope, { bg: o.bg });
       return r ? r.svg : "";
@@ -1800,7 +1868,11 @@ export async function downloadPNG() {
     if (!list.length) return toast("Nothing to export yet.");
     for (let i = 0; i < list.length; i++) {
       const svg = withExportTheme(() =>
-        renderSlide(list[i], slideChildren(list[i]), exportEnv()),
+        renderSlide(
+          list[i],
+          slideChildren(list[i]).filter((e) => e.type !== "diagram"),
+          exportEnv(),
+        ),
       );
       const canvas = await rasterize(svg, SLIDE_W, SLIDE_H, o.scale);
       const blob = await new Promise<Blob | null>((res) =>
@@ -1846,7 +1918,7 @@ export function printDeck() {
     list
       .map(
         (s) =>
-          `<section class="page"><img src="${svgToDataURL(renderSlide(s, slideChildren(s), exportEnv()))}"></section>`,
+          `<section class="page"><img src="${svgToDataURL(renderSlide(s, slideChildren(s).filter((e) => e.type !== "diagram"), exportEnv()))}"></section>`,
       )
       .join(""),
   );

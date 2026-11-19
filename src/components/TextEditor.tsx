@@ -29,9 +29,9 @@ export function TextEditor() {
   const z = S.camera.zoom;
   const isText = el.type === "text";
   const isSticky = el.type === "sticky";
-  // Editor sizes match each renderer: board text owns its size, sticky 16,
+  // Editor sizes match each renderer: board text owns its size, sticky 19,
   // shape/container 14 base, arrow pill 11.
-  const fs = isText ? el.fontSize || 18 : isArrow ? 11 : isSticky ? 16 : 14;
+  const fs = isText ? el.fontSize || 18 : isArrow ? 11 : isSticky ? 19 : 14;
   const fontPx = fs * (isText ? 1 : (el.textScale ?? 1));
   // Arrow labels edit at their path midpoint.
   let left = b.minX * z + S.camera.x;
@@ -55,9 +55,13 @@ export function TextEditor() {
   if (isContainer) hpx = 32 * z;
   // Original shape/container editors are fixed boxes (no autogrow); the text
   // starts vertically centered via padding like the rendered label.
-  const fixedBox = el.type === "shape" || isContainer;
-  const lineH = 1.25;
-  const vPad = fixedBox ? Math.max(0, (hpx - fontPx * z * lineH) / 2) : 0;
+  const fixedBox = el.type === "shape" || isContainer || isSticky;
+  const lineH = isSticky ? 1.3 : 1.25;
+  const vPad = isSticky
+    ? 0
+    : fixedBox
+      ? Math.max(0, (hpx - fontPx * z * lineH) / 2)
+      : 0;
 
   /* The box grows to its text instead of scrolling (not for fixed editors). */
   const grow = (ta: HTMLTextAreaElement) => {
@@ -119,18 +123,26 @@ export function TextEditor() {
               : "left") as any,
         padding: isArrow
           ? "6px 10px"
-          : fixedBox
-            ? `${vPad}px ${12 * z}px`
-            : isSticky
-              ? `${18 * z}px ${16 * z}px`
+          : isSticky
+            ? `${18 * z}px ${16 * z}px ${16 * z}px`
+            : fixedBox
+              ? `${vPad}px ${12 * z}px`
               : isText
                 ? 0
                 : "6px 10px",
-        background: isSticky ? "#fff3b8" : isArrow ? "var(--chrome)" : undefined,
-        color: isSticky ? undefined : isArrow ? "var(--text)" : colorFor(el).text,
-        border: isArrow ? "1.5px solid #4c6fff" : undefined,
-        borderRadius: isArrow ? "10px" : undefined,
-        boxShadow: isArrow ? "var(--shadow)" : undefined,
+        background: isSticky
+          ? "transparent"
+          : isArrow
+            ? "var(--chrome)"
+            : undefined,
+        color: isSticky
+          ? (theme().stickyInk ?? "#2b2504")
+          : isArrow
+            ? "var(--text)"
+            : colorFor(el).text,
+        border: isArrow ? "1.5px solid #4c6fff" : isSticky ? "none" : undefined,
+        borderRadius: isArrow ? "10px" : isSticky ? 0 : undefined,
+        boxShadow: isArrow ? "var(--shadow)" : isSticky ? "none" : undefined,
       }}
       onBlur={() => finish(false)}
       onInput={(e) => {

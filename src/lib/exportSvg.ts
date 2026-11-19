@@ -93,11 +93,23 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
         .join("");
     }
     case "sticky": {
-      const lines = wrapText(e.text || "", e.width - 28, 16);
-      const sfs = 16 * (e.textScale ?? 1);
-      let s = `<g><rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="3" fill="${th.sticky}"/><path d="M${e.x + e.width - 20} ${e.y + e.height} l20 -20 v20 z" fill="rgba(0,0,0,.12)"/>`;
+      const w = e.width || 200;
+      const h = e.height || 200;
+      const fold = Math.min(26, Math.max(0, Math.min(w, h) / 2));
+      const stripH = Math.min(24, h);
+      const flapInset = Math.max(0, fold - 2);
+      const sfs = 19 * (e.textScale ?? 1);
+      const lines = wrapText(e.text || "", w - 32, sfs);
+      const stickyFold = (th as any).stickyFold || "#c8ac3f";
+      let s = `<g filter="drop-shadow(0 2px 2px rgba(0,0,0,0.35)) drop-shadow(0 10px 16px rgba(0,0,0,0.35))">`;
+      s += `<path d="M${e.x} ${e.y} H${e.x + w} V${e.y + h - fold} L${e.x + w - fold} ${e.y + h} H${e.x} Z" fill="${th.sticky}"/>`;
+      s += `<path d="M${e.x} ${e.y} H${e.x + w} V${e.y + stripH} H${e.x} Z" fill="rgba(0,0,0,0.05)"/>`;
+      s += `<path d="M${e.x + w - fold} ${e.y + h} L${e.x + w} ${e.y + h - fold} L${e.x + w - flapInset} ${e.y + h - flapInset} Z" fill="${stickyFold}"/>`;
+      const fontFam = clean
+        ? "Inter,system-ui,sans-serif"
+        : "'Excalifont','Kalam','Comic Neue',cursive";
       lines.forEach((ln, i) => {
-        s += `<text x="${e.x + 14}" y="${e.y + 26 + i * 19}" font-family="Kalam,'Comic Neue',cursive" font-size="${sfs}" fill="${th.stickyInk}">${esc(ln)}</text>`;
+        s += `<text x="${e.x + 16}" y="${e.y + 18 + sfs * 0.9 + i * sfs * 1.3}" font-family="${fontFam}" font-size="${sfs}" fill="${th.stickyInk}">${esc(ln)}</text>`;
       });
       return s + "</g>";
     }

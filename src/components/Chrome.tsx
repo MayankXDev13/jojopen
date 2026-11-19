@@ -993,25 +993,44 @@ export function ContextBar() {
             aria-label="Scale selection"
             aria-expanded={!!S.sizePop}
           >
-            <span>Size {(el as any).scale ?? 1}x</span>
+            <span>
+              Size{" "}
+              {(
+                (el.type === "diagram"
+                  ? el
+                  : el.frameId && S.doc.elements[el.frameId]?.type === "diagram"
+                    ? S.doc.elements[el.frameId]
+                    : el) as any
+              ).scale ?? 1}
+              x
+            </span>
           </button>
           {S.sizePop ? (
             <div className="layerpop" role="menu" aria-label="Scale selection">
-              {[0.75, 0.9, 1, 1.25, 1.5, 1.75, 2].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => {
-                    S.sizePop = false;
-                    scaleSelection(p);
-                  }}
-                  title={
-                    p === 1 ? "Keep current size" : `Scale selection to ${p}x`
-                  }
-                >
-                  <span>{p}x</span>
-                </button>
-              ))}
+              {[0.75, 0.9, 1, 1.25, 1.5, 1.75, 2].map((p) => {
+                const cur =
+                  ((el.type === "diagram"
+                    ? el
+                    : el.frameId && S.doc.elements[el.frameId]?.type === "diagram"
+                      ? S.doc.elements[el.frameId]
+                      : el) as any).scale ?? 1;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    className={cur === p ? "is-active" : ""}
+                    onClick={() => {
+                      S.sizePop = false;
+                      scaleSelection(p);
+                    }}
+                    title={
+                      p === 1 ? "Keep current size" : `Scale selection to ${p}x`
+                    }
+                  >
+                    <span>{p}x</span>
+                  </button>
+                );
+              })}
             </div>
           ) : null}
         </span>

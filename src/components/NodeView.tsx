@@ -402,7 +402,8 @@ export function NodeView({
             fontWeight: 500,
             color: th.frameText,
             whiteSpace: "nowrap",
-            pointerEvents: "none",
+            pointerEvents: "auto",
+            cursor: "pointer",
           }}
         >
           # {el.title || "Diagram"}

@@ -3,6 +3,7 @@ import { MAKE } from "../lib/model";
 import {
   arrowGeom,
   cleanupArrowPoints,
+  edgeNormalizedAnchor,
   nextFrameElement,
   normalizedAnchorOf,
   pointInElement,
@@ -52,9 +53,9 @@ export class ArrowToolController implements ToolController {
       el.start = {
         elementId: startEl.id,
         anchor: "auto",
-        normalizedAnchor: normalizedAnchorOf(startEl, w),
+        normalizedAnchor: edgeNormalizedAnchor(startEl, w),
         isExact: false,
-        isPrecise: false,
+        isPrecise: true,
         snap: "edge",
       };
     }
@@ -198,7 +199,7 @@ export class ArrowToolController implements ToolController {
 
   onPointerDown(e: CanvasPointerEvent, ctx: ToolContext): void {
     const target = e.target as HTMLElement;
-    const nodeEl = target?.closest?.(".node:not(.slide)") as HTMLElement | null;
+    const nodeEl = target?.closest?.(".node:not(.slide):not(.diagram)") as HTMLElement | null;
     const startEl = nodeEl ? S.doc.elements[nodeEl.dataset.id!] : null;
     this.startArrow(e, ctx, startEl);
   }
@@ -238,6 +239,27 @@ export class ArrowToolController implements ToolController {
       const sug = suggestedBinding(sortedElements(), w, el.id);
       (S as any).suggestedBinding = sug ? sug.el.id : null;
       d.suggested = sug;
+
+      const lastIdx = Math.max(1, (el.points?.length || 2) - 1);
+      const isEnd = d.pointIdx === 0 || d.pointIdx === lastIdx;
+      if (isEnd) {
+        if (sug) {
+          const binding = {
+            elementId: sug.el.id,
+            anchor: "auto",
+            normalizedAnchor: sug.anchor,
+            isExact: false,
+            isPrecise: true,
+            snap: "edge" as const,
+          };
+          if (d.pointIdx === 0) el.start = binding;
+          else el.end = binding;
+        } else {
+          if (d.pointIdx === 0) el.start = null;
+          else el.end = null;
+        }
+      }
+
       scheduleNotify();
       return;
     }
@@ -308,9 +330,9 @@ export class ArrowToolController implements ToolController {
               el.start = {
                 elementId: hit.id,
                 anchor: "auto",
-                normalizedAnchor: normalizedAnchorOf(hit, { x: p0.x, y: p0.y }),
+                normalizedAnchor: edgeNormalizedAnchor(hit, { x: p0.x, y: p0.y }),
                 isExact: false,
-                isPrecise: false,
+                isPrecise: true,
                 snap: "edge",
               };
             }
@@ -324,9 +346,9 @@ export class ArrowToolController implements ToolController {
             el.end = {
               elementId: hit2.id,
               anchor: "auto",
-              normalizedAnchor: normalizedAnchorOf(hit2, { x: p1.x, y: p1.y }),
+              normalizedAnchor: edgeNormalizedAnchor(hit2, { x: p1.x, y: p1.y }),
               isExact: false,
-              isPrecise: false,
+              isPrecise: true,
               snap: "edge",
             };
           }
@@ -427,7 +449,7 @@ export class ArrowToolController implements ToolController {
 
   onDoubleClick(e: CanvasPointerEvent): void {
     const edgeEl = (e.target as HTMLElement)?.closest?.(
-      ".edges [data-id]",
+      ".edges [data-id], .arrow-handles [data-id]",
     ) as HTMLElement | null;
     if (
       edgeEl &&

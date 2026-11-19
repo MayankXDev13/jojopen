@@ -880,6 +880,7 @@ export function nextFrameElement(
         e.type !== "arrow" &&
         e.type !== "freehand" &&
         e.type !== "slide" &&
+        e.type !== "diagram" &&
         pointInElement(point.x, point.y, e),
     );
   return hit || null;

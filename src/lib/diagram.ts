@@ -243,14 +243,15 @@ export function compileDiagramDoc(
 
   const layout = layoutDiagram(ast);
   const Dt = 48; // Frame internal padding
+  const scale = (d as any).scale ?? 1;
 
   d.dsl = src;
   if (ast.title) d.title = ast.title;
-  d.width = Math.round(layout.width + Dt * 2);
-  d.height = Math.round(layout.height + Dt * 2);
+  d.width = Math.round((layout.width + Dt * 2) * scale);
+  d.height = Math.round((layout.height + Dt * 2) * scale);
 
-  const f = d.x + Dt;
-  const g = d.y + Dt;
+  const f = d.x + Dt * scale;
+  const g = d.y + Dt * scale;
 
   // Existing children belonging to this diagram frame
   const existingMap = new Map<string, BoardElement>();
@@ -276,10 +277,10 @@ export function compileDiagramDoc(
     upserts.set(key, {
       ...prev,
       label: grp.label,
-      x: Math.round(f + grp.x),
-      y: Math.round(g + grp.y),
-      width: Math.round(grp.w),
-      height: Math.round(grp.h),
+      x: Math.round(f + grp.x * scale),
+      y: Math.round(g + grp.y * scale),
+      width: Math.round(grp.w * scale),
+      height: Math.round(grp.h * scale),
       frameId: diagramId,
       meta: { ...prev.meta, dslGroup: grp.key },
     });
@@ -299,10 +300,11 @@ export function compileDiagramDoc(
       color: node.color || null,
       role: node.role || null,
       colorLocked: !!(node.color || node.role),
-      x: Math.round(f + b.x),
-      y: Math.round(g + b.y),
-      width: Math.round(b.w),
-      height: Math.round(b.h),
+      x: Math.round(f + b.x * scale),
+      y: Math.round(g + b.y * scale),
+      width: Math.round(b.w * scale),
+      height: Math.round(b.h * scale),
+      textScale: scale !== 1 ? scale : prev.textScale,
       frameId: diagramId,
       meta: { ...prev.meta, dslKey: node.key },
     });
@@ -312,12 +314,181 @@ export function compileDiagramDoc(
   const resolveTarget = (k: string) =>
     upserts.get(`n:${k}`) ?? upserts.get(`g:${k}`);
 
+  type EdgeInfo = {
+    edge: (typeof ast.edges)[0];
+    idx: number;
+    fromEl: BoardElement;
+    toEl: BoardElement;
+    edgeKey: string;
+    key: string;
+    startSide: "top" | "bottom" | "left" | "right";
+    endSide: "top" | "bottom" | "left" | "right";
+    startAnchor: { x: number; y: number };
+    endAnchor: { x: number; y: number };
+  };
+
+  const validEdges: EdgeInfo[] = [];
+  const dir = ast.direction || "right";
+
   ast.edges.forEach((edge, idx) => {
     const fromEl = resolveTarget(edge.from);
     const toEl = resolveTarget(edge.to);
     if (!fromEl || !toEl) return;
     const edgeKey = (edge as any).id || `${edge.from}->${edge.to}:${idx}`;
     const key = `e:${edgeKey}`;
+
+    const forward =
+      dir === "right"
+        ? toEl.x >= fromEl.x
+        : dir === "down"
+          ? toEl.y >= fromEl.y
+          : dir === "left"
+            ? toEl.x <= fromEl.x
+            : toEl.y <= fromEl.y;
+
+    let startSide: "top" | "bottom" | "left" | "right";
+    let endSide: "top" | "bottom" | "left" | "right";
+
+    if (forward) {
+      if (dir === "down") {
+        startSide = "bottom";
+        endSide = "top";
+      } else if (dir === "up") {
+        startSide = "top";
+        endSide = "bottom";
+      } else if (dir === "left") {
+        startSide = "left";
+        endSide = "right";
+      } else {
+        startSide = "right";
+        endSide = "left";
+      }
+    } else {
+      const ax = fromEl.x + fromEl.width / 2;
+      const ay = fromEl.y + fromEl.height / 2;
+      const bx = toEl.x + toEl.width / 2;
+      const by = toEl.y + toEl.height / 2;
+      const dx = bx - ax;
+      const dy = by - ay;
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        startSide = dx >= 0 ? "right" : "left";
+        endSide = dx >= 0 ? "left" : "right";
+      } else {
+        startSide = dy >= 0 ? "bottom" : "top";
+        endSide = dy >= 0 ? "top" : "bottom";
+      }
+    }
+
+    const defaultStartAnchor =
+      startSide === "bottom"
+        ? { x: 0.5, y: 1 }
+        : startSide === "top"
+          ? { x: 0.5, y: 0 }
+          : startSide === "left"
+            ? { x: 0, y: 0.5 }
+            : { x: 1, y: 0.5 };
+
+    const defaultEndAnchor =
+      endSide === "bottom"
+        ? { x: 0.5, y: 1 }
+        : endSide === "top"
+          ? { x: 0.5, y: 0 }
+          : endSide === "left"
+            ? { x: 0, y: 0.5 }
+            : { x: 1, y: 0.5 };
+
+    validEdges.push({
+      edge,
+      idx,
+      fromEl,
+      toEl,
+      edgeKey,
+      key,
+      startSide,
+      endSide,
+      startAnchor: defaultStartAnchor,
+      endAnchor: defaultEndAnchor,
+    });
+  });
+
+  // Group outgoing edges by (fromEl.id, startSide)
+  const outgoingMap = new Map<string, EdgeInfo[]>();
+  for (const info of validEdges) {
+    const k = `${info.fromEl.id}:${info.startSide}`;
+    const list = outgoingMap.get(k) || [];
+    list.push(info);
+    outgoingMap.set(k, list);
+  }
+
+  // Distribute multi-outgoing edges across the source face
+  for (const [, group] of outgoingMap) {
+    if (group.length <= 1) continue;
+    const startSide = group[0].startSide;
+    if (startSide === "bottom" || startSide === "top") {
+      group.sort((a, b) => {
+        const ax = a.toEl.x + a.toEl.width / 2;
+        const bx = b.toEl.x + b.toEl.width / 2;
+        return ax - bx || a.idx - b.idx;
+      });
+      const yVal = startSide === "bottom" ? 1 : 0;
+      group.forEach((info, i) => {
+        const t = (i + 1) / (group.length + 1);
+        info.startAnchor = { x: t, y: yVal };
+      });
+    } else {
+      group.sort((a, b) => {
+        const ay = a.toEl.y + a.toEl.height / 2;
+        const by = b.toEl.y + b.toEl.height / 2;
+        return ay - by || a.idx - b.idx;
+      });
+      const xVal = startSide === "right" ? 1 : 0;
+      group.forEach((info, i) => {
+        const t = (i + 1) / (group.length + 1);
+        info.startAnchor = { x: xVal, y: t };
+      });
+    }
+  }
+
+  // Group incoming edges by (toEl.id, endSide)
+  const incomingMap = new Map<string, EdgeInfo[]>();
+  for (const info of validEdges) {
+    const k = `${info.toEl.id}:${info.endSide}`;
+    const list = incomingMap.get(k) || [];
+    list.push(info);
+    incomingMap.set(k, list);
+  }
+
+  // Distribute multi-incoming edges across the target face
+  for (const [, group] of incomingMap) {
+    if (group.length <= 1) continue;
+    const endSide = group[0].endSide;
+    if (endSide === "top" || endSide === "bottom") {
+      group.sort((a, b) => {
+        const ax = a.fromEl.x + a.fromEl.width / 2;
+        const bx = b.fromEl.x + b.fromEl.width / 2;
+        return ax - bx || a.idx - b.idx;
+      });
+      const yVal = endSide === "bottom" ? 1 : 0;
+      group.forEach((info, i) => {
+        const t = (i + 1) / (group.length + 1);
+        info.endAnchor = { x: t, y: yVal };
+      });
+    } else {
+      group.sort((a, b) => {
+        const ay = a.fromEl.y + a.fromEl.height / 2;
+        const by = b.fromEl.y + b.fromEl.height / 2;
+        return ay - by || a.idx - b.idx;
+      });
+      const xVal = endSide === "right" ? 1 : 0;
+      group.forEach((info, i) => {
+        const t = (i + 1) / (group.length + 1);
+        info.endAnchor = { x: xVal, y: t };
+      });
+    }
+  }
+
+  validEdges.forEach(({ edge, fromEl, toEl, edgeKey, key, startAnchor, endAnchor }) => {
+    const hasPrev = existingMap.has(key);
     const prev = existingMap.get(key) || MAKE.arrow({ frameId: diagramId });
     const dash =
       edge.kind === "async"
@@ -337,61 +508,28 @@ export function compileDiagramDoc(
     const bx = Math.round(toEl.x + toEl.width / 2);
     const by = Math.round(toEl.y + toEl.height / 2);
 
-    const dir = ast.direction || "right";
-    const forward =
-      dir === "right"
-        ? toEl.x >= fromEl.x
-        : dir === "down"
-          ? toEl.y >= fromEl.y
-          : dir === "left"
-            ? toEl.x <= fromEl.x
-            : toEl.y <= fromEl.y;
-
-    const startAnchor = forward
-      ? dir === "down"
-        ? { x: 0.5, y: 1 }
-        : dir === "up"
-          ? { x: 0.5, y: 0 }
-          : dir === "left"
-            ? { x: 0, y: 0.5 }
-            : { x: 1, y: 0.5 }
-      : null;
-
-    const endAnchor = forward
-      ? dir === "down"
-        ? { x: 0.5, y: 0 }
-        : dir === "up"
-          ? { x: 0.5, y: 1 }
-          : dir === "left"
-            ? { x: 1, y: 0.5 }
-            : { x: 0, y: 0.5 }
-      : null;
-
     upserts.set(key, {
       ...prev,
       kind: edge.kind,
-      dash,
+      dash: hasPrev && prev.dash ? prev.dash : dash,
       startHead,
       endHead,
-      routeMode: prev.route === "manual" ? prev.routeMode : routeMode,
-      label: edge.label || "",
+      routeMode: hasPrev && prev.routeMode ? prev.routeMode : routeMode,
+      label: edge.label || (hasPrev && prev.label ? prev.label : ""),
+      labelT: hasPrev ? ((prev as any).labelT ?? (prev as any).labelRatio) : undefined,
       start: {
         elementId: fromEl.id,
         anchor: prev.start?.elementId === fromEl.id ? prev.start.anchor : null,
-        isPrecise: prev.start?.isPrecise ?? !!startAnchor,
-        normalizedAnchor:
-          prev.start?.elementId === fromEl.id && prev.start.normalizedAnchor
-            ? prev.start.normalizedAnchor
-            : startAnchor || undefined,
+        isPrecise: true,
+        isExact: true,
+        normalizedAnchor: startAnchor,
       },
       end: {
         elementId: toEl.id,
         anchor: prev.end?.elementId === toEl.id ? prev.end.anchor : null,
-        isPrecise: prev.end?.isPrecise ?? !!endAnchor,
-        normalizedAnchor:
-          prev.end?.elementId === toEl.id && prev.end.normalizedAnchor
-            ? prev.end.normalizedAnchor
-            : endAnchor || undefined,
+        isPrecise: true,
+        isExact: true,
+        normalizedAnchor: endAnchor,
       },
       route: prev.route === "manual" ? "manual" : "auto",
       x: ax,
@@ -401,7 +539,13 @@ export function compileDiagramDoc(
         { x: bx - ax, y: by - ay },
       ],
       frameId: diagramId,
-      meta: { ...prev.meta, dslEdge: edgeKey },
+      meta: {
+        ...prev.meta,
+        dslEdge: edgeKey,
+        dslFrom: edge.from,
+        dslTo: edge.to,
+        dslLine: edge.line,
+      },
     });
   });
 
@@ -432,4 +576,48 @@ export function compileDiagramDoc(
   }
 
   return { ast, success: true };
+}
+
+export function removeEdgeFromDiagramDSL(
+  dsl: string,
+  edge: {
+    fromKey?: string;
+    toKey?: string;
+    label?: string;
+    lineNo?: number;
+    meta?: any;
+  },
+): string {
+  if (!dsl) return dsl;
+  const ast = parseDSL(dsl);
+  const fromKey = edge.meta?.dslFrom || edge.fromKey;
+  const toKey = edge.meta?.dslTo || edge.toKey;
+  const lineNo = edge.meta?.dslLine || edge.lineNo;
+  const label = edge.label;
+
+  const targetEdge =
+    ast.edges.find((e) => {
+      if (lineNo && e.line === lineNo) return true;
+      const matchFrom =
+        !fromKey || e.from.toLowerCase() === fromKey.toLowerCase();
+      const matchTo = !toKey || e.to.toLowerCase() === toKey.toLowerCase();
+      const matchLabel = label === undefined || e.label === label;
+      return matchFrom && matchTo && matchLabel;
+    }) ||
+    (fromKey && toKey
+      ? ast.edges.find(
+          (e) =>
+            e.from.toLowerCase() === fromKey.toLowerCase() &&
+            e.to.toLowerCase() === toKey.toLowerCase(),
+        )
+      : null);
+
+  if (!targetEdge) return dsl;
+
+  const lines = dsl.split("\n");
+  const lineIdx = targetEdge.line - 1;
+  if (lineIdx < 0 || lineIdx >= lines.length) return dsl;
+
+  lines.splice(lineIdx, 1);
+  return lines.join("\n");
 }

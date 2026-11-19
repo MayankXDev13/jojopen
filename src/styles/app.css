@@ -138,6 +138,12 @@ select {
   top: 0;
   z-index: 0;
 }
+#frames {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+}
 .edges {
   position: absolute;
   left: 0;
@@ -159,8 +165,8 @@ select {
   fill: none;
   stroke-width: 18;
 }
-/* Arrow/pen handles + draggable labels must receive grabs (original overlay). */
-.edges [data-handle] {
+.edges [data-handle],
+.arrow-handles [data-handle] {
   pointer-events: all;
   cursor: grab;
 }
@@ -168,13 +174,25 @@ select {
   pointer-events: all;
   cursor: move;
 }
+.arrow-handles {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 10;
+}
 .node {
   position: absolute;
   transform-origin: 0 0;
   cursor: default;
 }
-.node:not(.slide) {
+.node:not(.slide):not(.diagram):not(.container) {
   z-index: 3;
+}
+.node.diagram,
+.node.container {
+  z-index: 1;
 }
 .node.selected {
   outline: none;
@@ -2763,16 +2781,20 @@ legend {
 
 /* replay focus mode: hide the live board content under the replay stage */
 #app.is-sot-replay #slides,
+#app.is-sot-replay #frames,
 #app.is-sot-replay #nodes,
 #app.is-sot-replay #edges,
+#app.is-sot-replay .arrow-handles,
 #app.is-sot-replay #contextbar,
 #app.is-sot-replay .viewgroup {
   opacity: 0;
   pointer-events: none;
 }
 #app.is-sot-replay #slides,
+#app.is-sot-replay #frames,
 #app.is-sot-replay #nodes,
 #app.is-sot-replay #edges,
+#app.is-sot-replay .arrow-handles,
 #app.is-sot-replay .viewgroup {
   transition: opacity 0.18s ease;
 }

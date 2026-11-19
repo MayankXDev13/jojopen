@@ -4,7 +4,11 @@
 import { clamp, deep, download, plural, slug, uid } from "../lib/dom";
 import { boundsOf, arrowGeom, shapeEncloses } from "../lib/geometry";
 import { layoutDiagram } from "../lib/layout";
-import { clearDiagramCache, compileDiagramDoc } from "../lib/diagram";
+import {
+  clearDiagramCache,
+  compileDiagramDoc,
+  removeEdgeFromDiagramDSL,
+} from "../lib/diagram";
 import { fitTextBox, wrapMeasured } from "../lib/textMeasure";
 import { parseDSL } from "../lib/dsl";
 import { MAKE, SLIDE_H, SLIDE_W, blankDoc, normalizeDoc } from "../lib/model";
@@ -1141,6 +1145,28 @@ export function deleteSelection() {
         if (c.frameId === id) ids.push(c.id);
       }
     }
+    if (e?.type === "arrow" && e.frameId) {
+      const diag = S.doc.elements[e.frameId];
+      if (diag && diag.type === "diagram" && diag.dsl) {
+        const fromEl = e.start?.elementId
+          ? S.doc.elements[e.start.elementId]
+          : null;
+        const toEl = e.end?.elementId ? S.doc.elements[e.end.elementId] : null;
+        diag.dsl = removeEdgeFromDiagramDSL(diag.dsl, {
+          fromKey:
+            (e.meta as any)?.dslFrom ||
+            (fromEl?.meta as any)?.dslKey ||
+            fromEl?.label,
+          toKey:
+            (e.meta as any)?.dslTo ||
+            (toEl?.meta as any)?.dslKey ||
+            toEl?.label,
+          label: e.label,
+          lineNo: (e.meta as any)?.dslLine,
+          meta: e.meta,
+        });
+      }
+    }
   }
   removeElements([...new Set(ids)]);
   S.selection.clear();
@@ -1390,11 +1416,10 @@ export function cleanIt() {
   for (const d of diagrams) {
     const parsed = parseDSL(d.dsl || "");
     if (parsed.diagnostics.some((x) => x.severity === "error")) continue;
-    const layout = layoutDiagram(parsed);
-    d.width = layout.width;
-    d.height = layout.height;
+    compileDiagramDoc(S.doc, d.id, d.dsl || "");
     n++;
   }
+  clearDiagramCache();
   notify();
   persist();
   toast(n ? `Cleaned up ${plural(n, "diagram")}` : "Fix diagram errors first");
@@ -1618,22 +1643,84 @@ export function bumpText(delta: number) {
   notify();
 }
 
-/** Scale the selection by an exact multiplier (2x = double size). */
-export function scaleSelection(factor: number) {
+/** Scale the selection to a target multiplier (e.g. 1x, 1.5x, 2x). */
+export function scaleSelection(targetScale: number) {
+  const selected = selectionElements().filter((e) => !e.locked);
+  if (!selected.length) return;
+
   pushHistory("scale");
-  selectionElements().forEach((e) => {
-    if (e.locked) return;
-    if (e.type === "text") {
-      e.fontSize = clamp(Math.round((e.fontSize ?? 18) * factor), 8, 160);
+  const processed = new Set<string>();
+
+  selected.forEach((e) => {
+    if (processed.has(e.id)) return;
+
+    // If element is a diagram or child of a diagram, scale the diagram and all its contents
+    const diagramEl =
+      e.type === "diagram"
+        ? e
+        : e.frameId && S.doc.elements[e.frameId]?.type === "diagram"
+          ? S.doc.elements[e.frameId]
+          : null;
+
+    if (diagramEl) {
+      if (processed.has(diagramEl.id)) return;
+      processed.add(diagramEl.id);
+
+      const currentScale = (diagramEl as any).scale ?? 1;
+      const factor = targetScale / currentScale;
+      (diagramEl as any).scale = targetScale;
+
+      if (Math.abs(factor - 1) > 1e-4) {
+        diagramEl.width = Math.max(16, Math.round(diagramEl.width * factor));
+        diagramEl.height = Math.max(16, Math.round(diagramEl.height * factor));
+
+        const children = elements().filter((c) => c.frameId === diagramEl.id);
+        for (const c of children) {
+          processed.add(c.id);
+          c.x = Math.round(diagramEl.x + (c.x - diagramEl.x) * factor);
+          c.y = Math.round(diagramEl.y + (c.y - diagramEl.y) * factor);
+          c.width = Math.max(16, Math.round(c.width * factor));
+          c.height = Math.max(16, Math.round(c.height * factor));
+          if (c.type === "shape" || c.type === "sticky") {
+            c.textScale = (c.textScale ?? 1) * factor;
+          }
+          if (typeof c.fontSize === "number") {
+            c.fontSize = clamp(Math.round(c.fontSize * factor), 8, 160);
+          }
+          if (Array.isArray(c.points)) {
+            c.points = c.points.map((pt) => ({
+              x: Math.round(pt.x * factor),
+              y: Math.round(pt.y * factor),
+            }));
+          }
+          (c as any).scale = targetScale;
+        }
+      }
       return;
     }
-    if (["shape", "sticky", "container", "image", "diagram"].includes(e.type)) {
-      e.width = Math.max(16, Math.round(e.width * factor));
-      e.height = Math.max(16, Math.round(e.height * factor));
-      if (typeof e.fontSize === "number")
-        e.fontSize = clamp(Math.round(e.fontSize * factor), 8, 160);
+
+    processed.add(e.id);
+    const currentScale = (e as any).scale ?? 1;
+    const factor = targetScale / currentScale;
+    (e as any).scale = targetScale;
+
+    if (Math.abs(factor - 1) > 1e-4) {
+      if (e.type === "text") {
+        e.fontSize = clamp(Math.round((e.fontSize ?? 18) * factor), 8, 160);
+        return;
+      }
+      if (["shape", "sticky", "container", "image"].includes(e.type)) {
+        e.width = Math.max(16, Math.round(e.width * factor));
+        e.height = Math.max(16, Math.round(e.height * factor));
+        if (e.type === "shape" || e.type === "sticky") {
+          e.textScale = (e.textScale ?? 1) * factor;
+        }
+        if (typeof e.fontSize === "number")
+          e.fontSize = clamp(Math.round(e.fontSize * factor), 8, 160);
+      }
     }
   });
+
   notify();
   persist();
 }

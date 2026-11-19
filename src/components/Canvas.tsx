@@ -14,7 +14,7 @@ import {
 
 import { placeImage } from "../state/actions";
 import { useVersion } from "../state/boardStore";
-import { Edges } from "./Edges";
+import { ArrowHandles, Edges } from "./Edges";
 import { NodeView } from "./NodeView";
 import { TextEditor } from "./TextEditor";
 import type { ToolContext } from "../tools/types";
@@ -68,7 +68,9 @@ export function Canvas() {
     const ce = createCanvasPointerEvent(e, toWorld);
     const ctx = getToolContext();
 
-    const edgeEl = (e.target as Element)?.closest?.(".edges [data-id]");
+    const edgeEl = (e.target as Element)?.closest?.(
+      ".edges [data-id], .arrow-handles [data-id]",
+    );
     if (
       edgeEl &&
       (S.tool === "select" || S.tool === "arrow" || S.tool === "line")
@@ -218,14 +220,27 @@ export function Canvas() {
               />
             ))}
         </div>
-        <Edges />
-        <div id="nodes">
+        <div id="frames">
           {sortedElements()
-            .filter((el) => el.type !== "slide")
+            .filter((el) => el.type === "diagram" || el.type === "container")
             .map((el) => (
               <NodeView key={el.id} el={el} selected={S.selection.has(el.id)} />
             ))}
         </div>
+        <Edges />
+        <div id="nodes">
+          {sortedElements()
+            .filter(
+              (el) =>
+                el.type !== "slide" &&
+                el.type !== "diagram" &&
+                el.type !== "container",
+            )
+            .map((el) => (
+              <NodeView key={el.id} el={el} selected={S.selection.has(el.id)} />
+            ))}
+        </div>
+        <ArrowHandles />
       </div>
       {S.marquee ? (
         <div

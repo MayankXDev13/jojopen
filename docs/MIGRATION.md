@@ -156,9 +156,9 @@ otherwise seeds the URL-shortener demo from `TEMPLATES.system` (diagram plus a �
 cacheable” sticky note), persisting immediately to the port's own keys
 (`jojopen.doc.v1`, `jojopen.boards.v1`, `jojopen.current.v1`). An existing port board,
 even an empty one, is respected and the live record ignored. Malformed live JSON is logged
-once and treated as absent. See [`FEATURES.md`](../FEATURES.md) §12.1 for the boot order.
+once and treated as absent. See [`FEATURES.md`](FEATURES.md) §12.1 for the boot order.
 
-Everything else matches [`FEATURES.md`](../FEATURES.md), including the two documented
+Everything else matches [`FEATURES.md`](FEATURES.md), including the two documented
 deviations from the production site: recordings persist in the board document, and replay
 uses a dimmed overlay.
 

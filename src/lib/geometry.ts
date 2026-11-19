@@ -502,6 +502,36 @@ function autoOrthogonal(
   const boxes = [ea, eb];
   const ac = { x: (a.minX + a.maxX) / 2, y: (a.minY + a.maxY) / 2 };
   const bc = { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 };
+
+  const hintSide = (box: Bounds, p?: Point): Side | null => {
+    if (!p) return null;
+    if (Math.abs(p.x - box.maxX) < 2) return "right";
+    if (Math.abs(p.x - box.minX) < 2) return "left";
+    if (Math.abs(p.y - box.maxY) < 2) return "bottom";
+    if (Math.abs(p.y - box.minY) < 2) return "top";
+    return null;
+  };
+  const h1 = hintSide(a, p0Hint);
+  const h2 = hintSide(b, p1Hint);
+
+  const dx = bc.x - ac.x;
+  const dy = bc.y - ac.y;
+  const horiz = Math.abs(dx) >= Math.abs(dy);
+  const primaryS1: Side = horiz
+    ? dx >= 0
+      ? "right"
+      : "left"
+    : dy >= 0
+      ? "bottom"
+      : "top";
+  const primaryS2: Side = horiz
+    ? dx >= 0
+      ? "left"
+      : "right"
+    : dy >= 0
+      ? "top"
+      : "bottom";
+
   let best: Point[] | null = null;
   let bestScore = Infinity;
   for (const s1 of SIDES) {
@@ -511,9 +541,21 @@ function autoOrthogonal(
       // Natural sides face the peer; penalize backsides like the original.
       const toB = { x: bc.x - ac.x, y: bc.y - ac.y };
       const toA = { x: ac.x - bc.x, y: ac.y - bc.y };
-      const pen =
+      let pen =
         (n1.x * toB.x + n1.y * toB.y < 0 ? 400 : 0) +
         (n2.x * toA.x + n2.y * toA.y < 0 ? 400 : 0);
+
+      // Prioritize hinted anchor sides and primary facing sides
+      if (h1) {
+        if (s1 !== h1) pen += 500;
+      } else if (s1 !== primaryS1) {
+        pen += 200;
+      }
+      if (h2) {
+        if (s2 !== h2) pen += 500;
+      } else if (s2 !== primaryS2) {
+        pen += 200;
+      }
 
       const along0 = s1 === "left" || s1 === "right" ? p0Hint?.y : p0Hint?.x;
       const along1 = s2 === "left" || s2 === "right" ? p1Hint?.y : p1Hint?.x;
@@ -587,6 +629,36 @@ function autoOrthogonal(
             bonus: -60,
           });
         }
+      }
+
+      // Clean corridor midpoint jogs for separated peers
+      if (s1 === "right" && s2 === "left" && b.minX > a.maxX) {
+        const mx = (a.maxX + b.minX) / 2;
+        cands.push({
+          pts: [p0, { x: mx, y: p0.y }, { x: mx, y: p1.y }, p1],
+          bonus: -50,
+        });
+      }
+      if (s1 === "left" && s2 === "right" && a.minX > b.maxX) {
+        const mx = (a.minX + b.maxX) / 2;
+        cands.push({
+          pts: [p0, { x: mx, y: p0.y }, { x: mx, y: p1.y }, p1],
+          bonus: -50,
+        });
+      }
+      if (s1 === "bottom" && s2 === "top" && b.minY > a.maxY) {
+        const my = (a.maxY + b.minY) / 2;
+        cands.push({
+          pts: [p0, { x: p0.x, y: my }, { x: p1.x, y: my }, p1],
+          bonus: -50,
+        });
+      }
+      if (s1 === "top" && s2 === "bottom" && a.minY > b.maxY) {
+        const my = (a.minY + b.maxY) / 2;
+        cands.push({
+          pts: [p0, { x: p0.x, y: my }, { x: p1.x, y: my }, p1],
+          bonus: -50,
+        });
       }
 
       const q0 = { x: p0.x + n1.x * STUB, y: p0.y + n1.y * STUB };

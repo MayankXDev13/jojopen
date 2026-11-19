@@ -179,7 +179,7 @@ export function diagramSVG(
       const tw = Math.max(...lines.map((l) => l.length)) * 5.6 + 14;
       const thh = 16 + (lines.length - 1) * 12;
       labelBits.push(
-        `<rect x="${e.labelAt.x - tw / 2}" y="${e.labelAt.y - thh / 2}" width="${tw}" height="${thh}" rx="5" fill="${th.labelPill}" stroke="${th.slideEdge}" stroke-width=".8"/>`,
+        `<rect x="${e.labelAt.x - tw / 2}" y="${e.labelAt.y - thh / 2}" width="${tw}" height="${thh}" rx="6" fill="${th.labelPill}"/>`,
       );
       lines.forEach((ln, i) =>
         labelBits.push(
@@ -337,6 +337,36 @@ export function compileDiagramDoc(
     const bx = Math.round(toEl.x + toEl.width / 2);
     const by = Math.round(toEl.y + toEl.height / 2);
 
+    const dir = ast.direction || "right";
+    const forward =
+      dir === "right"
+        ? toEl.x >= fromEl.x
+        : dir === "down"
+          ? toEl.y >= fromEl.y
+          : dir === "left"
+            ? toEl.x <= fromEl.x
+            : toEl.y <= fromEl.y;
+
+    const startAnchor = forward
+      ? dir === "down"
+        ? { x: 0.5, y: 1 }
+        : dir === "up"
+          ? { x: 0.5, y: 0 }
+          : dir === "left"
+            ? { x: 0, y: 0.5 }
+            : { x: 1, y: 0.5 }
+      : null;
+
+    const endAnchor = forward
+      ? dir === "down"
+        ? { x: 0.5, y: 0 }
+        : dir === "up"
+          ? { x: 0.5, y: 1 }
+          : dir === "left"
+            ? { x: 1, y: 0.5 }
+            : { x: 0, y: 0.5 }
+      : null;
+
     upserts.set(key, {
       ...prev,
       dash,
@@ -347,10 +377,20 @@ export function compileDiagramDoc(
       start: {
         elementId: fromEl.id,
         anchor: prev.start?.elementId === fromEl.id ? prev.start.anchor : null,
+        isPrecise: prev.start?.isPrecise ?? !!startAnchor,
+        normalizedAnchor:
+          prev.start?.elementId === fromEl.id && prev.start.normalizedAnchor
+            ? prev.start.normalizedAnchor
+            : startAnchor || undefined,
       },
       end: {
         elementId: toEl.id,
         anchor: prev.end?.elementId === toEl.id ? prev.end.anchor : null,
+        isPrecise: prev.end?.isPrecise ?? !!endAnchor,
+        normalizedAnchor:
+          prev.end?.elementId === toEl.id && prev.end.normalizedAnchor
+            ? prev.end.normalizedAnchor
+            : endAnchor || undefined,
       },
       route: prev.route === "manual" ? "manual" : "auto",
       x: ax,

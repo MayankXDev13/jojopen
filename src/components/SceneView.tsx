@@ -161,15 +161,13 @@ export function SceneView({
                               y={-pillH / 2}
                               width={pillW}
                               height={pillH}
-                              rx={4}
-                              fill={th.board}
-                              stroke={paint.stroke}
-                              strokeWidth={1}
+                              rx={6}
+                              fill={th.slide || th.labelPill || th.board}
                             />
                             <text
                               textAnchor="middle"
                               dominantBaseline="central"
-                              fill={paint.stroke}
+                              fill={paint.stroke || th.muted}
                               fontFamily={font}
                               fontSize={fontSize}
                             >

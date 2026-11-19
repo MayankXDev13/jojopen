@@ -60,13 +60,14 @@ describe("Presentation Trigger Constraints", () => {
     });
 
     const stages = slideBuildStages(S.doc, s);
-    // Base stage: Title header text
-    expect(stages.length).toBe(3); // Base (Title) + Bullets + Diagram group
+    // Base stage: Title header text, Stage 1: Bullets, Stage 2: Diagram group
+    expect(stages.length).toBe(3);
 
     // Diagram stage contains all diagram child shapes and arrows together
-    const diagStage = stages[2];
     const elements = Object.values(S.doc.elements);
     const diagEl = elements.find((e) => e.type === "diagram" && e.frameId === s.id)!;
+    const diagStage = stages.find((stg) => stg.includes(diagEl.id))!;
+    expect(diagStage).toBeDefined();
     expect(diagStage).toContain(diagEl.id);
 
     const childShapes = elements.filter(

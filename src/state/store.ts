@@ -304,7 +304,8 @@ export function slideBuildStages(
   for (const el of nonArrows) {
     if (
       el.type === "text" &&
-      el.y + el.height <= slide.y + slide.height * 0.2
+      (el.meta?.slideRole === "title" ||
+        el.y + el.height <= slide.y + slide.height * 0.25)
     ) {
       base.push(el.id);
       continue;

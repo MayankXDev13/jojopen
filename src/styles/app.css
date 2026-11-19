@@ -2422,8 +2422,8 @@ legend {
   position: fixed;
   inset: 0;
   z-index: 4;
-  background: rgba(18, 18, 16, 0.22);
-  backdrop-filter: saturate(0.75);
+  background: transparent;
+  pointer-events: none;
 }
 #sotReplayRoot {
   position: fixed;
@@ -2444,39 +2444,49 @@ legend {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 7px 14px;
+  gap: 10px;
+  padding: 5px 14px;
   border-radius: 999px;
-  background: var(--chrome);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  background: rgba(24, 24, 27, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   pointer-events: auto;
   font-size: 11px;
-  color: var(--muted);
+  color: #94a3b8;
   white-space: nowrap;
+  z-index: 2;
+}
+.sot-amber-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+  display: inline-block;
+  flex-shrink: 0;
 }
 .sottop-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink);
-  font-weight: 600;
+  color: #f1f5f9;
+  font-weight: 500;
   font-size: 12px;
 }
 .sotkey {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+  color: #94a3b8;
+  font-size: 11px;
 }
 .sotkey kbd {
   font-family: var(--sans);
   font-size: 10px;
   line-height: 1;
-  padding: 3px 5px;
+  padding: 3px 6px;
   border-radius: 4px;
-  background: var(--raised);
-  border: 1px solid var(--border);
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
 }
 .sotstage {
   position: absolute;
@@ -2484,9 +2494,9 @@ legend {
   top: 50%;
   transform: translate(-50%, -50%);
   overflow: hidden;
-  border-radius: 8px;
-  background: var(--board);
-  box-shadow: 0 24px 70px -10px rgba(0, 0, 0, 0.35);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   pointer-events: none;
 }
 .sotstage .scene {
@@ -2497,16 +2507,17 @@ legend {
 .sotbar {
   position: absolute;
   left: 50%;
-  bottom: 15px;
+  bottom: 18px;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 8px;
-  border-radius: 14px;
-  background: var(--chrome);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(24, 24, 27, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   pointer-events: auto;
   font-size: 11.5px;
   white-space: nowrap;
@@ -2515,59 +2526,134 @@ legend {
 .sotbar button {
   border: 0;
   background: transparent;
-  color: var(--ink);
+  color: #cbd5e1;
   cursor: pointer;
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 5px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
   font-size: 11.5px;
   font-family: var(--sans);
+  transition: background 0.12s, color 0.12s;
 }
 .sotbar button:hover {
-  background: var(--raised);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 .sotbar button:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: default;
 }
 .sotplay {
-  background: #f0c655 !important;
-  color: #352a04 !important;
+  background: #eab308 !important;
+  color: #18181b !important;
   border-radius: 50% !important;
   width: 34px !important;
   height: 34px !important;
   min-width: 34px !important;
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.35);
+  margin: 0 2px;
 }
 .sotplay:hover {
-  background: #f6d36e !important;
+  background: #facc15 !important;
 }
 .sotpos {
   font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  min-width: 32px;
-  text-align: center;
-}
-.sotrange {
-  width: min(300px, 32vw);
-  accent-color: var(--primary);
+  color: #94a3b8;
+  font-size: 11.5px;
   margin: 0 2px;
 }
-.sotlabel {
-  color: var(--muted);
-  max-width: 130px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 40px;
+.sotpos b {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+.sotspeed {
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  padding: 2px 8px !important;
+  min-width: 32px !important;
+  height: 24px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  color: #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.sotspeed:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+.sot-track-wrap {
+  position: relative;
+  width: min(280px, 30vw);
+  height: 20px;
+  display: flex;
+  align-items: center;
+  margin: 0 6px;
+}
+.sot-track-line {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+.sot-track-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: #eab308;
+}
+.sot-track-tick {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transform: translate(-50%, -50%);
+}
+.sot-track-tick.is-passed {
+  background: #ca8a04;
+}
+.sot-track-thumb {
+  position: absolute;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #eab308;
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.5);
+  transform: translate(-50%, -50%);
+}
+.sotrange-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+  z-index: 2;
 }
 .sotsep {
   width: 1px;
-  height: 18px;
-  background: var(--border);
-  margin: 0 4px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 3px;
+}
+.sotlabel {
+  color: #94a3b8;
+  font-size: 11.5px;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sotexport {
   color: var(--muted);

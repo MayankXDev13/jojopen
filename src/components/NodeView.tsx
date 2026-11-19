@@ -1,13 +1,18 @@
 import { useMemo } from "react";
 import type { BoardDoc, BoardElement } from "../lib/model";
-import { shapeMarkup } from "../lib/diagram";
 import { edgeIconPos, edgeIconSize, resolveIcon } from "../lib/iconLibrary";
+import {
+  cylinderSecondaryPath,
+  getRoughFillPath,
+  getRoughPaths,
+  roughnessForStyle,
+  seedFromId,
+  shapePath,
+} from "../lib/sketch";
 import { S, colorFor, diagram, fontFor, settings } from "../state/store";
 import { Icon, LibraryIcon } from "./Icon";
 import { useEditingId, useVersion } from "../state/boardStore";
 import { beginEdit, renameSlide } from "../state/actions";
-
-const roughDefs = `<defs><filter id="rough" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.021" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.8"/></filter></defs>`;
 
 export type NodeViewProps = {
   el: BoardElement;
@@ -31,7 +36,6 @@ export function NodeView({
   useVersion();
   const editingId = useEditingId();
   const c = colorFor(el);
-  const filter = settings().style === "clean" ? "" : "url(#rough)";
   const files = doc?.files || S.doc.files;
 
   const diagramRender = useMemo(
@@ -53,33 +57,128 @@ export function NodeView({
     const lib = el.icon ? resolveIcon(el.icon) : undefined;
     const edge = !!el.icon && !!el.iconEdge && !!lib;
     const clean = settings().style === "clean";
+    const roughness = roughnessForStyle(settings().style);
     const esize = edgeIconSize(clean);
     const epos = edgeIconPos(esize);
     const maskId = `edge-${el.id}`;
-    const maskDef = edge
-      ? `<mask id="${maskId}" maskUnits="userSpaceOnUse" x="-40" y="${-40 - esize}" width="${el.width + 80}" height="${el.height + 80 + esize}"><rect x="-40" y="${-40 - esize}" width="${el.width + 80}" height="${el.height + 80 + esize}" fill="#fff"/><rect x="${epos.x - epos.gap}" y="${-esize}" width="${esize + epos.gap * 2}" height="${esize * 2}" fill="#000"/></mask>`
-      : "";
-    const shapeStr = shapeMarkup(
-      el.shape,
-      el.width,
-      el.height,
-      el.noFill ? "none" : c.fill,
-      c.stroke,
-      filter,
-    );
+    const p = shapePath(el.shape, el.width, el.height);
+    const secP = cylinderSecondaryPath(el.shape, el.width, el.height);
+    const seed = seedFromId(el.id);
+    const fillPath =
+      !el.noFill &&
+      (settings().style === "sketch"
+        ? getRoughFillPath(el.id, p, seed, roughness)
+        : p);
+    const strokeWidth = clean
+      ? 1.5
+      : settings().style === "chalkboard"
+        ? 2.2
+        : 1.8;
+    const roughStrokes =
+      roughness > 0
+        ? getRoughPaths(el.id, p, {
+            stroke: c.stroke,
+            strokeWidth,
+            roughness,
+          })
+        : null;
+    const secRoughStrokes =
+      secP && roughness > 0
+        ? getRoughPaths(`${el.id}:d`, secP, {
+            stroke: c.stroke,
+            strokeWidth,
+            roughness,
+          })
+        : null;
+
     body = (
       <>
         <div className="sh">
           <svg
             viewBox={`0 0 ${el.width} ${el.height}`}
-            preserveAspectRatio="none"
-            dangerouslySetInnerHTML={{
-              __html:
-                roughDefs +
-                maskDef +
-                (edge ? `<g mask="url(#${maskId})">${shapeStr}</g>` : shapeStr),
+            style={{
+              width: "100%",
+              height: "100%",
+              overflow: "visible",
+              display: "block",
             }}
-          />
+            aria-hidden="true"
+          >
+            {edge && (
+              <defs>
+                <mask
+                  id={maskId}
+                  maskUnits="userSpaceOnUse"
+                  x={-40}
+                  y={-40 - esize}
+                  width={el.width + 80}
+                  height={el.height + 80 + esize}
+                >
+                  <rect
+                    x={-40}
+                    y={-40 - esize}
+                    width={el.width + 80}
+                    height={el.height + 80 + esize}
+                    fill="#fff"
+                  />
+                  <rect
+                    x={epos.x - epos.gap}
+                    y={-esize}
+                    width={esize + epos.gap * 2}
+                    height={esize * 2}
+                    fill="#000"
+                  />
+                </mask>
+              </defs>
+            )}
+            {fillPath && <path d={fillPath} fill={c.fill} stroke="none" />}
+            <g mask={edge ? `url(#${maskId})` : undefined}>
+              {roughStrokes ? (
+                roughStrokes.map((pt, i) => (
+                  <path
+                    key={i}
+                    d={pt.d}
+                    fill="none"
+                    stroke={pt.stroke || c.stroke}
+                    strokeWidth={pt.strokeWidth || strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))
+              ) : (
+                <path
+                  d={p}
+                  fill="none"
+                  stroke={c.stroke}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
+              {secRoughStrokes ? (
+                secRoughStrokes.map((pt, i) => (
+                  <path
+                    key={`s-${i}`}
+                    d={pt.d}
+                    fill="none"
+                    stroke={pt.stroke || c.stroke}
+                    strokeWidth={pt.strokeWidth || strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))
+              ) : secP ? (
+                <path
+                  d={secP}
+                  fill="none"
+                  stroke={c.stroke}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ) : null}
+            </g>
+          </svg>
         </div>
         {edge ? (
           <span
@@ -98,9 +197,20 @@ export function NodeView({
         <div
           className="lbl"
           style={{
+            position: "absolute",
+            inset:
+              el.shape === "cylinder"
+                ? `${Math.min(14, el.height / 6) * 1.6}px 0 0 0`
+                : 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             color: el.noFill ? c.stroke : c.text,
             fontFamily: fontFor(el),
             fontSize: 14 * (el.textScale ?? 1),
+            padding: "0 12px",
+            textAlign: "center",
+            pointerEvents: "none",
           }}
         >
           {!edge && el.icon ? (
@@ -186,9 +296,54 @@ export function NodeView({
   } else if (el.type === "image") {
     body = <img src={files[el.fileId || ""] || ""} alt="" />;
   } else if (el.type === "container") {
+    const p = shapePath("container", el.width, el.height);
+    const roughness = roughnessForStyle(settings().style);
+    const containerStroke = `color-mix(in srgb, ${c.stroke} 55%, transparent)`;
+    const containerFill = `color-mix(in srgb, ${c.stroke} ${settings().style === "chalkboard" ? 4 : 6}%, transparent)`;
     body = (
       <>
-        <div className="frame" />
+        <div className="sh">
+          <svg
+            viewBox={`0 0 ${el.width} ${el.height}`}
+            style={{
+              width: "100%",
+              height: "100%",
+              overflow: "visible",
+              display: "block",
+            }}
+            aria-hidden="true"
+          >
+            <path d={p} fill={containerFill} stroke="none" />
+            {roughness === 0 ? (
+              <path
+                d={p}
+                fill="none"
+                stroke={containerStroke}
+                strokeWidth={1.5}
+                strokeDasharray="6 5"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ) : (
+              getRoughPaths(el.id, p, {
+                stroke: containerStroke,
+                strokeWidth: 1.5,
+                roughness,
+                dashed: true,
+              }).map((pt, i) => (
+                <path
+                  key={i}
+                  d={pt.d}
+                  fill="none"
+                  stroke={pt.stroke || containerStroke}
+                  strokeWidth={pt.strokeWidth || 1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ))
+            )}
+          </svg>
+        </div>
         <div className="clabel">{el.label}</div>
       </>
     );

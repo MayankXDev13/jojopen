@@ -403,12 +403,16 @@ export function present(index = 0) {
     },
   } as any);
   notify();
-  document.documentElement.requestFullscreen?.().catch(() => {});
+  if (typeof document !== "undefined") {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  }
 }
 
 export function exitPresent() {
   useBoardStore.setState({ present: null } as any);
-  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  if (typeof document !== "undefined" && document.fullscreenElement) {
+    document.exitFullscreen?.().catch(() => {});
+  }
   notify();
 }
 
@@ -1155,7 +1159,7 @@ export function editLabel() {
     return;
   }
   if (e.type === "slide")
-    return present(slides().findIndex((s) => s.id === e.id));
+    return beginEdit(e.id);
   beginEdit(e.id);
 }
 

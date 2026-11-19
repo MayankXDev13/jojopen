@@ -3,6 +3,7 @@
 ## Context
 
 See `proposal.md` (Why) for motivation. Current state:
+
 - `src/state/store.ts`: `loadDoc()` / `boardsList()` use `JSON.parse` + try/catch, `normalizeDoc()` does shallow spreads with no field validation.
 - `src/lib/model.ts`: `BoardDoc` / `BoardElement` / `BoardSettings` are TypeScript types only; `normalizeDoc(d: any)` trusts unknown input shapes.
 - `src/lib/ai.ts`: `loadAIConfig()` returns `JSON.parse(...)` cast to `AIConfig` with no checks.
@@ -13,11 +14,13 @@ Constraints: boot path (`bootStore`) must never throw; first-run/demo seeding in
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Single source of truth for persisted shapes with Zod v4 schemas co-located with the model.
 - Deterministic fallback: invalid payload → `blankDoc()` / `[]` / `{}` with a `console.warn`, never a blank crash.
 - Preserve unknown-field tolerance (strip, don't reject) so future schema versions load in older clients.
 
 **Non-Goals:**
+
 - No schema migration/version-upgrade system beyond `schemaVersion: 1` passthrough (no v1→v2 transforms in this change).
 - No validation of live DSL, canvas interactions, or network AI responses — persisted `localStorage` only.
 - No UI for "data was corrupt" recovery prompts; silent fallback + warn log only.

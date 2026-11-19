@@ -18,7 +18,7 @@ export function gifEncode(
   const str = (s: string) => {
     for (let i = 0; i < s.length; i++) push(s.charCodeAt(i));
   };
-  str('GIF89a');
+  str("GIF89a");
   push16(width);
   push16(height);
   push(0xf7);
@@ -34,7 +34,7 @@ export function gifEncode(
   push(0x21);
   push(0xff);
   push(0x0b);
-  str('NETSCAPE2.0');
+  str("NETSCAPE2.0");
   push(0x03);
   push(0x01);
   push16(0);
@@ -121,7 +121,10 @@ function lzw(indices: Uint8Array): number[] {
   return out;
 }
 
-export function gifPalette(pixels: Uint8ClampedArray[], maxColors = 256): GifColor[] {
+export function gifPalette(
+  pixels: Uint8ClampedArray[],
+  maxColors = 256,
+): GifColor[] {
   const hist = new Map<number, GifColor & { n: number }>();
   for (const px of pixels) {
     for (let i = 0; i < px.length; i += 8) {
@@ -138,7 +141,8 @@ export function gifPalette(pixels: Uint8ClampedArray[], maxColors = 256): GifCol
   }
   const colors = [...hist.values()];
   if (!colors.length) return [{ r: 0, g: 0, b: 0 }];
-  if (colors.length <= maxColors) return colors.map((c) => ({ r: c.r, g: c.g, b: c.b }));
+  if (colors.length <= maxColors)
+    return colors.map((c) => ({ r: c.r, g: c.g, b: c.b }));
 
   let boxes: (GifColor & { n: number })[][] = [colors];
   const channelRange = (box: (GifColor & { n: number })[]) => {
@@ -159,7 +163,12 @@ export function gifPalette(pixels: Uint8ClampedArray[], maxColors = 256): GifCol
       n += c.n;
     }
     const ranges = { r: rmax - rmin, g: gmax - gmin, b: bmax - bmin };
-    const ch = ranges.r >= ranges.g && ranges.r >= ranges.b ? 'r' : ranges.g >= ranges.b ? 'g' : 'b';
+    const ch =
+      ranges.r >= ranges.g && ranges.r >= ranges.b
+        ? "r"
+        : ranges.g >= ranges.b
+          ? "g"
+          : "b";
     return { ch, range: ranges[ch], n };
   };
   while (boxes.length < maxColors) {
@@ -201,11 +210,18 @@ export function gifPalette(pixels: Uint8ClampedArray[], maxColors = 256): GifCol
       b += c.b * c.n;
       n += c.n;
     }
-    return { r: Math.round(r / Math.max(1, n)), g: Math.round(g / Math.max(1, n)), b: Math.round(b / Math.max(1, n)) };
+    return {
+      r: Math.round(r / Math.max(1, n)),
+      g: Math.round(g / Math.max(1, n)),
+      b: Math.round(b / Math.max(1, n)),
+    };
   });
 }
 
-export function mapToPalette(px: Uint8ClampedArray, palette: GifColor[]): Uint8Array {
+export function mapToPalette(
+  px: Uint8ClampedArray,
+  palette: GifColor[],
+): Uint8Array {
   const indices = new Uint8Array(px.length / 4);
   const cache = new Map<number, number>();
   for (let i = 0, j = 0; i < px.length; i += 4, j++) {
@@ -222,7 +238,10 @@ export function mapToPalette(px: Uint8ClampedArray, palette: GifColor[]): Uint8A
       let bestD = Infinity;
       for (let k = 0; k < palette.length; k++) {
         const c = palette[k];
-        const d = (rr - c.r) * (rr - c.r) + (gg - c.g) * (gg - c.g) + (bb - c.b) * (bb - c.b);
+        const d =
+          (rr - c.r) * (rr - c.r) +
+          (gg - c.g) * (gg - c.g) +
+          (bb - c.b) * (bb - c.b);
         if (d < bestD) {
           bestD = d;
           best = k;

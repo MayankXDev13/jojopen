@@ -6,16 +6,16 @@ deliberate decision.
 
 ## Baseline snapshot
 
-| | |
-| --- | --- |
-| Captured | 18 Nov 2026 |
-| Live URL | <https://jojopen.com/> |
-| Live bundle | `index-AUJ3ngSu.js` |
-| Live CSS | `index-CLwQeLoE.css` |
-| Port | `http://127.0.0.1:5173/` (Vite dev) |
-| Viewport | 1440×900, device scale 1 |
-| Raw probe | [`manifest.json`](img/parity/baseline-2026-11-18/manifest.json) |
-| Harness | `node docs/harness/parity.js --base <url> --out <dir>` |
+|             |                                                                 |
+| ----------- | --------------------------------------------------------------- |
+| Captured    | 18 Nov 2026                                                     |
+| Live URL    | <https://jojopen.com/>                                          |
+| Live bundle | `index-AUJ3ngSu.js`                                             |
+| Live CSS    | `index-CLwQeLoE.css`                                            |
+| Port        | `http://127.0.0.1:5173/` (Vite dev)                             |
+| Viewport    | 1440×900, device scale 1                                        |
+| Raw probe   | [`manifest.json`](img/parity/baseline-2026-11-18/manifest.json) |
+| Harness     | `node docs/harness/parity.js --base <url> --out <dir>`          |
 
 The live site has no `data-act` hooks, so the parity harness detects the live `cp-*` classes and
 uses titles for live probes, while local probes keep using the port's `data-act`/`data-tool`
@@ -27,18 +27,18 @@ Status is `gap` while the port differs from the recorded live snapshot, `match` 
 `match*` when it matches except for a documented intentional difference, and `intentional`
 for a documented, deliberate difference.
 
-| Surface | Live | Port after fix | Status | Evidence |
-| --- | --- | --- | --- | --- |
-| Toolbar reveal | Collapsed to Select; 17 secondary tools reveal on hover and hide after ~1.2 s | Collapsed to 0/17 at rest, 17 on hover, still open after 3 s, 0 after the linger | match | [before](img/parity/baseline-2026-11-18/toolbar-collapsed.png) · [after collapsed](img/parity/after-2026-11-18/toolbar-collapsed.png) · [after revealed](img/parity/after-2026-11-18/toolbar-revealed.png) |
-| Toolbar peek hint | A small bar is visible while collapsed | 14×3 px `.peekhint`, hidden while revealed and on touch | match | [after collapsed](img/parity/after-2026-11-18/toolbar-collapsed.png) |
-| Rail reveal | Collapsed to AI/hourglass/slides/boards; Diagram code and Keyboard shortcuts reveal | Collapsed to 0/2 at rest, 2 on hover, hidden after the linger | match | [after collapsed](img/parity/after-2026-11-18/rail-collapsed.png) · [after revealed](img/parity/after-2026-11-18/rail-revealed.png) |
-| Top-right reveal | Collapsed to the active style chip; Font, B/W, Theme reveal | Collapsed to 0/6 at rest, 6 on hover, hidden after the linger | match | [after collapsed](img/parity/after-2026-11-18/topright-collapsed.png) · [after revealed](img/parity/after-2026-11-18/topright-revealed.png) |
-| Bottom-left bar | Collapsed to the zoom label; expands to zoom out, label, zoom in, Fit, Snap, Dots, Random colors, Undo, Redo | Zoom label only at rest; expands in live order with live titles; Undo/Redo disabled without history | match | [after collapsed](img/parity/after-2026-11-18/bottombar-collapsed.png) · [after revealed](img/parity/after-2026-11-18/bottombar-revealed.png) |
-| Main menu | Absolute popover at (16, 66), 230×241 px, eight items; closes on outside click and the trigger, not Escape | Anchored 230 px popover at (16, 66) with the live item set; closes on outside click, the trigger, and Escape (intentional extra) | match* | [before](img/parity/baseline-2026-11-18/menu-open.png) · [after](img/parity/after-2026-11-18/menu-open.png) |
-| Context bar | Auto chip, colour dot, six shapes, A−/A+, Size, Layer order, Lock, Delete, Clean it | Auto chip, colour dot, Box/Ellipse/Diamond/Cylinder/Pill/Document, A−/A+, Size, single Layer order popover, Lock, Delete, Clean it | match | [before](img/parity/baseline-2026-11-18/contextbar.png) · [after](img/parity/after-2026-11-18/contextbar.png) |
-| Random colors | Repaints every shape and arrow across the palette | Spreads `COLOR_KEYS` across shapes/arrows, one undo step, persists, toasts | match | [before](img/parity/baseline-2026-11-18/random-colors.png) · [after](img/parity/after-2026-11-18/after-random.png) ([before](img/parity/after-2026-11-18/before-random.png)) |
-| Dots toggle | Toggles the background dot grid and its active state | Toggles grid + active state, persists, reacts to `Ctrl+Shift+'` | match | [after toggle](img/parity/after-2026-11-18/dots-toggled.png) |
-| First run | Seeds a 19-element URL-shortener demo under `jojopen:scratch:v2` | Seeds a “Scratch board” with the system-template diagram + 301s sticky, and imports `jojopen:scratch:v2` read-only when the port has no board (demo shape differs: one diagram element, not 19 nodes) | match* | [before](img/parity/baseline-2026-11-18/base.png) · [after](img/parity/after-2026-11-18/firstrun-demo.png) |
+| Surface           | Live                                                                                                         | Port after fix                                                                                                                                                                                        | Status | Evidence                                                                                                                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Toolbar reveal    | Collapsed to Select; 17 secondary tools reveal on hover and hide after ~1.2 s                                | Collapsed to 0/17 at rest, 17 on hover, still open after 3 s, 0 after the linger                                                                                                                      | match  | [before](img/parity/baseline-2026-11-18/toolbar-collapsed.png) · [after collapsed](img/parity/after-2026-11-18/toolbar-collapsed.png) · [after revealed](img/parity/after-2026-11-18/toolbar-revealed.png) |
+| Toolbar peek hint | A small bar is visible while collapsed                                                                       | 14×3 px `.peekhint`, hidden while revealed and on touch                                                                                                                                               | match  | [after collapsed](img/parity/after-2026-11-18/toolbar-collapsed.png)                                                                                                                                       |
+| Rail reveal       | Collapsed to AI/hourglass/slides/boards; Diagram code and Keyboard shortcuts reveal                          | Collapsed to 0/2 at rest, 2 on hover, hidden after the linger                                                                                                                                         | match  | [after collapsed](img/parity/after-2026-11-18/rail-collapsed.png) · [after revealed](img/parity/after-2026-11-18/rail-revealed.png)                                                                        |
+| Top-right reveal  | Collapsed to the active style chip; Font, B/W, Theme reveal                                                  | Collapsed to 0/6 at rest, 6 on hover, hidden after the linger                                                                                                                                         | match  | [after collapsed](img/parity/after-2026-11-18/topright-collapsed.png) · [after revealed](img/parity/after-2026-11-18/topright-revealed.png)                                                                |
+| Bottom-left bar   | Collapsed to the zoom label; expands to zoom out, label, zoom in, Fit, Snap, Dots, Random colors, Undo, Redo | Zoom label only at rest; expands in live order with live titles; Undo/Redo disabled without history                                                                                                   | match  | [after collapsed](img/parity/after-2026-11-18/bottombar-collapsed.png) · [after revealed](img/parity/after-2026-11-18/bottombar-revealed.png)                                                              |
+| Main menu         | Absolute popover at (16, 66), 230×241 px, eight items; closes on outside click and the trigger, not Escape   | Anchored 230 px popover at (16, 66) with the live item set; closes on outside click, the trigger, and Escape (intentional extra)                                                                      | match* | [before](img/parity/baseline-2026-11-18/menu-open.png) · [after](img/parity/after-2026-11-18/menu-open.png)                                                                                                |
+| Context bar       | Auto chip, colour dot, six shapes, A−/A+, Size, Layer order, Lock, Delete, Clean it                          | Auto chip, colour dot, Box/Ellipse/Diamond/Cylinder/Pill/Document, A−/A+, Size, single Layer order popover, Lock, Delete, Clean it                                                                    | match  | [before](img/parity/baseline-2026-11-18/contextbar.png) · [after](img/parity/after-2026-11-18/contextbar.png)                                                                                              |
+| Random colors     | Repaints every shape and arrow across the palette                                                            | Spreads `COLOR_KEYS` across shapes/arrows, one undo step, persists, toasts                                                                                                                            | match  | [before](img/parity/baseline-2026-11-18/random-colors.png) · [after](img/parity/after-2026-11-18/after-random.png) ([before](img/parity/after-2026-11-18/before-random.png))                               |
+| Dots toggle       | Toggles the background dot grid and its active state                                                         | Toggles grid + active state, persists, reacts to `Ctrl+Shift+'`                                                                                                                                       | match  | [after toggle](img/parity/after-2026-11-18/dots-toggled.png)                                                                                                                                               |
+| First run         | Seeds a 19-element URL-shortener demo under `jojopen:scratch:v2`                                             | Seeds a “Scratch board” with the system-template diagram + 301s sticky, and imports `jojopen:scratch:v2` read-only when the port has no board (demo shape differs: one diagram element, not 19 nodes) | match* | [before](img/parity/baseline-2026-11-18/base.png) · [after](img/parity/after-2026-11-18/firstrun-demo.png)                                                                                                 |
 
 ## Confirmed gaps at baseline
 
@@ -108,12 +108,12 @@ Evidence: [first run](img/parity/baseline-2026-11-18/base.png), [raw probe](img/
 
 These are kept even after the fixes, and are listed here so they are not mistaken for gaps.
 
-| Difference | Why |
-| --- | --- |
-| Escape closes the main menu | The live menu ignores Escape. Keeping Escape is an accessibility improvement; outside click and the trigger match live. |
-| Port storage keys stay `jojopen.doc.v1` etc. | The port keeps its own persisted format. `jojopen:scratch:v2` is imported read-only on first run, never rewritten. |
-| Sign in does not start an OAuth flow | Cloud sign-in is out of scope for the anonymous port; the entry is present so the menu matches. |
-| Connect AI opens the local assistant panel | MCP pairing is out of scope; the local assistant/export surfaces remain. |
+| Difference                                   | Why                                                                                                                     |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Escape closes the main menu                  | The live menu ignores Escape. Keeping Escape is an accessibility improvement; outside click and the trigger match live. |
+| Port storage keys stay `jojopen.doc.v1` etc. | The port keeps its own persisted format. `jojopen:scratch:v2` is imported read-only on first run, never rewritten.      |
+| Sign in does not start an OAuth flow         | Cloud sign-in is out of scope for the anonymous port; the entry is present so the menu matches.                         |
+| Connect AI opens the local assistant panel   | MCP pairing is out of scope; the local assistant/export surfaces remain.                                                |
 
 ## Re-running the probe
 

@@ -3,28 +3,40 @@
    Keeping the document mutable made the port from the single-file app direct
    and keeps pointer interactions allocation-free. */
 
-import { uid, clamp } from '../lib/dom';
-import { importLive, seedDemo } from '../lib/firstRun';
+import { uid, clamp } from "../lib/dom";
+import { importLive, seedDemo } from "../lib/firstRun";
 import {
   blankDoc,
   MAKE,
   normalizeDoc,
   type BoardDoc,
   type BoardElement,
-} from '../lib/model';
-import { COLOR_KEYS, COLOR_TO_ROLE, ROLE_COLORS, THEME, type Palette, type StyleKey, type Theme } from '../lib/palette';
-import { inferRole } from '../lib/roles';
-import { diagramFor, type DiagramEnv, type DiagramRender } from '../lib/diagram';
-import { loadAIConfig } from '../lib/ai';
-import { boundsOf, elementBounds, pointInElement } from '../lib/geometry';
-import { useBoardStore } from './boardStore';
+} from "../lib/model";
+import {
+  COLOR_KEYS,
+  COLOR_TO_ROLE,
+  ROLE_COLORS,
+  THEME,
+  type Palette,
+  type StyleKey,
+  type Theme,
+} from "../lib/palette";
+import { inferRole } from "../lib/roles";
+import {
+  diagramFor,
+  type DiagramEnv,
+  type DiagramRender,
+} from "../lib/diagram";
+import { loadAIConfig } from "../lib/ai";
+import { boundsOf, elementBounds, pointInElement } from "../lib/geometry";
+import { useBoardStore } from "./boardStore";
 
-export const KEY_DOC = 'jojopen.doc.v1';
-export const KEY_BOARDS = 'jojopen.boards.v1';
-export const KEY_BOARD = 'jojopen.current.v1';
-export const KEY_AI = 'jojopen.ai.v1';
+export const KEY_DOC = "jojopen.doc.v1";
+export const KEY_BOARDS = "jojopen.boards.v1";
+export const KEY_BOARD = "jojopen.current.v1";
+export const KEY_AI = "jojopen.ai.v1";
 
-export type PanelName = 'none' | 'slides' | 'code' | 'assistant' | 'boards';
+export type PanelName = "none" | "slides" | "code" | "assistant" | "boards";
 
 /* ---------- Zustand-backed state + legacy facade ----------
    The Zustand store in `./boardStore` is the single source of truth.
@@ -46,7 +58,9 @@ export const S: any = new Proxy({} as any, {
   ownKeys: () => Reflect.ownKeys(useBoardStore.getState()),
   getOwnPropertyDescriptor: (_t, prop) => {
     const v = (useBoardStore.getState() as any)[prop];
-    return v === undefined ? undefined : { configurable: true, enumerable: true, value: v };
+    return v === undefined
+      ? undefined
+      : { configurable: true, enumerable: true, value: v };
   },
 });
 
@@ -82,22 +96,39 @@ export function scheduleNotify() {
 /* ---------- derived views ---------- */
 
 export const settings = () => S.doc.settings;
-export const resolvedTheme = (): 'light' | 'dark' => S.themePref === 'dark' || (S.themePref === 'system' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-export const styleKey = (): StyleKey => (settings().style === 'chalkboard' ? 'chalk' : resolvedTheme());
+export const resolvedTheme = (): "light" | "dark" =>
+  S.themePref === "dark" ||
+  (S.themePref === "system" &&
+    !!window.matchMedia?.("(prefers-color-scheme: dark)").matches)
+    ? "dark"
+    : "light";
+export const styleKey = (): StyleKey =>
+  settings().style === "chalkboard" ? "chalk" : resolvedTheme();
 export const theme = (): Theme => THEME[styleKey()];
-export const roleColor = (role: string) => ((ROLE_COLORS[styleKey()] || ROLE_COLORS.light) as Palette)[role] || ROLE_COLORS[styleKey()].neutral;
-export const paletteOn = () => (settings().palette ?? 'roles') === 'roles';
-export const handFont = () => (settings().handFont === 'excalifont' ? "'Excalifont','Kalam','Comic Neue',cursive" : "'Kalam','Comic Neue',cursive");
+export const roleColor = (role: string) =>
+  ((ROLE_COLORS[styleKey()] || ROLE_COLORS.light) as Palette)[role] ||
+  ROLE_COLORS[styleKey()].neutral;
+export const paletteOn = () => (settings().palette ?? "roles") === "roles";
+export const handFont = () =>
+  settings().handFont === "excalifont"
+    ? "'Excalifont','Kalam','Comic Neue',cursive"
+    : "'Kalam','Comic Neue',cursive";
 
 export function fontFor(el: BoardElement): string {
-  if (el.type === 'diagram') return 'var(--sans)';
-  if (el.type === 'sticky') return handFont();
-  if (el.type === 'text') return settings().style === 'clean' ? 'var(--sans)' : handFont();
-  return settings().style === 'clean' ? 'var(--sans)' : handFont();
+  if (el.type === "diagram") return "var(--sans)";
+  if (el.type === "sticky") return handFont();
+  if (el.type === "text")
+    return settings().style === "clean" ? "var(--sans)" : handFont();
+  return settings().style === "clean" ? "var(--sans)" : handFont();
 }
 
 export function diagramEnv(): DiagramEnv {
-  return { th: theme(), look: styleKey(), clean: settings().style === 'clean', palette: paletteOn() };
+  return {
+    th: theme(),
+    look: styleKey(),
+    clean: settings().style === "clean",
+    palette: paletteOn(),
+  };
 }
 
 export function diagram(dsl: string): DiagramRender {
@@ -106,11 +137,11 @@ export function diagram(dsl: string): DiagramRender {
 
 export function roleOf(el: BoardElement): string {
   if (el.colorLocked && el.color) {
-    if (el.color.startsWith('#')) return 'custom';
-    return COLOR_TO_ROLE[el.color] || 'neutral';
+    if (el.color.startsWith("#")) return "custom";
+    return COLOR_TO_ROLE[el.color] || "neutral";
   }
   if (el.role) return el.role;
-  const label = (el.label || el.title || el.text || '').toLowerCase();
+  const label = (el.label || el.title || el.text || "").toLowerCase();
   return inferRole(label, el.icon, el.shape);
 }
 
@@ -124,26 +155,35 @@ export function hexPaint(hex: string) {
 }
 
 export function colorFor(el: BoardElement) {
-  if (!paletteOn()) return { fill: 'transparent', stroke: theme().ink, text: theme().ink };
+  if (!paletteOn())
+    return { fill: "transparent", stroke: theme().ink, text: theme().ink };
   if (el.colorLocked && el.color) {
-    if (el.color.startsWith('#')) return hexPaint(el.color);
-    if (el.color === 'ink') return roleColor('ink');
-    return roleColor(COLOR_TO_ROLE[el.color] || 'neutral');
+    if (el.color.startsWith("#")) return hexPaint(el.color);
+    if (el.color === "ink") return roleColor("ink");
+    return roleColor(COLOR_TO_ROLE[el.color] || "neutral");
   }
   return roleColor(roleOf(el));
 }
 
 export const elements = (): BoardElement[] => Object.values(S.doc.elements);
 export const sortedElements = (): BoardElement[] =>
-  elements().sort((a, b) => (a.index ?? 0) - (b.index ?? 0) || (a.id < b.id ? -1 : 1));
-export const nextIndex = () => elements().reduce((m, e) => Math.max(m, e.index ?? 0), 0) + 1;
+  elements().sort(
+    (a, b) => (a.index ?? 0) - (b.index ?? 0) || (a.id < b.id ? -1 : 1),
+  );
+export const nextIndex = () =>
+  elements().reduce((m, e) => Math.max(m, e.index ?? 0), 0) + 1;
 export const slides = () =>
   elements()
-    .filter((e) => e.type === 'slide')
+    .filter((e) => e.type === "slide")
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.id < b.id ? -1 : 1));
-export const slideChildren = (slide: BoardElement) => sortedElements().filter((e) => e.frameId === slide.id);
-export const nextSlideOrder = () => slides().reduce((m, s) => Math.max(m, s.order ?? 0), 0) + 1;
-export const selectionElements = () => [...S.selection].map((id) => S.doc.elements[id]).filter(Boolean) as BoardElement[];
+export const slideChildren = (slide: BoardElement) =>
+  sortedElements().filter((e) => e.frameId === slide.id);
+export const nextSlideOrder = () =>
+  slides().reduce((m, s) => Math.max(m, s.order ?? 0), 0) + 1;
+export const selectionElements = () =>
+  [...S.selection]
+    .map((id) => S.doc.elements[id])
+    .filter(Boolean) as BoardElement[];
 
 export function toast(msg: string, ms = 1900) {
   S.toast = msg;
@@ -158,7 +198,12 @@ export function toast(msg: string, ms = 1900) {
 /* ---------- history ---------- */
 
 export function snapshot(): string {
-  return JSON.stringify({ name: S.doc.name, settings: S.doc.settings, elements: S.doc.elements, files: S.doc.files });
+  return JSON.stringify({
+    name: S.doc.name,
+    settings: S.doc.settings,
+    elements: S.doc.elements,
+    files: S.doc.files,
+  });
 }
 
 export function restore(json: string) {
@@ -169,7 +214,7 @@ export function restore(json: string) {
   S.doc.files = d.files;
 }
 
-export function pushHistory(label = 'edit') {
+export function pushHistory(label = "edit") {
   const s = snapshot();
   if (S.history[S.history.length - 1]?.json === s) return;
   S.history.push({ json: s, label });
@@ -188,20 +233,20 @@ export function recCapture(label?: string) {
 }
 
 export function undo() {
-  if (!S.history.length) return toast('Nothing to undo');
-  S.future.push({ json: snapshot(), label: 'redo' });
+  if (!S.history.length) return toast("Nothing to undo");
+  S.future.push({ json: snapshot(), label: "redo" });
   const h = S.history.pop();
   restore(h.json);
   S.selection.clear();
   S.editingId = null;
   notify();
   persist();
-  toast('Undo');
+  toast("Undo");
 }
 
 export function redo() {
-  if (!S.future.length) return toast('Nothing to redo');
-  S.history.push({ json: snapshot(), label: 'undo' });
+  if (!S.future.length) return toast("Nothing to redo");
+  S.history.push({ json: snapshot(), label: "undo" });
   const h = S.future.pop();
   restore(h.json);
   S.selection.clear();
@@ -223,13 +268,18 @@ export function persist(now = false) {
       localStorage.setItem(KEY_BOARD, S.doc.id);
       const boards = boardsList();
       const ex = boards.find((b: any) => b.id === S.doc.id);
-      const rec = { id: S.doc.id, name: S.doc.name, updatedAt: Date.now(), kind: slides().length ? 'deck' : 'board' };
+      const rec = {
+        id: S.doc.id,
+        name: S.doc.name,
+        updatedAt: Date.now(),
+        kind: slides().length ? "deck" : "board",
+      };
       if (ex) Object.assign(ex, rec);
       else boards.unshift(rec);
       localStorage.setItem(KEY_BOARDS, JSON.stringify(boards.slice(0, 60)));
       S.lastSaved = Date.now();
     } catch (err) {
-      console.warn('save failed', err);
+      console.warn("save failed", err);
     }
   };
   if (now) run();
@@ -238,7 +288,7 @@ export function persist(now = false) {
 
 export function boardsList(): any[] {
   try {
-    return JSON.parse(localStorage.getItem(KEY_BOARDS) || '[]');
+    return JSON.parse(localStorage.getItem(KEY_BOARDS) || "[]");
   } catch {
     return [];
   }
@@ -248,7 +298,7 @@ export function loadDoc(): BoardDoc {
   try {
     const hash = location.hash.match(/#\/b\/([A-Za-z0-9_-]+)/);
     if (hash) {
-      const saved = localStorage.getItem('jojopen.board.' + hash[1]);
+      const saved = localStorage.getItem("jojopen.board." + hash[1]);
       if (saved) return normalizeDoc(JSON.parse(saved));
     }
     const cur = localStorage.getItem(KEY_DOC);
@@ -265,15 +315,16 @@ export function loadDoc(): BoardDoc {
 export function hasPortBoard(): boolean {
   try {
     const hash = location.hash.match(/#\/b\/([A-Za-z0-9_-]+)/);
-    if (hash && localStorage.getItem('jojopen.board.' + hash[1])) return true;
+    if (hash && localStorage.getItem("jojopen.board." + hash[1])) return true;
     return localStorage.getItem(KEY_DOC) != null;
   } catch {
     return false;
   }
 }
 
-export function saveBoardCopy() {  try {
-    localStorage.setItem('jojopen.board.' + S.doc.id, JSON.stringify(S.doc));
+export function saveBoardCopy() {
+  try {
+    localStorage.setItem("jojopen.board." + S.doc.id, JSON.stringify(S.doc));
   } catch {}
 }
 
@@ -288,12 +339,12 @@ export function bootStore() {
     persist(true);
   }
   S.startOpen = false;
-  S.timeline.push({ json: snapshot(), label: 'Start', at: Date.now() });
+  S.timeline.push({ json: snapshot(), label: "Start", at: Date.now() });
   try {
     const cfg = loadAIConfig();
     if (cfg.provider) {
       S.assistant.provider = cfg.provider;
-      S.assistant.model = cfg.model || 'claude-sonnet-4-20250514';
+      S.assistant.model = cfg.model || "claude-sonnet-4-20250514";
     }
   } catch {}
   clearInterval(saveCopyTimer);
@@ -303,16 +354,23 @@ export function bootStore() {
 
 /* ---------- camera ---------- */
 
-export const canvasEl = (): HTMLElement | null => document.getElementById('canvas');
+export const canvasEl = (): HTMLElement | null =>
+  document.getElementById("canvas");
 
 export function toWorld(cx: number, cy: number) {
   const r = canvasEl()?.getBoundingClientRect();
   if (!r) return { x: cx, y: cy };
-  return { x: (cx - r.left - S.camera.x) / S.camera.zoom, y: (cy - r.top - S.camera.y) / S.camera.zoom };
+  return {
+    x: (cx - r.left - S.camera.x) / S.camera.zoom,
+    y: (cy - r.top - S.camera.y) / S.camera.zoom,
+  };
 }
 
 export function toScreen(x: number, y: number) {
-  return { x: x * S.camera.zoom + S.camera.x, y: y * S.camera.zoom + S.camera.y };
+  return {
+    x: x * S.camera.zoom + S.camera.x,
+    y: y * S.camera.zoom + S.camera.y,
+  };
 }
 
 export function viewportCenter() {
@@ -350,7 +408,14 @@ export function fitAll() {
   const r = canvasEl()?.getBoundingClientRect();
   if (!r) return;
   const pad = 120;
-  const z = clamp(Math.min((r.width - pad) / Math.max(1, b.width), (r.height - pad) / Math.max(1, b.height)), 0.08, 2);
+  const z = clamp(
+    Math.min(
+      (r.width - pad) / Math.max(1, b.width),
+      (r.height - pad) / Math.max(1, b.height),
+    ),
+    0.08,
+    2,
+  );
   S.camera.zoom = z;
   S.camera.x = (r.width - b.width * z) / 2 - b.minX * z;
   S.camera.y = (r.height - b.height * z) / 2 - b.minY * z;
@@ -364,7 +429,14 @@ export function fitSelection() {
   const r = canvasEl()?.getBoundingClientRect();
   if (!r) return;
   const pad = 180;
-  const z = clamp(Math.min((r.width - pad) / Math.max(1, b.width), (r.height - pad) / Math.max(1, b.height)), 0.1, 2.5);
+  const z = clamp(
+    Math.min(
+      (r.width - pad) / Math.max(1, b.width),
+      (r.height - pad) / Math.max(1, b.height),
+    ),
+    0.1,
+    2.5,
+  );
   S.camera.zoom = z;
   S.camera.x = (r.width - b.width * z) / 2 - b.minX * z;
   S.camera.y = (r.height - b.height * z) / 2 - b.minY * z;
@@ -377,7 +449,14 @@ export function addElement(el: BoardElement, opts: { noClamp?: boolean } = {}) {
   /* Persistent random-color mode: new shapes/arrows without an explicit
      color auto-receive a palette color (pasted/duplicated elements keep
      their locked colors). */
-  if (useBoardStore.getState().randomMode && (el.type === 'shape' || el.type === 'container' || el.type === 'arrow' || el.type === 'freehand') && !el.colorLocked) {
+  if (
+    useBoardStore.getState().randomMode &&
+    (el.type === "shape" ||
+      el.type === "container" ||
+      el.type === "arrow" ||
+      el.type === "freehand") &&
+    !el.colorLocked
+  ) {
     el.color = COLOR_KEYS[Math.floor(Math.random() * COLOR_KEYS.length)];
     el.colorLocked = true;
   }
@@ -397,11 +476,12 @@ export function addElement(el: BoardElement, opts: { noClamp?: boolean } = {}) {
 export function removeElements(ids: string[]) {
   for (const id of ids) delete S.doc.elements[id];
   for (const e of elements()) {
-    if (e.type === 'arrow') {
+    if (e.type === "arrow") {
       if (e.start?.elementId && ids.includes(e.start.elementId)) e.start = null;
       if (e.end?.elementId && ids.includes(e.end.elementId)) e.end = null;
       if (e.end?.elementId && !S.doc.elements[e.end.elementId]) e.end = null;
-      if (e.start?.elementId && !S.doc.elements[e.start.elementId]) e.start = null;
+      if (e.start?.elementId && !S.doc.elements[e.start.elementId])
+        e.start = null;
     }
   }
 }
@@ -411,10 +491,19 @@ export function selectOnly(id: string | null) {
   notify();
 }
 
-export function nextFrameElement(point: { x: number; y: number }, excludeId?: string): BoardElement | null {
+export function nextFrameElement(
+  point: { x: number; y: number },
+  excludeId?: string,
+): BoardElement | null {
   const hit = sortedElements()
     .reverse()
-    .find((e) => e.id !== excludeId && e.type !== 'arrow' && e.type !== 'freehand' && pointInElement(point.x, point.y, e));
+    .find(
+      (e) =>
+        e.id !== excludeId &&
+        e.type !== "arrow" &&
+        e.type !== "freehand" &&
+        pointInElement(point.x, point.y, e),
+    );
   return hit || null;
 }
 

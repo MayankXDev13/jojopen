@@ -7,11 +7,7 @@
   "bundle": null,
   "css": null,
   "firstRun": {
-    "keys": [
-      "jojopen.boards.v1",
-      "jojopen.doc.v1",
-      "jojopen.current.v1"
-    ],
+    "keys": ["jojopen.boards.v1", "jojopen.doc.v1", "jojopen.current.v1"],
     "elements": 2,
     "boardName": "Scratch board"
   },
@@ -107,26 +103,17 @@
     "hovered": {
       "total": 2,
       "shown": 2,
-      "titles": [
-        "Diagram code",
-        "Keyboard shortcuts"
-      ]
+      "titles": ["Diagram code", "Keyboard shortcuts"]
     },
     "stillOpen": {
       "total": 2,
       "shown": 2,
-      "titles": [
-        "Diagram code",
-        "Keyboard shortcuts"
-      ]
+      "titles": ["Diagram code", "Keyboard shortcuts"]
     },
     "leftShort": {
       "total": 2,
       "shown": 2,
-      "titles": [
-        "Diagram code",
-        "Keyboard shortcuts"
-      ]
+      "titles": ["Diagram code", "Keyboard shortcuts"]
     },
     "leftLinger": {
       "total": 2,
@@ -363,11 +350,7 @@
       "file": "base.png",
       "observations": {
         "info": {
-          "keys": [
-            "jojopen.boards.v1",
-            "jojopen.doc.v1",
-            "jojopen.current.v1"
-          ],
+          "keys": ["jojopen.boards.v1", "jojopen.doc.v1", "jojopen.current.v1"],
           "elements": 2,
           "boardName": "Scratch board"
         }
@@ -482,26 +465,17 @@
         "hovered": {
           "total": 2,
           "shown": 2,
-          "titles": [
-            "Diagram code",
-            "Keyboard shortcuts"
-          ]
+          "titles": ["Diagram code", "Keyboard shortcuts"]
         },
         "stillOpen": {
           "total": 2,
           "shown": 2,
-          "titles": [
-            "Diagram code",
-            "Keyboard shortcuts"
-          ]
+          "titles": ["Diagram code", "Keyboard shortcuts"]
         },
         "leftShort": {
           "total": 2,
           "shown": 2,
-          "titles": [
-            "Diagram code",
-            "Keyboard shortcuts"
-          ]
+          "titles": ["Diagram code", "Keyboard shortcuts"]
         },
         "leftLinger": {
           "total": 2,

@@ -3,6 +3,7 @@
 ## Context
 
 `src/components/Canvas.tsx` currently acts as both a React view component and a state machine for all interaction modes. When pointer events occur (`onPointerDown`, `onPointerMove`, `onPointerUp`), execution branches through nested switches checking `S.tool` and `S.drag.mode`. The file has accumulated 1,161 lines of intertwined concerns including:
+
 - Laser point life-cycle & 60fps canvas loop
 - Freehand ink capture, pressure smoothing, and shift snapping
 - Connector waypoint generation, anchor snapping, and handle re-binding
@@ -16,6 +17,7 @@ Extracting these concerns into a clean controller architecture decouples tool be
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Define a standard `ToolController` interface with unified hooks for pointer, keyboard, and cursor interactions.
 - Extract self-contained tool controllers:
   - `SelectToolController` (marquee, move, handle resize, frame nesting)
@@ -32,6 +34,7 @@ Extracting these concerns into a clean controller architecture decouples tool be
 - Retain complete behavioral and performance parity (no regressions in ink smoothness, laser animation, or connector snapping).
 
 **Non-Goals:**
+
 - Changing element data structures, store schema, or undo/redo mechanisms.
 - Changing toolbar UI or keyboard shortcuts.
 - Rewriting rendering logic in `NodeView.tsx` or `Edges.tsx`.
@@ -39,6 +42,7 @@ Extracting these concerns into a clean controller architecture decouples tool be
 ## Decisions
 
 ### 1. Unified `ToolController` Interface & Context
+
 - **Decision**: Create `src/tools/types.ts` defining:
   ```ts
   export interface ToolContext {
@@ -75,17 +79,19 @@ Extracting these concerns into a clean controller architecture decouples tool be
   }
   ```
 - **Rationale**: Isolates coordinate transformation and DOM quirks from tool calculation. Controllers receive normalized world and screen coordinates.
-- **Alternatives Considered**: Passing raw React synthetic events directly. *Rejected* because pointer capture and global document listeners often pass native `PointerEvent`s during continuous drag.
+- **Alternatives Considered**: Passing raw React synthetic events directly. _Rejected_ because pointer capture and global document listeners often pass native `PointerEvent`s during continuous drag.
 
 ### 2. Tool Registry and Dispatcher
+
 - **Decision**: Provide a `ToolDispatcher` that maintains tool singletons and resolves the active controller:
   - If Space is held or Middle Mouse is clicked, temporarily delegate to `PanToolController`.
   - If Alt is held while in Pen mode, temporarily delegate to `EraserToolController` (or existing toggle shortcut).
   - Otherwise delegate to the controller registered for `S.tool`.
 - **Rationale**: Keeps temporary tool toggling (pan, eraser) centralized in one place without polluting individual controllers.
-- **Alternatives Considered**: Each tool handling its own escape/toggle logic. *Rejected* because modifier-based tool overrides are global canvas invariants.
+- **Alternatives Considered**: Each tool handling its own escape/toggle logic. _Rejected_ because modifier-based tool overrides are global canvas invariants.
 
 ### 3. Laser Overlay Lifecycle
+
 - **Decision**: The laser overlay canvas and RAF loop can remain attached to a `LaserToolController` instance (or hook), exposing a `mount(canvas: HTMLCanvasElement)` method.
 - **Rationale**: The laser requires direct 2D canvas drawing at 60fps for trailing decay. Encapsulating this in `LaserToolController` keeps 100+ lines of canvas 2D logic out of `Canvas.tsx`.
 

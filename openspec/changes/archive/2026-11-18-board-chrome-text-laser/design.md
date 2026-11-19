@@ -3,6 +3,7 @@
 ## Context
 
 See `proposal.md` (Why). Current state:
+
 - `Chrome.tsx` ContextBar renders A−/A+ plus a static `Size 1×` chip; bottom bar uses `backward`/`forward` icons (straight `M12 21V7…` / `M12 3v14…` in `lib/icons.ts`).
 - `Canvas.tsx` laser draws fading circles (`arc`, `rgba(240,86,86,…)`) on the `#laser` overlay canvas.
 - `TextEditor.tsx` is a fixed-size textarea (no auto-grow, no Tab handling, no normalization); `commitEdit` in `actions.ts` never resizes; renderers clip overflow (`.lbl` has `overflow:hidden`).
@@ -11,10 +12,12 @@ See `proposal.md` (Why). Current state:
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Unambiguous chrome: zoom lives only in the bottom bar; element size only in A−/A+.
 - Live-look undo/redo; red line laser; Excalidraw-flavored text editing sized to content.
 
 **Non-Goals:**
+
 - No full Excalidraw port (no anchor-pinned transform editor, no RTL caret mirrors, no container auto-shrink bookkeeping); no new dependencies; no font-metric canvas rewrite — reuse `wrapText`.
 
 ## Decisions

@@ -1,19 +1,28 @@
-import { useEffect } from 'react';
-import type { CSSProperties } from 'react';
-import { Canvas } from './components/Canvas';
-import { BottomBar, ContextBar, Rail, SotCard, StartCard, Toast, Toolbar, TopBar } from './components/Chrome';
-import { Overlays } from './components/Overlays';
-import { PanelRoot } from './components/Panels';
-import { Presenter } from './components/Presenter';
-import { SotReplay } from './components/SotReplay';
-import { TimelineReplay } from './components/TimelineReplay';
-import { installKeyboard } from './state/commands';
-import { addSlide } from './state/actions';
-import { parseDSL } from './lib/dsl';
-import { layoutDiagram } from './lib/layout';
-import { diagramFor } from './lib/diagram';
-import { openBoard } from './state/actions';
-import { recWatch } from './state/sot';
+import { useEffect } from "react";
+import type { CSSProperties } from "react";
+import { Canvas } from "./components/Canvas";
+import {
+  BottomBar,
+  ContextBar,
+  Rail,
+  SotCard,
+  StartCard,
+  Toast,
+  Toolbar,
+  TopBar,
+} from "./components/Chrome";
+import { Overlays } from "./components/Overlays";
+import { PanelRoot } from "./components/Panels";
+import { Presenter } from "./components/Presenter";
+import { SotReplay } from "./components/SotReplay";
+import { TimelineReplay } from "./components/TimelineReplay";
+import { installKeyboard } from "./state/commands";
+import { addSlide } from "./state/actions";
+import { parseDSL } from "./lib/dsl";
+import { layoutDiagram } from "./lib/layout";
+import { diagramFor } from "./lib/diagram";
+import { openBoard } from "./state/actions";
+import { recWatch } from "./state/sot";
 import {
   S,
   bootStore,
@@ -25,8 +34,8 @@ import {
   settings,
   theme,
   toast,
-} from './state/store';
-import { useVersion } from './state/boardStore';
+} from "./state/store";
+import { useVersion } from "./state/boardStore";
 
 export function App() {
   const version = useVersion();
@@ -36,20 +45,28 @@ export function App() {
     bootStore();
     fitAll();
     const offKeys = installKeyboard();
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
     const onScheme = () => notify();
-    mq?.addEventListener?.('change', onScheme);
+    mq?.addEventListener?.("change", onScheme);
     const onUnload = () => {
       persist(true);
     };
-    window.addEventListener('beforeunload', onUnload);
-    (window as any).J = { S, renderAll: notify, addSlide, parseDSL, layoutDiagram, diagramFor, openBoard };
-    if (location.hash.match(/#\/b\//)) toast('Opened board from link');
+    window.addEventListener("beforeunload", onUnload);
+    (window as any).J = {
+      S,
+      renderAll: notify,
+      addSlide,
+      parseDSL,
+      layoutDiagram,
+      diagramFor,
+      openBoard,
+    };
+    if (location.hash.match(/#\/b\//)) toast("Opened board from link");
     else persist(true);
     return () => {
-      mq?.removeEventListener?.('change', onScheme);
+      mq?.removeEventListener?.("change", onScheme);
       offKeys();
-      window.removeEventListener('beforeunload', onUnload);
+      window.removeEventListener("beforeunload", onUnload);
     };
   }, []);
 
@@ -60,12 +77,12 @@ export function App() {
 
   const th = theme();
   const vars = {
-    '--board': th.board,
-    '--frame': th.frame,
-    '--frameText': th.frameText,
-    '--slide': th.slide,
-    '--slideEdge': th.slideEdge,
-    '--saved': th.muted,
+    "--board": th.board,
+    "--frame": th.frame,
+    "--frameText": th.frameText,
+    "--slide": th.slide,
+    "--slideEdge": th.slideEdge,
+    "--saved": th.muted,
   } as CSSProperties;
 
   /* body-level surfaces (replay, modals) read these from the root too */
@@ -76,7 +93,7 @@ export function App() {
 
   return (
     <div
-      className={`app${S.sot.replay ? ' is-sot-replay' : ''}`}
+      className={`app${S.sot.replay ? " is-sot-replay" : ""}`}
       id="app"
       data-theme={resolvedTheme()}
       data-style={settings().style}

@@ -7,9 +7,7 @@
   "bundle": "index-AUJ3ngSu.js",
   "css": "index-CLwQeLoE.css",
   "firstRun": {
-    "keys": [
-      "jojopen:scratch:v2"
-    ],
+    "keys": ["jojopen:scratch:v2"],
     "elements": 19,
     "boardName": null
   },
@@ -105,26 +103,17 @@
     "hovered": {
       "total": 2,
       "shown": 2,
-      "titles": [
-        "Diagram code (Ctrl+E)",
-        "Keyboard shortcuts (?)"
-      ]
+      "titles": ["Diagram code (Ctrl+E)", "Keyboard shortcuts (?)"]
     },
     "stillOpen": {
       "total": 2,
       "shown": 2,
-      "titles": [
-        "Diagram code (Ctrl+E)",
-        "Keyboard shortcuts (?)"
-      ]
+      "titles": ["Diagram code (Ctrl+E)", "Keyboard shortcuts (?)"]
     },
     "leftShort": {
       "total": 2,
       "shown": 2,
-      "titles": [
-        "Diagram code (Ctrl+E)",
-        "Keyboard shortcuts (?)"
-      ]
+      "titles": ["Diagram code (Ctrl+E)", "Keyboard shortcuts (?)"]
     },
     "leftLinger": {
       "total": 2,
@@ -434,9 +423,7 @@
       "file": "base.png",
       "observations": {
         "info": {
-          "keys": [
-            "jojopen:scratch:v2"
-          ],
+          "keys": ["jojopen:scratch:v2"],
           "elements": 19,
           "boardName": null
         }
@@ -551,26 +538,17 @@
         "hovered": {
           "total": 2,
           "shown": 2,
-          "titles": [
-            "Diagram code (Ctrl+E)",
-            "Keyboard shortcuts (?)"
-          ]
+          "titles": ["Diagram code (Ctrl+E)", "Keyboard shortcuts (?)"]
         },
         "stillOpen": {
           "total": 2,
           "shown": 2,
-          "titles": [
-            "Diagram code (Ctrl+E)",
-            "Keyboard shortcuts (?)"
-          ]
+          "titles": ["Diagram code (Ctrl+E)", "Keyboard shortcuts (?)"]
         },
         "leftShort": {
           "total": 2,
           "shown": 2,
-          "titles": [
-            "Diagram code (Ctrl+E)",
-            "Keyboard shortcuts (?)"
-          ]
+          "titles": ["Diagram code (Ctrl+E)", "Keyboard shortcuts (?)"]
         },
         "leftLinger": {
           "total": 2,

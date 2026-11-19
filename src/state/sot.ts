@@ -2,12 +2,12 @@
    This module deliberately depends only on the store and pure libs so that
    `actions.ts` can import it without a cycle. */
 
-import { clamp, download } from '../lib/dom';
-import { normalizeDoc, type BoardDoc, type Recording } from '../lib/model';
-import { boundsOf } from '../lib/geometry';
-import { elementSVG, svgToDataURL, type ExportEnv } from '../lib/exportSvg';
-import { gifEncode, gifPalette, mapToPalette } from '../lib/gif';
-import { arrowGeom } from '../lib/geometry';
+import { clamp, download } from "../lib/dom";
+import { normalizeDoc, type BoardDoc, type Recording } from "../lib/model";
+import { boundsOf } from "../lib/geometry";
+import { elementSVG, svgToDataURL, type ExportEnv } from "../lib/exportSvg";
+import { gifEncode, gifPalette, mapToPalette } from "../lib/gif";
+import { arrowGeom } from "../lib/geometry";
 import {
   S,
   colorFor,
@@ -21,7 +21,7 @@ import {
   sortedElements,
   theme,
   toast,
-} from './store';
+} from "./store";
 
 const sotWait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -32,14 +32,14 @@ export function sotRecList(): Recording[] {
 
 export function sotFmtMs(ms: number): string {
   const s = Math.max(0, ms || 0) / 1000;
-  if (s < 1) return '0s';
+  if (s < 1) return "0s";
   if (s < 60) return `${Math.round(s)}s`;
   const m = Math.floor(s / 60);
   const r = Math.round(s % 60);
-  return `${m}m${r ? ' ' + r + 's' : ''}`;
+  return `${m}m${r ? " " + r + "s" : ""}`;
 }
 
-export const sotStepWord = (n: number) => `${n} step${n === 1 ? '' : 's'}`;
+export const sotStepWord = (n: number) => `${n} step${n === 1 ? "" : "s"}`;
 
 /* ---------- recording ---------- */
 
@@ -60,11 +60,11 @@ export function sotStart() {
   S.rec = {
     startedAt: Date.now(),
     steps: 0,
-    frames: [{ json: snapshot(), at: 0, label: 'Start' }],
-    pendingLabel: '',
+    frames: [{ json: snapshot(), at: 0, label: "Start" }],
+    pendingLabel: "",
     timer: null,
   };
-  toast('Sands of Time: recording — click the hourglass again to stop');
+  toast("Sands of Time: recording — click the hourglass again to stop");
 }
 
 /** Called after any settled edit: capture the new frame once writes stop. */
@@ -88,9 +88,13 @@ export function recFlush() {
   const json = snapshot();
   const last = r.frames[r.frames.length - 1];
   if (last && last.json === json) return;
-  r.frames.push({ json, at: Date.now() - r.startedAt, label: r.pendingLabel || 'Edit' });
+  r.frames.push({
+    json,
+    at: Date.now() - r.startedAt,
+    label: r.pendingLabel || "Edit",
+  });
   r.steps++;
-  r.pendingLabel = '';
+  r.pendingLabel = "";
   notify();
 }
 
@@ -101,13 +105,22 @@ export function sotStop() {
   S.rec = null;
   if (r.frames.length <= 1) {
     notify();
-    toast('Nothing was drawn while recording');
+    toast("Nothing was drawn while recording");
     return;
   }
   const list = sotRecList();
-  const n = list.reduce((m, x) => Math.max(m, Number(/^Sands (\d+)$/.exec(x.name || '')?.[1] || 0)), 0) + 1;
+  const n =
+    list.reduce(
+      (m, x) =>
+        Math.max(m, Number(/^Sands (\d+)$/.exec(x.name || "")?.[1] || 0)),
+      0,
+    ) + 1;
   const rec: Recording = {
-    id: 'sot-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+    id:
+      "sot-" +
+      Date.now().toString(36) +
+      "-" +
+      Math.random().toString(36).slice(2, 6),
     name: `Sands ${n}`,
     createdAt: Date.now(),
     steps: r.frames.slice(1).map((f: any) => ({ label: f.label, at: f.at })),
@@ -118,16 +131,27 @@ export function sotStop() {
   S.sot.listOpen = true;
   persist(true);
   notify();
-  toast(`Saved ${rec.name} · ${sotStepWord(rec.steps.length)} · ${sotFmtMs(rec.duration)}`);
+  toast(
+    `Saved ${rec.name} · ${sotStepWord(rec.steps.length)} · ${sotFmtMs(rec.duration)}`,
+  );
 }
 
 /* ---------- replay ---------- */
 
 export function sotOpenReplay(id: string) {
   const rec = sotRecList().find((r) => r.id === id);
-  if (!rec) return toast('Recording not found');
+  if (!rec) return toast("Recording not found");
   S.sot.listOpen = false;
-  S.sot.replay = { id, index: 0, speed: 1, playing: false, timer: null, exportOpen: false, exporting: 0, union: null };
+  S.sot.replay = {
+    id,
+    index: 0,
+    speed: 1,
+    playing: false,
+    timer: null,
+    exportOpen: false,
+    exporting: 0,
+    union: null,
+  };
   S.selection.clear();
   notify();
 }
@@ -192,11 +216,18 @@ export function sotCycleSpeed() {
   } else notify();
 }
 
-export type SotScene = { doc: BoardDoc; w: number; h: number; union: { minX: number; minY: number; width: number; height: number } };
+export type SotScene = {
+  doc: BoardDoc;
+  w: number;
+  h: number;
+  union: { minX: number; minY: number; width: number; height: number };
+};
 
 /** Normalise a frame without touching the live document. */
 export function sotSceneFrom(json: string, union?: any): SotScene {
-  const u = union || sotFrameUnion({ frames: [{ json, at: 0, label: '' }] } as Recording);
+  const u =
+    union ||
+    sotFrameUnion({ frames: [{ json, at: 0, label: "" }] } as Recording);
   const doc = normalizeDoc({ ...JSON.parse(json), id: S.doc.id });
   return { doc, w: u.width + 80, h: u.height + 80, union: u };
 }
@@ -235,14 +266,15 @@ export function sotFrameUnion(rec: Recording) {
   } finally {
     S.doc = cur;
   }
-  if (!u) return { minX: 0, minY: 0, maxX: 960, maxY: 600, width: 960, height: 600 };
+  if (!u)
+    return { minX: 0, minY: 0, maxX: 960, maxY: 600, width: 960, height: 600 };
   return { ...u, width: u.maxX - u.minX, height: u.maxY - u.minY };
 }
 
 function env(): ExportEnv {
   return {
     th: theme(),
-    clean: settings().style === 'clean',
+    clean: settings().style === "clean",
     colorFor,
     files: S.doc.files,
     slides: slides(),
@@ -251,7 +283,13 @@ function env(): ExportEnv {
   };
 }
 
-export function sotFrameSVG(json: string, b: any, pad: number, W: number, H: number) {
+export function sotFrameSVG(
+  json: string,
+  b: any,
+  pad: number,
+  W: number,
+  H: number,
+) {
   const cur = S.doc;
   try {
     S.doc = normalizeDoc({ ...JSON.parse(json), id: cur.id });
@@ -267,14 +305,20 @@ export function sotFrameSVG(json: string, b: any, pad: number, W: number, H: num
     ];
     const e2 = env();
     for (const e of sortedElements()) parts.push(elementSVG(e, e2));
-    parts.push('</svg>');
-    return parts.join('');
+    parts.push("</svg>");
+    return parts.join("");
   } finally {
     S.doc = cur;
   }
 }
 
-export function sotSceneSVG(json: string, b: any, pad: number, W: number, H: number) {
+export function sotSceneSVG(
+  json: string,
+  b: any,
+  pad: number,
+  W: number,
+  H: number,
+) {
   return sotFrameSVG(json, b, pad, W, H);
 }
 
@@ -282,7 +326,7 @@ function sotLoadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
     const img = new Image();
     img.onload = () => res(img);
-    img.onerror = () => rej(new Error('Could not rasterise frame'));
+    img.onerror = () => rej(new Error("Could not rasterise frame"));
     img.src = url;
   });
 }
@@ -290,7 +334,8 @@ function sotLoadImage(url: string): Promise<HTMLImageElement> {
 function sotSizes(rec: Recording, maxSide: number) {
   const b = sotFrameUnion(rec);
   const pad = 40;
-  const aspect = Math.max(1, b.width + pad * 2) / Math.max(1, b.height + pad * 2);
+  const aspect =
+    Math.max(1, b.width + pad * 2) / Math.max(1, b.height + pad * 2);
   let w = maxSide;
   let h = Math.round(maxSide / aspect);
   if (aspect < 1) {
@@ -322,7 +367,7 @@ function sotExportProgress(p: number) {
   notify();
 }
 
-export async function sotExport(kind: 'gif' | 'mp4') {
+export async function sotExport(kind: "gif" | "mp4") {
   const rp = S.sot.replay;
   const rec = sotReplayRec();
   if (!rp || !rec) return;
@@ -331,19 +376,20 @@ export async function sotExport(kind: 'gif' | 'mp4') {
   rp.exporting = 0.001;
   notify();
   try {
-    if (kind === 'mp4') {
-      if (!sotCanMp4()) throw new Error("This browser can't encode MP4 at this size. Try GIF.");
+    if (kind === "mp4") {
+      if (!sotCanMp4())
+        throw new Error("This browser can't encode MP4 at this size. Try GIF.");
       const blob = await sotEncodeMp4(rec);
-      download(rec.name.replace(/\s+/g, '-').toLowerCase() + '.mp4', blob);
-      toast('MP4 saved');
+      download(rec.name.replace(/\s+/g, "-").toLowerCase() + ".mp4", blob);
+      toast("MP4 saved");
     } else {
       const blob = await sotEncodeGif(rec);
-      download(rec.name.replace(/\s+/g, '-').toLowerCase() + '.gif', blob);
-      toast('GIF saved');
+      download(rec.name.replace(/\s+/g, "-").toLowerCase() + ".gif", blob);
+      toast("GIF saved");
     }
   } catch (e: any) {
     console.warn(e);
-    toast(e?.message || 'Export failed — try GIF');
+    toast(e?.message || "Export failed — try GIF");
   } finally {
     if (S.sot.replay) S.sot.replay.exporting = 0;
     notify();
@@ -354,10 +400,10 @@ export async function sotExport(kind: 'gif' | 'mp4') {
 
 export async function sotEncodeGif(rec: Recording): Promise<Blob> {
   const { b, pad, w, h } = sotSizes(rec, 720);
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const images: Uint8ClampedArray[] = [];
   for (let i = 0; i < rec.frames.length; i++) {
     const svg = sotFrameSVG(rec.frames[i].json, b, pad, w, h);
@@ -373,7 +419,7 @@ export async function sotEncodeGif(rec: Recording): Promise<Blob> {
   const indexed = images.map((px) => mapToPalette(px, palette));
   sotExportProgress(0.94);
   const bytes = gifEncode(w, h, palette, indexed, sotDelays(rec));
-  return new Blob([bytes as unknown as BlobPart], { type: 'image/gif' });
+  return new Blob([bytes as unknown as BlobPart], { type: "image/gif" });
 }
 
 /* ---------- MP4 (MediaRecorder, H.264) ---------- */
@@ -381,8 +427,9 @@ export async function sotEncodeGif(rec: Recording): Promise<Blob> {
 export function sotCanMp4(): boolean {
   try {
     return (
-      typeof MediaRecorder !== 'undefined' &&
-      (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') || MediaRecorder.isTypeSupported('video/mp4'))
+      typeof MediaRecorder !== "undefined" &&
+      (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1") ||
+        MediaRecorder.isTypeSupported("video/mp4"))
     );
   } catch {
     return false;
@@ -391,14 +438,19 @@ export function sotCanMp4(): boolean {
 
 export async function sotEncodeMp4(rec: Recording): Promise<Blob> {
   const { b, pad, w, h } = sotSizes(rec, 1080);
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext("2d")!;
   const stream = canvas.captureStream(0);
   const track: any = stream.getVideoTracks()[0];
-  const mime = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') ? 'video/mp4;codecs=avc1' : 'video/mp4';
-  const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+  const mime = MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")
+    ? "video/mp4;codecs=avc1"
+    : "video/mp4";
+  const recorder = new MediaRecorder(stream, {
+    mimeType: mime,
+    videoBitsPerSecond: 4_000_000,
+  });
   const chunks: Blob[] = [];
   recorder.ondataavailable = (e) => {
     if (e.data && e.data.size) chunks.push(e.data);
@@ -429,5 +481,5 @@ export async function sotEncodeMp4(rec: Recording): Promise<Blob> {
   try {
     track.stop();
   } catch {}
-  return new Blob(chunks, { type: 'video/mp4' });
+  return new Blob(chunks, { type: "video/mp4" });
 }

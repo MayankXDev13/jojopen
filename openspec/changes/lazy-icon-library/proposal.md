@@ -14,9 +14,11 @@ The full icon library contains 443 vector icons (164 sketch and 279 brand icons)
 ## Capabilities
 
 ### New Capabilities
+
 - `icon-library`: Covers icon indexing, alias and brand resolution, fuzzy keyword search, and on-demand vector path retrieval for canvas nodes and diagram export.
 
 ### Modified Capabilities
+
 None.
 
 ## Impact

@@ -1,6 +1,12 @@
-import type { CanvasPointerEvent, ToolContext, ToolController } from './types';
-import { MAKE } from '../lib/model';
-import { pressureFromEvent, simulatePressure, simplify, snapAngle15, streamline } from '../lib/ink';
+import type { CanvasPointerEvent, ToolContext, ToolController } from "./types";
+import { MAKE } from "../lib/model";
+import {
+  pressureFromEvent,
+  simulatePressure,
+  simplify,
+  snapAngle15,
+  streamline,
+} from "../lib/ink";
 import {
   S,
   addElement,
@@ -9,13 +15,13 @@ import {
   pushHistory,
   removeElements,
   scheduleNotify,
-} from '../state/store';
+} from "../state/store";
 
 export class PenToolController implements ToolController {
-  readonly id = 'pen';
+  readonly id = "pen";
 
   onPointerDown(e: CanvasPointerEvent, ctx: ToolContext): void {
-    pushHistory('draw');
+    pushHistory("draw");
     const { pressure, isPen } = pressureFromEvent(e.nativeEvent as any, 0.5);
     const w = { x: e.worldX, y: e.worldY };
     const el = MAKE.freehand({
@@ -28,14 +34,20 @@ export class PenToolController implements ToolController {
     });
     addElement(el);
     // Original selects nothing while drawing: no box, no handles follow the tip.
-    S.drag = { mode: 'pen', id: el.id, lastT: performance.now(), lastW: w, straightFrom: null };
+    S.drag = {
+      mode: "pen",
+      id: el.id,
+      lastT: performance.now(),
+      lastW: w,
+      straightFrom: null,
+    };
     ctx.capturePointer(e.pointerId);
     notify();
   }
 
   onPointerMove(e: CanvasPointerEvent, ctx: ToolContext): void {
     const d: any = S.drag;
-    if (!d || d.mode !== 'pen') return;
+    if (!d || d.mode !== "pen") return;
     const el = S.doc.elements[d.id];
     if (!el) return;
 
@@ -82,7 +94,7 @@ export class PenToolController implements ToolController {
 
   onPointerUp(): void {
     const d: any = S.drag;
-    if (d && d.mode === 'pen') {
+    if (d && d.mode === "pen") {
       const el = S.doc.elements[d.id];
       if (el) {
         // Simplify + cap + bbox.
@@ -95,7 +107,9 @@ export class PenToolController implements ToolController {
           const simple = simplify(pts, 1.2).slice(0, 600);
           el.points = simple.map((p) => ({ x: p.x, y: p.y }));
           el.pressures = simple.map((p) => p.pressure);
-        } catch { /* keep */ }
+        } catch {
+          /* keep */
+        }
 
         const pts = el.points!.map((p) => ({ x: el.x + p.x, y: el.y + p.y }));
         const xs = pts.map((p) => p.x);
@@ -117,7 +131,7 @@ export class PenToolController implements ToolController {
   }
 
   getCursor(): string {
-    return 'crosshair';
+    return "crosshair";
   }
 }
 

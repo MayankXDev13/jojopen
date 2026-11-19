@@ -31,7 +31,6 @@ See `proposal.md` for motivation. Headless Chrome at 1440×900 on 18 Nov 2026 (l
   `http://127.0.0.1:5173/` and relies on `data-act`/`data-tool`/id hooks. The live site has no
   such hooks, so its probes target `cp-*` classes and titles.
 
-
 ## Goals / Non-Goals
 
 **Goals:**
@@ -106,7 +105,6 @@ an item runs its action and closes the menu.
   as an intentional difference in `docs/PARITY.md`.
 - Alternatives considered: keep the modal and restyle it (rejected: spec requires anchored,
   canvas visible); a floating-ui-style portal (rejected: unnecessary dependency for one menu).
-
 
 ### 4. Fix Random colors at the colour-key boundary
 
@@ -189,4 +187,3 @@ No changes to the port's storage schema or keys. On boot, a new read-through imp
 import is undesired, deleting the port board and reloading returns to the demo/start-card path.
 Rollback is a revert of the UI/action commits; boards keep opening because no document fields
 change.
-

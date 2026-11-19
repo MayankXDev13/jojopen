@@ -1,11 +1,15 @@
-import type { CanvasPointerEvent, ToolContext, ToolController } from './types';
-import { S, notify, scheduleNotify } from '../state/store';
+import type { CanvasPointerEvent, ToolContext, ToolController } from "./types";
+import { S, notify, scheduleNotify } from "../state/store";
 
 export class PanToolController implements ToolController {
-  readonly id = 'pan';
+  readonly id = "pan";
 
   onPointerDown(e: CanvasPointerEvent, ctx: ToolContext): void {
-    S.drag = { mode: 'pan', start: { x: e.clientX, y: e.clientY }, cam: { ...S.camera } };
+    S.drag = {
+      mode: "pan",
+      start: { x: e.clientX, y: e.clientY },
+      cam: { ...S.camera },
+    };
     S.panning = true;
     ctx.capturePointer(e.pointerId);
     notify();
@@ -13,7 +17,7 @@ export class PanToolController implements ToolController {
 
   onPointerMove(e: CanvasPointerEvent): void {
     const d: any = S.drag;
-    if (d && d.mode === 'pan') {
+    if (d && d.mode === "pan") {
       S.camera.x = d.cam.x + (e.clientX - d.start.x);
       S.camera.y = d.cam.y + (e.clientY - d.start.y);
       scheduleNotify();
@@ -22,7 +26,7 @@ export class PanToolController implements ToolController {
 
   onPointerUp(): void {
     const d: any = S.drag;
-    if (d && d.mode === 'pan') {
+    if (d && d.mode === "pan") {
       S.drag = null;
     }
     S.panning = false;
@@ -30,7 +34,7 @@ export class PanToolController implements ToolController {
   }
 
   getCursor(): string {
-    return S.panning ? 'grabbing' : 'grab';
+    return S.panning ? "grabbing" : "grab";
   }
 }
 

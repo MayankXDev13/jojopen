@@ -3,6 +3,7 @@
 ## Context
 
 See `proposal.md` (Why) for motivation. Current state:
+
 - `src/state/store.ts` exports mutable singleton `S: any` plus `subscribe`/`getVersion`/`notify`/`scheduleNotify`; `App.tsx` uses `useSyncExternalStore(subscribe, getVersion)`.
 - `src/state/actions.ts` mutates `S` directly (`randomColors` repaints all, no persistent mode; `bumpText` only handles `type === 'text'`).
 - `src/components/Canvas.tsx` gates pointer handling on `S.editingId`, creates text/freehand via `MAKE`, excludes `arrow`/`freehand` from resize; `TextEditor.tsx` reads `S.editingId`.
@@ -15,11 +16,13 @@ Constraints: `localStorage` board JSON shape unchanged; `board-bootstrap` first-
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Zustand store with the same observable behavior the specs require; transient pointer/drag state never persisted.
 - Text/line/arrow/size/random-mode all respond per specs with undo + persist.
 - Live visual parity for sticky, pen stroke, zoom menu, palette row.
 
 **Non-Goals:**
+
 - No schema migration or collaboration/multiplayer; no new export formats.
 - No AI/network changes; no DSL/layout changes.
 - No recovery UI for corrupt data (owned by `add-zod` change).

@@ -37,16 +37,16 @@ The React port mirrors this visual refresh in `src/styles/newui.css`.
 
 Earlier passes could not reach the site through the in-app browser (the desktop browser was disconnected). This pass used a **real Chrome instance driven over CDP**, which is a genuine end-to-end test rather than static bundle reading:
 
-| Item | Value |
-|---|---|
-| Target | `https://jojopen.com/` |
-| Browser | Google Chrome `--headless=new`, 1440×900, DPR 1 |
-| Driver | `docs/harness/lib.js` (raw CDP: real mouse/keyboard events, screenshots, console capture) |
-| Interactions | Hover, click, drag, right-click, keyboard shortcuts, text input, file-less flows |
-| Console errors | **0** across all runs |
-| Failed requests | **0** |
-| Screenshots | 30 in [`docs/img/`](docs/img/) |
-| Dates | 14 Nov 2026 |
+| Item            | Value                                                                                     |
+| --------------- | ----------------------------------------------------------------------------------------- |
+| Target          | `https://jojopen.com/`                                                                    |
+| Browser         | Google Chrome `--headless=new`, 1440×900, DPR 1                                           |
+| Driver          | `docs/harness/lib.js` (raw CDP: real mouse/keyboard events, screenshots, console capture) |
+| Interactions    | Hover, click, drag, right-click, keyboard shortcuts, text input, file-less flows          |
+| Console errors  | **0** across all runs                                                                     |
+| Failed requests | **0**                                                                                     |
+| Screenshots     | 30 in [`docs/img/`](docs/img/)                                                            |
+| Dates           | 14 Nov 2026                                                                               |
 
 The harness scripts are included so the run is reproducible:
 
@@ -121,23 +121,23 @@ The chrome is intentionally collapsible: tools and style controls are hidden (`.
 
 Collapsed to a two-icon pill at rest; **expands on hover** into the full vertical tool rail.
 
-| Tool | Shortcut | Notes |
-|---|---|---|
-| Select | `V` / `1` | Default pointer; marquee selection |
-| Hand | `H` | Or hold **Space** |
-| Rectangle | `R` | Sketch-drawn rectangle |
-| Ellipse | `O` | |
-| Diamond | `D` | Decision shape |
-| Cylinder | `C` | Database shape |
-| Arrow | `A` | Connects shapes; labeled edges |
-| Line | `L` | |
-| Text | `T` | Inline text editing |
-| Pen | `P` | Freehand |
-| Sticky note | `S` | Yellow note, inline editor |
-| Image | `I` | File picker / drop |
-| Diagram frame | `F` | Frame with a `# Diagram` title |
-| Eraser | `E` | |
-| Laser pointer | `K` | Presentation laser |
+| Tool          | Shortcut  | Notes                              |
+| ------------- | --------- | ---------------------------------- |
+| Select        | `V` / `1` | Default pointer; marquee selection |
+| Hand          | `H`       | Or hold **Space**                  |
+| Rectangle     | `R`       | Sketch-drawn rectangle             |
+| Ellipse       | `O`       |                                    |
+| Diamond       | `D`       | Decision shape                     |
+| Cylinder      | `C`       | Database shape                     |
+| Arrow         | `A`       | Connects shapes; labeled edges     |
+| Line          | `L`       |                                    |
+| Text          | `T`       | Inline text editing                |
+| Pen           | `P`       | Freehand                           |
+| Sticky note   | `S`       | Yellow note, inline editor         |
+| Image         | `I`       | File picker / drop                 |
+| Diagram frame | `F`       | Frame with a `# Diagram` title     |
+| Eraser        | `E`       |                                    |
+| Laser pointer | `K`       | Presentation laser                 |
 
 Source: `aria-label`/`title` on `.cp-toolbar button`; command registry in the bundle.
 
@@ -145,14 +145,14 @@ Source: `aria-label`/`title` on `.cp-toolbar button`; command registry in the bu
 
 Always visible, six actions top-to-bottom:
 
-| Icon | `aria-label` | Behaviour |
-|---|---|---|
-| **AI** | `AI assistant` | Toggles the Assistant panel (`Ctrl+I`) |
+| Icon          | `aria-label`                           | Behaviour                                                     |
+| ------------- | -------------------------------------- | ------------------------------------------------------------- |
+| **AI**        | `AI assistant`                         | Toggles the Assistant panel (`Ctrl+I`)                        |
 | **Hourglass** | `Sands of Time — record what you draw` | Starts/stops recording; shows a red state and live step count |
-| **Slide** | `Slides` | Toggles the Slides panel (`Ctrl+Shift+S`) |
-| **Book** | `My boards` | Opens My boards (sign-in gate for guests) |
-| **Code** | `Diagram code` | Toggles the code panel (`Ctrl+E`) |
-| **?** | `Keyboard shortcuts` | Shortcut sheet (`?`) |
+| **Slide**     | `Slides`                               | Toggles the Slides panel (`Ctrl+Shift+S`)                     |
+| **Book**      | `My boards`                            | Opens My boards (sign-in gate for guests)                     |
+| **Code**      | `Diagram code`                         | Toggles the code panel (`Ctrl+E`)                             |
+| **?**         | `Keyboard shortcuts`                   | Shortcut sheet (`?`)                                          |
 
 ### 3.4 Bottom chrome
 
@@ -186,10 +186,10 @@ Everything you draw is a first-class element with position, size, layer order, l
 
 **Board styles**
 
-| Style | Look | Notes |
-|---|---|---|
-| **Sketch** | Wobbly hand-drawn strokes, handwriting font | Default |
-| **Clean** | Straight strokes, UI font | Good for docs |
+| Style          | Look                                            | Notes                           |
+| -------------- | ----------------------------------------------- | ------------------------------- |
+| **Sketch**     | Wobbly hand-drawn strokes, handwriting font     | Default                         |
+| **Clean**      | Straight strokes, UI font                       | Good for docs                   |
 | **Chalkboard** | Dark chalkboard texture, chalk-coloured strokes | Auto-switches the theme to dark |
 
 **Colour modes**
@@ -229,18 +229,18 @@ Clicking an element selects it (blue handles + a floating format bar at the bott
 
 **Node format bar**
 
-| Control | Meaning |
-|---|---|
-| `Auto · Edge` | Colour is picked automatically from the node name/role; click for the palette |
-| Colour dot | Shows the selected element's colour; opens the colour picker and writes the choice as one undoable step |
-| Box / Ellipse / Diamond / Cylinder / Pill / Document | **Morph** the shape without losing text |
-| `A−` / `A+` | Text size down/up (shows current scale, e.g. “now 1×”) |
-| `Size 1×` | Per-item scale |
-| Layer order | Bring forward/back, front/back |
-| Lock | `Ctrl+Shift+L` |
-| Delete | `Del` / `Backspace` |
-| `Tidy up` | Re-run automatic layout for the selected diagram |
-| `Clean it` | AI presentation layout (`Ctrl+Shift+K`) |
+| Control                                              | Meaning                                                                                                 |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `Auto · Edge`                                        | Colour is picked automatically from the node name/role; click for the palette                           |
+| Colour dot                                           | Shows the selected element's colour; opens the colour picker and writes the choice as one undoable step |
+| Box / Ellipse / Diamond / Cylinder / Pill / Document | **Morph** the shape without losing text                                                                 |
+| `A−` / `A+`                                          | Text size down/up (shows current scale, e.g. “now 1×”)                                                  |
+| `Size 1×`                                            | Per-item scale                                                                                          |
+| Layer order                                          | Bring forward/back, front/back                                                                          |
+| Lock                                                 | `Ctrl+Shift+L`                                                                                          |
+| Delete                                               | `Del` / `Backspace`                                                                                     |
+| `Tidy up`                                            | Re-run automatic layout for the selected diagram                                                        |
+| `Clean it`                                           | AI presentation layout (`Ctrl+Shift+K`)                                                                 |
 
 **Edge format bar** — selecting an arrow exposes routing and style:
 
@@ -336,13 +336,13 @@ Slides are **frames placed on the board**, 16:9 (1280×720 units). Anything draw
 
 Six layouts, each with a mini diagram:
 
-| Layout | Purpose |
-|---|---|
-| Empty | Blank 16:9 frame |
-| Title | Large title + subtitle |
-| Section | Section divider |
-| Bullets | Title + bullet list |
-| Diagram | Full-bleed diagram area |
+| Layout            | Purpose                            |
+| ----------------- | ---------------------------------- |
+| Empty             | Blank 16:9 frame                   |
+| Title             | Large title + subtitle             |
+| Section           | Section divider                    |
+| Bullets           | Title + bullet list                |
+| Diagram           | Full-bleed diagram area            |
 | Diagram + bullets | Split: diagram left, bullets right |
 
 Layout geometry (from the bundle): 1280×720 unit, title at `y+253` size 69, subtitle `y+373` size 29, bullets title `y+64` size 48, body `x+88 y+187` size 29; diagram areas 147→667 and 533→1200 for the split layout.
@@ -394,7 +394,7 @@ This is JojoPen's “recording” feature. It records **drawing actions on the b
 
 1. Click the **hourglass** in the right rail. Its tooltip/`aria-label` becomes **“Stop recording (N steps so far)”**, the icon turns red, and a toast says:
    > “Sands of Time: recording — click the hourglass again to stop”
-2. Draw normally (shapes, stickies, arrows, labels…). Steps are counted live. The counter follows *history steps*, not objects: in one run two drawn shapes reported “3 steps”, because each create/resize pair can land as its own entry.
+2. Draw normally (shapes, stickies, arrows, labels…). Steps are counted live. The counter follows _history steps_, not objects: in one run two drawn shapes reported “3 steps”, because each create/resize pair can land as its own entry.
 3. Click the hourglass again to stop.
 
 ![Recordings card with step count and duration](docs/img/19-recordings.png)
@@ -402,11 +402,11 @@ This is JojoPen's “recording” feature. It records **drawing actions on the b
 The **Sands of Time** card appears top-right:
 
 - Header with hourglass icon, recording count, close.
-- Empty state: *“Record what you draw, then rewind and watch it come back.”*
+- Empty state: _“Record what you draw, then rewind and watch it come back.”_
 - Rows: `Sands 1 · 2 steps · 1s`, play button, delete button.
 - **Record new** starts another take.
 
-**Session-only.** Recordings live in memory for the open tab: they are *not* written to `localStorage` or IndexedDB (verified — after a reload the rail goes back to “Sands of Time — record what you draw”, there is no card, and the stored doc has no `recordings` field). The rail shows the state in its label and class: `cp-sotbtn is-off` (idle), `cp-sotbtn is-recording` → *“Stop recording (N steps so far)”*, `cp-sotbtn is-off has-saved` → *“Sands of Time — 1 recording”*.
+**Session-only.** Recordings live in memory for the open tab: they are _not_ written to `localStorage` or IndexedDB (verified — after a reload the rail goes back to “Sands of Time — record what you draw”, there is no card, and the stored doc has no `recordings` field). The rail shows the state in its label and class: `cp-sotbtn is-off` (idle), `cp-sotbtn is-recording` → _“Stop recording (N steps so far)”_, `cp-sotbtn is-off has-saved` → _“Sands of Time — 1 recording”_.
 
 > **Rebuild note.** `index.html` keeps recordings in the board document instead, so they survive reloads; everything else (labels, card, player) matches.
 
@@ -491,16 +491,16 @@ Requires sign-in; then an external AI app connects to your boards over MCP. **[g
 
 ![Export dialog — PNG](docs/img/07-export.png)
 
-| Option | Values |
-|---|---|
-| **WHAT** | `Whole board` · `Selection` (when something is selected) · `Slides (N)` (when slides exist) |
-| **FORMAT** | `PNG` · `SVG` |
-| **SCALE** | `1×` `2×` `3×` `4×` (PNG only; hidden for SVG) |
-| **Background** | checkbox, on by default |
-| **Dark mode** | render with the dark palette |
-| **Embed board (re-opens as editable)** | PNG only; embeds the board JSON so the image can be reopened in JojoPen |
-| Size readout | e.g. `2144 × 1032 px`, `1088 × 548 px`, `5344 × 1656 px` |
-| Actions | **Copy** (clipboard) · **Download PNG / Download SVG / Download N PNGs** |
+| Option                                 | Values                                                                                      |
+| -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **WHAT**                               | `Whole board` · `Selection` (when something is selected) · `Slides (N)` (when slides exist) |
+| **FORMAT**                             | `PNG` · `SVG`                                                                               |
+| **SCALE**                              | `1×` `2×` `3×` `4×` (PNG only; hidden for SVG)                                              |
+| **Background**                         | checkbox, on by default                                                                     |
+| **Dark mode**                          | render with the dark palette                                                                |
+| **Embed board (re-opens as editable)** | PNG only; embeds the board JSON so the image can be reopened in JojoPen                     |
+| Size readout                           | e.g. `2144 × 1032 px`, `1088 × 548 px`, `5344 × 1656 px`                                    |
+| Actions                                | **Copy** (clipboard) · **Download PNG / Download SVG / Download N PNGs**                    |
 
 ![Export dialog — SVG](docs/img/09-export-svg.png)
 
@@ -543,11 +543,11 @@ Edits to an imported or seeded board persist through the port's keys (`jojopen.d
 
 ## 13. Persistence and data model
 
-| Store | Key / DB | Contents |
-|---|---|---|
+| Store        | Key / DB             | Contents                                                                                                                   |
+| ------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | localStorage | `jojopen:scratch:v2` | Whole scratch board JSON: `{ version: 1, type: "jojopen", board: { id, name, schemaVersion, settings, elements, files } }` |
-| IndexedDB | `jojopen` (v1) | Single object store `keys` — AI provider keys (“Remember on this device”) |
-| Memory only | — | Sands of Time recordings (frames + labels); lost on reload |
+| IndexedDB    | `jojopen` (v1)       | Single object store `keys` — AI provider keys (“Remember on this device”)                                                  |
+| Memory only  | —                    | Sands of Time recordings (frames + labels); lost on reload                                                                 |
 
 Document shape (dumped from the live app):
 
@@ -583,81 +583,81 @@ Opened by `?` or the hamburger. Verbatim from the live sheet:
 
 **Tools**
 
-| Action | Keys |
-|---|---|
-| Select | `V` `1` |
-| Hand (or hold Space) | `H` |
-| Rectangle | `R` |
-| Ellipse | `O` |
-| Diamond | `D` |
-| Cylinder (database) | `C` |
-| Arrow | `A` |
-| Line | `L` |
-| Text | `T` |
-| Pen | `P` |
-| Sticky note | `S` |
-| Image | `I` |
-| Diagram frame | `F` |
-| Eraser | `E` |
-| Laser pointer | `K` |
-| Insert icon (search) | `/` |
+| Action               | Keys    |
+| -------------------- | ------- |
+| Select               | `V` `1` |
+| Hand (or hold Space) | `H`     |
+| Rectangle            | `R`     |
+| Ellipse              | `O`     |
+| Diamond              | `D`     |
+| Cylinder (database)  | `C`     |
+| Arrow                | `A`     |
+| Line                 | `L`     |
+| Text                 | `T`     |
+| Pen                  | `P`     |
+| Sticky note          | `S`     |
+| Image                | `I`     |
+| Diagram frame        | `F`     |
+| Eraser               | `E`     |
+| Laser pointer        | `K`     |
+| Insert icon (search) | `/`     |
 
 **Edit**
 
-| Action | Keys |
-|---|---|
-| Undo | `Ctrl+Z` |
-| Redo | `Ctrl+Shift+Z` `Ctrl+Y` |
-| Copy | `Ctrl+C` |
-| Cut | `Ctrl+X` |
-| Paste | `Ctrl+V` |
-| Duplicate | `Ctrl+D` |
-| Delete | `Del` `Backspace` |
-| Select all | `Ctrl+A` |
-| Deselect / cancel | `Esc` |
-| Edit label | `Enter` |
+| Action            | Keys                    |
+| ----------------- | ----------------------- |
+| Undo              | `Ctrl+Z`                |
+| Redo              | `Ctrl+Shift+Z` `Ctrl+Y` |
+| Copy              | `Ctrl+C`                |
+| Cut               | `Ctrl+X`                |
+| Paste             | `Ctrl+V`                |
+| Duplicate         | `Ctrl+D`                |
+| Delete            | `Del` `Backspace`       |
+| Select all        | `Ctrl+A`                |
+| Deselect / cancel | `Esc`                   |
+| Edit label        | `Enter`                 |
 
 **Arrange**
 
-| Action | Keys |
-|---|---|
-| Nudge one dot (Shift: 1 px) | `←` |
-| Group | `Ctrl+G` |
-| Ungroup | `Ctrl+Shift+G` |
-| Bring forward | `Ctrl+]` |
-| Send backward | `Ctrl+[` |
-| Bring to front | `Ctrl+Shift+]` |
-| Send to back | `Ctrl+Shift+[` |
-| Lock / unlock | `Ctrl+Shift+L` |
+| Action                      | Keys           |
+| --------------------------- | -------------- |
+| Nudge one dot (Shift: 1 px) | `←`            |
+| Group                       | `Ctrl+G`       |
+| Ungroup                     | `Ctrl+Shift+G` |
+| Bring forward               | `Ctrl+]`       |
+| Send backward               | `Ctrl+[`       |
+| Bring to front              | `Ctrl+Shift+]` |
+| Send to back                | `Ctrl+Shift+[` |
+| Lock / unlock               | `Ctrl+Shift+L` |
 
 **View**
 
-| Action | Keys |
-|---|---|
-| Zoom in | `Ctrl+=` `Ctrl++` |
-| Zoom out | `Ctrl+-` |
-| Zoom to 100% | `Shift+0` |
-| Fit everything | `Shift+1` |
-| Fit selection | `Shift+2` |
-| Snap to dots | `Ctrl+'` |
-| Show dots | `Ctrl+Shift+'` |
-| Zen mode (hide all controls) | `Alt+Z` |
+| Action                       | Keys              |
+| ---------------------------- | ----------------- |
+| Zoom in                      | `Ctrl+=` `Ctrl++` |
+| Zoom out                     | `Ctrl+-`          |
+| Zoom to 100%                 | `Shift+0`         |
+| Fit everything               | `Shift+1`         |
+| Fit selection                | `Shift+2`         |
+| Snap to dots                 | `Ctrl+'`          |
+| Show dots                    | `Ctrl+Shift+'`    |
+| Zen mode (hide all controls) | `Alt+Z`           |
 
 **Panels**
 
-| Action | Keys |
-|---|---|
-| Command palette | `Ctrl+K` *(see §16 — placeholder)* |
-| Diagram code | `Ctrl+E` |
-| Assistant | `Ctrl+I` |
-| Export | `Ctrl+Shift+E` |
-| Slides | `Ctrl+Shift+S` |
-| Present slides | `Ctrl+Enter` |
-| Selection to slide | `Ctrl+Alt+S` |
-| Clean it (AI presentation layout) | `Ctrl+Shift+K` |
-| Keyboard shortcuts | `?` |
+| Action                            | Keys                               |
+| --------------------------------- | ---------------------------------- |
+| Command palette                   | `Ctrl+K` _(see §16 — placeholder)_ |
+| Diagram code                      | `Ctrl+E`                           |
+| Assistant                         | `Ctrl+I`                           |
+| Export                            | `Ctrl+Shift+E`                     |
+| Slides                            | `Ctrl+Shift+S`                     |
+| Present slides                    | `Ctrl+Enter`                       |
+| Selection to slide                | `Ctrl+Alt+S`                       |
+| Clean it (AI presentation layout) | `Ctrl+Shift+K`                     |
+| Keyboard shortcuts                | `?`                                |
 
-Footer hint on the sheet: *“Hold Space to pan · hold Alt while dragging to place freely · scroll to pan, pinch or Ctrl+scroll to zoom”*.
+Footer hint on the sheet: _“Hold Space to pan · hold Alt while dragging to place freely · scroll to pan, pinch or Ctrl+scroll to zoom”_.
 
 ---
 
@@ -665,40 +665,40 @@ Footer hint on the sheet: *“Hold Space to pan · hold Alt while dragging to pl
 
 All checks were executed against the live site. **0 console errors, 0 failed requests** in every run.
 
-| # | Area | Action | Result | Evidence |
-|---|---|---|---|---|
-| 1 | Boot | Load `/` | Scratch board with URL-shortener diagram, “Saved on this device” | `01-board.png` |
-| 2 | Chrome | Hover left rail | Toolbar expands to 15 tools | `02-toolbar.png` |
-| 3 | Style | Click Clean | Straight-stroke render | `03-style-clean.png` |
-| 4 | Style | Click Chalkboard | Dark chalkboard render | `04-style-chalkboard.png` |
-| 5 | Colour | Toggle B/W | All colours off, hierarchy preserved | `05-bw.png` |
-| 6 | Theme | Toggle dark | Dark canvas/ink | `06-dark.png` |
-| 7 | Export | Open dialog | WHAT/FORMAT/SCALE/Background/Dark/Embed + live size | `07-export.png` |
-| 8 | Export | Add slide → open | WHAT gains “Slides (1)” | `08-export-slides.png` |
-| 9 | Export | Format SVG | Scale hidden, Download SVG | `09-export-svg.png` |
-| 10 | Select | Click CDN node | Handles + node format bar (colour, morph, size, layer, lock, delete, Clean it) | `10-selection.png` |
-| 11 | Select | Click an edge | Elbow/curved/straight, dashed-async, layer, lock, delete | `11-edge.png` |
-| 12 | Code | New diagram | DSL with roles, group, labels, async edge; “Synced with canvas” | `12-code.png` |
-| 13 | Code | Import Mermaid | Dialog with textarea and Convert to diagram | `13-mermaid.png` |
-| 14 | Slides | Open panel | Empty state + Add slide / Selection → slide | `14-slides-panel.png` |
-| 15 | Slides | Add slide | Six layouts | `15-layouts.png` |
-| 16 | Slides | Title layout | Slide frame on canvas + inspector with builds and speaker notes | `16-slide-builds.png` |
-| 17 | Present | Present title slide | Fullscreen 16:9 slide, control pill, notes | `17-present.png` |
-| 18 | Record | Start, draw 2 shapes | Red hourglass, live step count, recording toast | `18-recording-active.png` |
-| 19 | Record | Stop | Sands card with `Sands 1 · 2 steps · 1s`, Record new, delete | `19-recordings.png` |
-| 20 | Replay | Play recording | Step scrubber 0/2, play/step, speed, exit | `20-replay.png` |
-| 21 | Replay | Export menu | GIF / MP4 video | `21-replay-export.png` |
-| 22 | Icons | Press `/` | Searchable icon grid, Tab/Enter, Icon only | `22-icons.png` |
-| 23 | Frame | Draw with `F` | Titled `# Diagram` frame + Tidy up | `23-frame.png` |
-| 24 | View | `Alt+Z` | Zen mode hides chrome | `24-zen.png` |
-| 25 | AI | `Ctrl+I` | Assistant with suggestions and composer | `25-assistant.png` |
-| 26 | AI | Connect AI | 4 providers, key, model, remember toggle, Test & connect | `26-connect-ai.png` |
-| 27 | AI | Connect via MCP | MCP tab + sign-in requirement | `27-mcp.png` |
-| 28 | Boards | My boards | Sign-in gate (Google) | `28-boards.png` |
-| 29 | Shortcuts | `?` | Full 3-column sheet | `29-shortcuts.png` |
-| 30 | Palette | `Ctrl+K` | Toast: “Command palette arrives in step 7” | `30-palette.png` |
-| 31 | Persistence | Reload | Board, styles and slides restored from `jojopen:scratch:v2`; recordings are dropped (memory-only) | state dump |
-| 32 | Sign in | Click | Redirects to Google OAuth (no in-app errors) | observed |
+| #   | Area        | Action               | Result                                                                                            | Evidence                  |
+| --- | ----------- | -------------------- | ------------------------------------------------------------------------------------------------- | ------------------------- |
+| 1   | Boot        | Load `/`             | Scratch board with URL-shortener diagram, “Saved on this device”                                  | `01-board.png`            |
+| 2   | Chrome      | Hover left rail      | Toolbar expands to 15 tools                                                                       | `02-toolbar.png`          |
+| 3   | Style       | Click Clean          | Straight-stroke render                                                                            | `03-style-clean.png`      |
+| 4   | Style       | Click Chalkboard     | Dark chalkboard render                                                                            | `04-style-chalkboard.png` |
+| 5   | Colour      | Toggle B/W           | All colours off, hierarchy preserved                                                              | `05-bw.png`               |
+| 6   | Theme       | Toggle dark          | Dark canvas/ink                                                                                   | `06-dark.png`             |
+| 7   | Export      | Open dialog          | WHAT/FORMAT/SCALE/Background/Dark/Embed + live size                                               | `07-export.png`           |
+| 8   | Export      | Add slide → open     | WHAT gains “Slides (1)”                                                                           | `08-export-slides.png`    |
+| 9   | Export      | Format SVG           | Scale hidden, Download SVG                                                                        | `09-export-svg.png`       |
+| 10  | Select      | Click CDN node       | Handles + node format bar (colour, morph, size, layer, lock, delete, Clean it)                    | `10-selection.png`        |
+| 11  | Select      | Click an edge        | Elbow/curved/straight, dashed-async, layer, lock, delete                                          | `11-edge.png`             |
+| 12  | Code        | New diagram          | DSL with roles, group, labels, async edge; “Synced with canvas”                                   | `12-code.png`             |
+| 13  | Code        | Import Mermaid       | Dialog with textarea and Convert to diagram                                                       | `13-mermaid.png`          |
+| 14  | Slides      | Open panel           | Empty state + Add slide / Selection → slide                                                       | `14-slides-panel.png`     |
+| 15  | Slides      | Add slide            | Six layouts                                                                                       | `15-layouts.png`          |
+| 16  | Slides      | Title layout         | Slide frame on canvas + inspector with builds and speaker notes                                   | `16-slide-builds.png`     |
+| 17  | Present     | Present title slide  | Fullscreen 16:9 slide, control pill, notes                                                        | `17-present.png`          |
+| 18  | Record      | Start, draw 2 shapes | Red hourglass, live step count, recording toast                                                   | `18-recording-active.png` |
+| 19  | Record      | Stop                 | Sands card with `Sands 1 · 2 steps · 1s`, Record new, delete                                      | `19-recordings.png`       |
+| 20  | Replay      | Play recording       | Step scrubber 0/2, play/step, speed, exit                                                         | `20-replay.png`           |
+| 21  | Replay      | Export menu          | GIF / MP4 video                                                                                   | `21-replay-export.png`    |
+| 22  | Icons       | Press `/`            | Searchable icon grid, Tab/Enter, Icon only                                                        | `22-icons.png`            |
+| 23  | Frame       | Draw with `F`        | Titled `# Diagram` frame + Tidy up                                                                | `23-frame.png`            |
+| 24  | View        | `Alt+Z`              | Zen mode hides chrome                                                                             | `24-zen.png`              |
+| 25  | AI          | `Ctrl+I`             | Assistant with suggestions and composer                                                           | `25-assistant.png`        |
+| 26  | AI          | Connect AI           | 4 providers, key, model, remember toggle, Test & connect                                          | `26-connect-ai.png`       |
+| 27  | AI          | Connect via MCP      | MCP tab + sign-in requirement                                                                     | `27-mcp.png`              |
+| 28  | Boards      | My boards            | Sign-in gate (Google)                                                                             | `28-boards.png`           |
+| 29  | Shortcuts   | `?`                  | Full 3-column sheet                                                                               | `29-shortcuts.png`        |
+| 30  | Palette     | `Ctrl+K`             | Toast: “Command palette arrives in step 7”                                                        | `30-palette.png`          |
+| 31  | Persistence | Reload               | Board, styles and slides restored from `jojopen:scratch:v2`; recordings are dropped (memory-only) | state dump                |
+| 32  | Sign in     | Click                | Redirects to Google OAuth (no in-app errors)                                                      | observed                  |
 
 Additional verified behaviours not pictured: undo/redo, duplicate, grouping, snapping, fit/zoom, text editing, sticky inline editor, freehand and eraser, image tool opening the file picker, board title/URL routing for guests (`/`), and localStorage/IndexedDB keys.
 
@@ -706,19 +706,19 @@ Additional verified behaviours not pictured: undo/redo, duplicate, grouping, sna
 
 The single-file rebuild is driven by the same CDP harness. Every run finished with **0 console errors and 0 failed requests**.
 
-| # | Area | Action | Result |
-|---|---|---|---|
-| R1 | Record | Hourglass → draw rectangle → ellipse → sticky → hourglass | Rail turns red with a live count; 4 frames stored (`Start`, `add rectangle`, `add ellipse`, `add sticky`); card shows `Sands 1 · 3 steps` |
-| R2 | Persist | Reload the file | Recording still listed, replayable from the rail |
-| R3 | Replay | Row click, then `→` `→` `←` `Home` `End` `Space` `Esc` | Position `0/3 → 1/3 → 2/3 → 3/3 → 2/3 → 0/3 → 3/3`, space plays/pauses, Esc leaves the overlay and restores the board |
-| R3b | Record lifecycle | Draw → move → delete while recording | Frames labelled `Start`, `add rectangle`, `move`, `delete`; node counts per frame `0/1/1/0`, so removals replay too |
-| R4 | Replay UI | Step through frames | Fixed stage sized to the union of all frames, so the card does not jump; live board hidden behind it |
-| R5 | GIF | Export from the replay bar | `sands-1.gif`, 720×324, 3 frames, delays 500/1370/900 ms; `ffprobe` decodes with no LZW errors |
-| R6 | GIF fidelity | Synthetic 400×300 index image → GIF → raw decode | 0 mismatched pixels of 120 000 (median-cut palette + LZW are exact) |
-| R7 | MP4 | Export from the replay bar | `sands-1.mp4`, H.264 (`avc1`), 1080×484, 3 frames, 1.93 s, plays in `ffmpeg` |
-| R8 | Mermaid | Code panel → Import Mermaid → `flowchart TD` with `subgraph` | DSL with `group Backend { … }`, shapes `[ellipse]`, `[diamond]`, `[cylinder, data]`, labelled edges; diagram added and code panel synced |
-| R9 | Builds | Slide inspector → Builds on → Replay | Presenter opens with 0 children (`steps 0`); Space reveals 1 |
-| R10 | Themes | Replay in dark mode | Stage background `#0f0f0f`, ink flips, no stray light-on-light text |
+| #   | Area             | Action                                                       | Result                                                                                                                                    |
+| --- | ---------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Record           | Hourglass → draw rectangle → ellipse → sticky → hourglass    | Rail turns red with a live count; 4 frames stored (`Start`, `add rectangle`, `add ellipse`, `add sticky`); card shows `Sands 1 · 3 steps` |
+| R2  | Persist          | Reload the file                                              | Recording still listed, replayable from the rail                                                                                          |
+| R3  | Replay           | Row click, then `→` `→` `←` `Home` `End` `Space` `Esc`       | Position `0/3 → 1/3 → 2/3 → 3/3 → 2/3 → 0/3 → 3/3`, space plays/pauses, Esc leaves the overlay and restores the board                     |
+| R3b | Record lifecycle | Draw → move → delete while recording                         | Frames labelled `Start`, `add rectangle`, `move`, `delete`; node counts per frame `0/1/1/0`, so removals replay too                       |
+| R4  | Replay UI        | Step through frames                                          | Fixed stage sized to the union of all frames, so the card does not jump; live board hidden behind it                                      |
+| R5  | GIF              | Export from the replay bar                                   | `sands-1.gif`, 720×324, 3 frames, delays 500/1370/900 ms; `ffprobe` decodes with no LZW errors                                            |
+| R6  | GIF fidelity     | Synthetic 400×300 index image → GIF → raw decode             | 0 mismatched pixels of 120 000 (median-cut palette + LZW are exact)                                                                       |
+| R7  | MP4              | Export from the replay bar                                   | `sands-1.mp4`, H.264 (`avc1`), 1080×484, 3 frames, 1.93 s, plays in `ffmpeg`                                                              |
+| R8  | Mermaid          | Code panel → Import Mermaid → `flowchart TD` with `subgraph` | DSL with `group Backend { … }`, shapes `[ellipse]`, `[diamond]`, `[cylinder, data]`, labelled edges; diagram added and code panel synced  |
+| R9  | Builds           | Slide inspector → Builds on → Replay                         | Presenter opens with 0 children (`steps 0`); Space reveals 1                                                                              |
+| R10 | Themes           | Replay in dark mode                                          | Stage background `#0f0f0f`, ink flips, no stray light-on-light text                                                                       |
 
 ---
 
@@ -745,13 +745,13 @@ These are things that look like features in the UI but behave differently, or th
 
 ### 17.1 Production assets
 
-| Asset | URL |
-|---|---|
-| App HTML | `https://jojopen.com/` |
-| Main bundle | `https://jojopen.com/assets/index-CBB3_Z2F.js` (≈1.1 MB, React 19 + Vite) |
-| Stylesheet | `https://jojopen.com/assets/index-BFfrwbpL.css` |
-| Lazy chunks | `AssistantPanel-CQEQpERj.js`, `ConnectDialog-9eNeZgfb.js`, `CodePanel-CMqb15nT.js`, `cleanIt-BxoCJKWf.js`, `tools-BonGdsAw.js`, `gifenc.esm-BWxMhepS.js` |
-| Diagram layout engine | ELK (`elk.bundled-*.js`, layered/orthogonal routing) |
+| Asset                 | URL                                                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App HTML              | `https://jojopen.com/`                                                                                                                                   |
+| Main bundle           | `https://jojopen.com/assets/index-CBB3_Z2F.js` (≈1.1 MB, React 19 + Vite)                                                                                |
+| Stylesheet            | `https://jojopen.com/assets/index-BFfrwbpL.css`                                                                                                          |
+| Lazy chunks           | `AssistantPanel-CQEQpERj.js`, `ConnectDialog-9eNeZgfb.js`, `CodePanel-CMqb15nT.js`, `cleanIt-BxoCJKWf.js`, `tools-BonGdsAw.js`, `gifenc.esm-BWxMhepS.js` |
+| Diagram layout engine | ELK (`elk.bundled-*.js`, layered/orthogonal routing)                                                                                                     |
 
 ### 17.2 Strings that pin down behaviour (verbatim from the bundle)
 
@@ -770,20 +770,20 @@ These are things that look like features in the UI but behave differently, or th
 
 ### 17.3 DOM hooks used for testing
 
-| Selector | Element |
-|---|---|
-| `.cp-canvas`, `.cp-world` | Canvas + transformed world |
-| `.cp-toolbar`, `.cp-rail`, `.cp-topright` | Chrome groups (collapsible) |
-| `.cp-boardname`, `.cp-saved`, `.cp-pill` | Board identity + status |
-| `.cp-seg`, `.cp-bwtoggle`, `.cp-fontmenu` | Style/colour/font controls |
-| `.cp-secondary.cp-modelchip` | “Connect AI” |
-| `.cp-sotcard`, `.cp-sotrow`, `.cp-sottrack`, `.cp-sotspeed` | Recording card & replay player |
-| `.cp-sotbtn.is-off` / `.is-recording` / `.has-saved` | Hourglass rail states |
-| `.cp-present`, `.cp-present-slide` | Presentation stage |
-| `.cp-chat`, `.cp-composer` | Assistant |
-| `.cp-notes`, `.cp-slideinspect-title` | Speaker notes/slide inspector |
-| `.cp-layermenu`, `.cp-sharepop` | Popovers and share |
-| `[aria-label="…"]` | Tools, rail actions, dialogs (see tables above) |
+| Selector                                                    | Element                                         |
+| ----------------------------------------------------------- | ----------------------------------------------- |
+| `.cp-canvas`, `.cp-world`                                   | Canvas + transformed world                      |
+| `.cp-toolbar`, `.cp-rail`, `.cp-topright`                   | Chrome groups (collapsible)                     |
+| `.cp-boardname`, `.cp-saved`, `.cp-pill`                    | Board identity + status                         |
+| `.cp-seg`, `.cp-bwtoggle`, `.cp-fontmenu`                   | Style/colour/font controls                      |
+| `.cp-secondary.cp-modelchip`                                | “Connect AI”                                    |
+| `.cp-sotcard`, `.cp-sotrow`, `.cp-sottrack`, `.cp-sotspeed` | Recording card & replay player                  |
+| `.cp-sotbtn.is-off` / `.is-recording` / `.has-saved`        | Hourglass rail states                           |
+| `.cp-present`, `.cp-present-slide`                          | Presentation stage                              |
+| `.cp-chat`, `.cp-composer`                                  | Assistant                                       |
+| `.cp-notes`, `.cp-slideinspect-title`                       | Speaker notes/slide inspector                   |
+| `.cp-layermenu`, `.cp-sharepop`                             | Popovers and share                              |
+| `[aria-label="…"]`                                          | Tools, rail actions, dialogs (see tables above) |
 
 ### 17.4 Storage
 
@@ -792,38 +792,38 @@ These are things that look like features in the UI but behave differently, or th
 
 ### 17.5 Screenshot index
 
-| File | Feature |
-|---|---|
-| `docs/img/01-board.png` | Scratch board / default diagram |
-| `docs/img/02-toolbar.png` | Expanded tool rail |
-| `docs/img/03-style-clean.png` | Clean style |
-| `docs/img/04-style-chalkboard.png` | Chalkboard style |
-| `docs/img/05-bw.png` | Black & white mode |
-| `docs/img/06-dark.png` | Dark theme |
-| `docs/img/07-export.png` | Export (PNG) |
-| `docs/img/08-export-slides.png` | Export scope “Slides (1)” |
-| `docs/img/09-export-svg.png` | Export (SVG) |
-| `docs/img/10-selection.png` | Node selection + format bar |
-| `docs/img/11-edge.png` | Edge selection + routing |
-| `docs/img/12-code.png` | Diagram DSL panel |
-| `docs/img/13-mermaid.png` | Mermaid import |
-| `docs/img/14-slides-panel.png` | Slides panel |
-| `docs/img/15-layouts.png` | Slide layouts |
-| `docs/img/16-slide-builds.png` | Builds + speaker notes |
-| `docs/img/17-present.png` | Presentation |
-| `docs/img/18-recording-active.png` | Recording |
-| `docs/img/19-recordings.png` | Recordings card |
-| `docs/img/20-replay.png` | Replay player |
-| `docs/img/21-replay-export.png` | GIF/MP4 export |
-| `docs/img/22-icons.png` | Icon search |
-| `docs/img/23-frame.png` | Diagram frame |
-| `docs/img/24-zen.png` | Zen mode |
-| `docs/img/25-assistant.png` | AI assistant |
-| `docs/img/26-connect-ai.png` | Connect your AI |
-| `docs/img/27-mcp.png` | MCP connection |
-| `docs/img/28-boards.png` | My boards (sign-in gate) |
-| `docs/img/29-shortcuts.png` | Keyboard shortcuts |
-| `docs/img/30-palette.png` | Command palette placeholder |
+| File                               | Feature                         |
+| ---------------------------------- | ------------------------------- |
+| `docs/img/01-board.png`            | Scratch board / default diagram |
+| `docs/img/02-toolbar.png`          | Expanded tool rail              |
+| `docs/img/03-style-clean.png`      | Clean style                     |
+| `docs/img/04-style-chalkboard.png` | Chalkboard style                |
+| `docs/img/05-bw.png`               | Black & white mode              |
+| `docs/img/06-dark.png`             | Dark theme                      |
+| `docs/img/07-export.png`           | Export (PNG)                    |
+| `docs/img/08-export-slides.png`    | Export scope “Slides (1)”       |
+| `docs/img/09-export-svg.png`       | Export (SVG)                    |
+| `docs/img/10-selection.png`        | Node selection + format bar     |
+| `docs/img/11-edge.png`             | Edge selection + routing        |
+| `docs/img/12-code.png`             | Diagram DSL panel               |
+| `docs/img/13-mermaid.png`          | Mermaid import                  |
+| `docs/img/14-slides-panel.png`     | Slides panel                    |
+| `docs/img/15-layouts.png`          | Slide layouts                   |
+| `docs/img/16-slide-builds.png`     | Builds + speaker notes          |
+| `docs/img/17-present.png`          | Presentation                    |
+| `docs/img/18-recording-active.png` | Recording                       |
+| `docs/img/19-recordings.png`       | Recordings card                 |
+| `docs/img/20-replay.png`           | Replay player                   |
+| `docs/img/21-replay-export.png`    | GIF/MP4 export                  |
+| `docs/img/22-icons.png`            | Icon search                     |
+| `docs/img/23-frame.png`            | Diagram frame                   |
+| `docs/img/24-zen.png`              | Zen mode                        |
+| `docs/img/25-assistant.png`        | AI assistant                    |
+| `docs/img/26-connect-ai.png`       | Connect your AI                 |
+| `docs/img/27-mcp.png`              | MCP connection                  |
+| `docs/img/28-boards.png`           | My boards (sign-in gate)        |
+| `docs/img/29-shortcuts.png`        | Keyboard shortcuts              |
+| `docs/img/30-palette.png`          | Command palette placeholder     |
 
 ---
 
@@ -837,4 +837,4 @@ These are things that look like features in the UI but behave differently, or th
 - Eraser: collision-based for shapes/ink/arrows/text, `Ctrl`-temp mode. Old boards backfill defaults in `normalizeDoc`.
 - Original line copy (jojopen.com bundle `index-AUJ3ngSu.js`): selection shows the raw polyline dashed (`4 4`, opacity .5) under the routed curve; orthogonal arrows get axis-constrained segment handles (28px min), curved/manual routes get waypoint handles + insert (+) handles (36px min, 9px hit, endpoints 10px); waypoint drag sets `route: manual`, segment drag cleans collinear points on release, double-click a waypoint on manual routes with >3 points removes the bend; `Re-route` collapses to 2 points + `route: auto`; idle hover with arrow/line tool previews the bind target; `<8px` arrows undo on release.
 
-*Screenshots and measurements come from the live production site; no source code was copied. This document is an independent behavioural specification for the reconstruction in [`legacy/index.html`](legacy/index.html) and its React port in [`src/`](src/).*
+_Screenshots and measurements come from the live production site; no source code was copied. This document is an independent behavioural specification for the reconstruction in [`legacy/index.html`](legacy/index.html) and its React port in [`src/`](src/)._

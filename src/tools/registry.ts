@@ -1,13 +1,13 @@
-import type { ToolController } from './types';
-import { panTool } from './PanToolController';
-import { laserTool } from './LaserToolController';
-import { eraserTool } from './EraserToolController';
-import { penTool } from './PenToolController';
-import { shapeTool } from './ShapeToolController';
-import { stickyTool } from './StickyToolController';
-import { textTool } from './TextToolController';
-import { arrowTool } from './ArrowToolController';
-import { selectTool } from './SelectToolController';
+import type { ToolController } from "./types";
+import { panTool } from "./PanToolController";
+import { laserTool } from "./LaserToolController";
+import { eraserTool } from "./EraserToolController";
+import { penTool } from "./PenToolController";
+import { shapeTool } from "./ShapeToolController";
+import { stickyTool } from "./StickyToolController";
+import { textTool } from "./TextToolController";
+import { arrowTool } from "./ArrowToolController";
+import { selectTool } from "./SelectToolController";
 
 const tools = new Map<string, ToolController>();
 
@@ -33,11 +33,3 @@ registerTool(stickyTool);
 registerTool(textTool);
 registerTool(arrowTool);
 registerTool(selectTool);
-
-
-
-
-
-
-
-

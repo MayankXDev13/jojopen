@@ -1,8 +1,8 @@
-import type { CanvasPointerEvent, ToolContext, ToolController } from './types';
-import { S, notify } from '../state/store';
+import type { CanvasPointerEvent, ToolContext, ToolController } from "./types";
+import { S, notify } from "../state/store";
 
 export class LaserToolController implements ToolController {
-  readonly id = 'laser';
+  readonly id = "laser";
 
   private canvas: HTMLCanvasElement | null = null;
   private points: { x: number; y: number; t: number; life: number }[] = [];
@@ -20,21 +20,21 @@ export class LaserToolController implements ToolController {
       this.raf = null;
       return;
     }
-    const ctx = c.getContext('2d')!;
+    const ctx = c.getContext("2d")!;
     const dpr = devicePixelRatio;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, innerWidth, innerHeight);
     const now = performance.now();
     const pts = this.points;
-    const held = (S.drag as any)?.mode === 'laser';
+    const held = (S.drag as any)?.mode === "laser";
 
     for (let i = pts.length - 1; i >= 0; i--) {
       if (held) pts[i].t = now;
       else if (now - pts[i].t > pts[i].life) pts.splice(i, 1);
     }
 
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     for (let i = 1; i < pts.length; i++) {
       const a = pts[i - 1];
       const b = pts[i];
@@ -51,13 +51,13 @@ export class LaserToolController implements ToolController {
     if (head) {
       ctx.beginPath();
       ctx.arc(head.x, head.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(240,70,70,.9)';
+      ctx.fillStyle = "rgba(240,70,70,.9)";
       ctx.fill();
     } else if (!held && this.hover) {
       const p = this.hover;
       ctx.beginPath();
       ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(240,70,70,.9)';
+      ctx.fillStyle = "rgba(240,70,70,.9)";
       ctx.fill();
     }
     this.raf = pts.length ? requestAnimationFrame(this.draw) : null;
@@ -82,8 +82,8 @@ export class LaserToolController implements ToolController {
     const c = this.canvas;
     if (c) {
       const dpr = devicePixelRatio;
-      c.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
-      c.getContext('2d')?.clearRect(0, 0, innerWidth, innerHeight);
+      c.getContext("2d")?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.getContext("2d")?.clearRect(0, 0, innerWidth, innerHeight);
     }
     if (this.raf) {
       cancelAnimationFrame(this.raf);
@@ -101,7 +101,7 @@ export class LaserToolController implements ToolController {
     clearTimeout(this.timer);
     this.timer = window.setTimeout(() => {
       if (!this.points.length) {
-        c.getContext('2d')?.clearRect(0, 0, innerWidth, innerHeight);
+        c.getContext("2d")?.clearRect(0, 0, innerWidth, innerHeight);
         this.raf = null;
       }
     }, 900);
@@ -109,7 +109,7 @@ export class LaserToolController implements ToolController {
 
   onPointerDown(e: CanvasPointerEvent, ctx: ToolContext): void {
     if (e.button !== 0) return;
-    S.drag = { mode: 'laser' };
+    S.drag = { mode: "laser" };
     this.addPoint(e.clientX, e.clientY);
     ctx.capturePointer(e.pointerId);
     notify();
@@ -117,11 +117,11 @@ export class LaserToolController implements ToolController {
 
   onPointerMove(e: CanvasPointerEvent): void {
     const d: any = S.drag;
-    if (d && d.mode === 'laser') {
+    if (d && d.mode === "laser") {
       if (e.buttons) this.addPoint(e.clientX, e.clientY);
       return;
     }
-    if (S.tool === 'laser' && !S.drag) {
+    if (S.tool === "laser" && !S.drag) {
       this.hover = { x: e.clientX, y: e.clientY };
       if (this.ensure() && !this.raf) {
         this.raf = requestAnimationFrame(this.draw);
@@ -131,7 +131,7 @@ export class LaserToolController implements ToolController {
 
   onPointerUp(): void {
     const d: any = S.drag;
-    if (d && d.mode === 'laser') {
+    if (d && d.mode === "laser") {
       S.drag = null;
     }
     S.panning = false;
@@ -139,7 +139,7 @@ export class LaserToolController implements ToolController {
   }
 
   getCursor(): string {
-    return 'none';
+    return "none";
   }
 }
 

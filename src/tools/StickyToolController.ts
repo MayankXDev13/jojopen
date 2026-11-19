@@ -1,25 +1,25 @@
-import type { CanvasPointerEvent, ToolController } from './types';
-import { MAKE } from '../lib/model';
-import { S, addElement, notify, pushHistory } from '../state/store';
-import { beginEdit, setTool } from '../state/actions';
+import type { CanvasPointerEvent, ToolController } from "./types";
+import { MAKE } from "../lib/model";
+import { S, addElement, notify, pushHistory } from "../state/store";
+import { beginEdit, setTool } from "../state/actions";
 
 export class StickyToolController implements ToolController {
-  readonly id = 'sticky';
+  readonly id = "sticky";
 
   createStickyAt(w: { x: number; y: number }): void {
-    pushHistory('add sticky');
+    pushHistory("add sticky");
     const el = MAKE.sticky({
       x: Math.round(w.x - 100),
       y: Math.round(w.y - 100),
       width: 200,
       height: 200,
-      text: '',
+      text: "",
     });
     addElement(el);
     S.selection = new Set([el.id]);
     notify();
     beginEdit(el.id);
-    setTool('select');
+    setTool("select");
   }
 
   onPointerDown(e: CanvasPointerEvent): void {
@@ -31,7 +31,7 @@ export class StickyToolController implements ToolController {
   onPointerUp(): void {}
 
   getCursor(): string {
-    return 'crosshair';
+    return "crosshair";
   }
 }
 

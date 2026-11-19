@@ -94,7 +94,7 @@ localStorage data therefore opens without migration.
 - **The legacy hook surface is preserved.** Chrome, panels and overlays keep the
   `data-act`/`data-tool`/id attributes used by the CDP harness. `App` exposes
   `window.J = { S, renderAll: notify, addSlide, parseDSL, layoutDiagram, diagramFor,
-  openBoard }` for scripts that expect the original globals.
+openBoard }` for scripts that expect the original globals.
 - **No `StrictMode`.** Double-invoked effects would reboot the store, duplicate keyboard
   listeners and restart timers in development.
 

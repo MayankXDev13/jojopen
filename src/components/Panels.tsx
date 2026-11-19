@@ -147,11 +147,7 @@ function SlideThumb({ slide }: { slide: BoardElement }) {
   }, []);
   const width = w || 340;
   return (
-    <div
-      className="slidethumb"
-      ref={ref}
-      onClick={() => present(slides().findIndex((s) => s.id === slide.id))}
-    >
+    <div className="slidethumb" ref={ref}>
       <SceneView
         elements={slideChildren(slide)}
         ox={slide.x}

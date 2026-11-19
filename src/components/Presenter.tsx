@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SLIDE_H, SLIDE_W } from "../lib/model";
 import { S, notify, slideChildren, slides, theme } from "../state/store";
 import { exitPresent, presentNav } from "../state/actions";
@@ -8,6 +8,7 @@ import { useViewport } from "./useViewport";
 
 export function Presenter() {
   const { w: vw, h: vh } = useViewport();
+  const [playing, setPlaying] = useState(false);
   const laserRef = useRef<HTMLCanvasElement>(null);
   const points = useRef<{ x: number; y: number; t: number; life: number }[]>(
     [],
@@ -70,9 +71,66 @@ export function Presenter() {
     };
   }, [p?.laser]);
 
+  useEffect(() => {
+    if (!p) return;
+    let timer: any;
+    const onMove = () => {
+      if (!S.present) return;
+      if (!S.present.chrome) {
+        S.present.chrome = true;
+        notify();
+      }
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (S.present && !S.present.laser) {
+          S.present.chrome = false;
+          notify();
+        }
+      }, 3000);
+    };
+    window.addEventListener("pointermove", onMove);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      clearTimeout(timer);
+    };
+  }, [p]);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement && S.present) {
+        exitPresent();
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!playing || !p) return;
+    const interval = setInterval(() => {
+      const allSlides = slides();
+      if (!allSlides.length) return;
+      const cur = S.present;
+      if (!cur) return;
+      const currentSlide = allSlides[cur.index];
+      if (currentSlide && (currentSlide.builds || []).length > cur.steps) {
+        presentNav(1);
+      } else if (cur.index < allSlides.length - 1) {
+        presentNav(1);
+      } else {
+        cur.index = 0;
+        cur.steps = 0;
+        notify();
+      }
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [playing, p]);
+
   if (!p || !sl) return null;
 
-  const scale = Math.min((vw - 96) / SLIDE_W, (vh - 120) / SLIDE_H);
+  const scale = Math.min(vw / SLIDE_W, vh / SLIDE_H);
   const w = SLIDE_W * scale;
   const h = SLIDE_H * scale;
   const left = (vw - w) / 2;
@@ -83,13 +141,14 @@ export function Presenter() {
 
   return (
     <div
-      className={`present${p.chrome ? " show" : " hidecursor"}`}
+      className={`present${p.chrome ? " show show-chrome" : " hidecursor"}`}
       id="present"
       role="dialog"
       aria-label={`Presenting slide ${p.index + 1} of ${total}`}
+      style={{ background: theme().slide }}
     >
       <div
-        className="present-stage"
+        className="present-stage present-slide"
         style={{ left, top, width: w, height: h, background: theme().slide }}
       >
         <SceneView
@@ -103,7 +162,7 @@ export function Presenter() {
         />
       </div>
       <div className="present-progress">
-        <i style={{ width: ((p.index + 1) / total) * 100 + "%" }} />
+        <div style={{ width: ((p.index + 1) / total) * 100 + "%" }} />
       </div>
       <div className="present-bar">
         <button
@@ -111,27 +170,22 @@ export function Presenter() {
           title="Previous"
           disabled={p.index === 0 && !p.steps}
         >
-          <Icon name="prev" size={16} />
+          <Icon name="prev" size={14} />
         </button>
         <span className="present-count">
-          {p.index + 1} / {total}
+          {p.index + 1} <span>/</span> {total}
         </span>
         <button onClick={() => presentNav(1)} title="Next">
-          <Icon name="next" size={16} />
+          <Icon name="next" size={14} />
         </button>
-        <span className="present-sep" />
         <button
-          onClick={() => {
-            p.laser = !p.laser;
-            notify();
-          }}
-          title="Laser pointer (L)"
-          style={p.laser ? { background: "rgba(255,255,255,.18)" } : undefined}
+          onClick={() => setPlaying((prev) => !prev)}
+          title={playing ? "Pause" : "Play (autoplay)"}
         >
-          <Icon name="laser" size={16} />
+          <Icon name={playing ? "pause" : "play"} size={13} />
         </button>
         <button onClick={exitPresent} title="Exit (Esc)">
-          <Icon name="close" size={16} />
+          <Icon name="close" size={14} />
         </button>
       </div>
       <canvas className="laser" id="presentLaserCanvas" ref={laserRef} />

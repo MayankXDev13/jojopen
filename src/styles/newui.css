@@ -2053,7 +2053,7 @@ kbd {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: #050505;
+  background: var(--slide, #171717);
   cursor: default;
   -webkit-user-select: none;
   user-select: none;
@@ -2090,6 +2090,7 @@ kbd {
 }
 .present-bar {
   position: absolute;
+  left: auto;
   right: 20px;
   bottom: 18px;
   z-index: 4;
@@ -2109,6 +2110,8 @@ kbd {
   transition:
     opacity 0.25s,
     transform 0.25s;
+  width: auto;
+  max-width: max-content;
 }
 .present.show-chrome .present-bar {
   opacity: 1;

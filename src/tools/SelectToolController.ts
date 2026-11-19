@@ -597,11 +597,8 @@ export class SelectToolController implements ToolController {
       return;
     }
     if (el.type === "slide") {
-      present(
-        (S.doc.elements ? ([...Object.values(S.doc.elements)] as any[]) : [])
-          .filter((x) => x.type === "slide")
-          .findIndex((s) => s.id === el.id),
-      );
+      S.selection = new Set([el.id]);
+      notify();
       return;
     }
     if (el.type === "image") return;

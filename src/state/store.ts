@@ -23,6 +23,7 @@ import {
 } from "../lib/palette";
 import { inferRole } from "../lib/roles";
 import {
+  compileDiagramDoc,
   diagramFor,
   type DiagramEnv,
   type DiagramRender,
@@ -561,6 +562,14 @@ export function bootStore() {
     S.doc = importLive() ?? seedDemo();
     persist(true);
   }
+  for (const el of elements()) {
+    if (el.type === "diagram" && el.dsl) {
+      const hasChildren = elements().some((c) => c.frameId === el.id);
+      if (!hasChildren) {
+        compileDiagramDoc(S.doc, el.id, el.dsl);
+      }
+    }
+  }
   S.startOpen = false;
   S.timeline.push({ json: snapshot(), label: "Start", at: Date.now() });
   try {
@@ -578,7 +587,7 @@ export function bootStore() {
 /* ---------- camera ---------- */
 
 export const canvasEl = (): HTMLElement | null =>
-  document.getElementById("canvas");
+  typeof document !== "undefined" ? document.getElementById("canvas") : null;
 
 export function toWorld(cx: number, cy: number) {
   const r = canvasEl()?.getBoundingClientRect();

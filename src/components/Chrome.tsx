@@ -50,6 +50,7 @@ import {
   toggleSnap,
   toggleTheme,
   applyTemplate,
+  tidyCode,
   COLOR_KEYS,
 } from "../state/actions";
 import {
@@ -955,6 +956,20 @@ export function ContextBar() {
             <span className="textsize-sign">+</span>
           </button>
         </>
+      ) : null}
+      {list.some(
+        (e) =>
+          e.type === "diagram" ||
+          (e.frameId && S.doc.elements[e.frameId]?.type === "diagram"),
+      ) || list.length > 1 ? (
+        <button
+          className="textbtn"
+          onClick={tidyCode}
+          title="Auto-layout the diagram"
+          aria-label="Tidy up"
+        >
+          <span>Tidy up</span>
+        </button>
       ) : null}
       {hasScale ? (
         <span className="layerwrap">

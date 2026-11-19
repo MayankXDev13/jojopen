@@ -9,7 +9,7 @@ import {
   seedFromId,
   shapePath,
 } from "../lib/sketch";
-import { S, colorFor, diagram, fontFor, settings } from "../state/store";
+import { S, colorFor, diagram, fontFor, settings, theme } from "../state/store";
 import { Icon, LibraryIcon } from "./Icon";
 import { useEditingId, useVersion } from "../state/boardStore";
 import { beginEdit, renameSlide } from "../state/actions";
@@ -383,8 +383,42 @@ export function NodeView({
         )}
       </div>
     );
-  } else if (el.type === "diagram" && diagramRender) {
-    body = <div dangerouslySetInnerHTML={{ __html: diagramRender.svg }} />;
+  } else if (el.type === "diagram") {
+    const th = theme();
+    body = (
+      <>
+        <div
+          className="dlabel"
+          style={{
+            position: "absolute",
+            left: 0,
+            top: -28,
+            height: 24,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
+            color: th.frameText,
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+          }}
+        >
+          # {el.title || "Diagram"}
+        </div>
+        <div
+          className="dframe"
+          style={{
+            position: "absolute",
+            inset: 0,
+            border: `1.5px solid ${th.frame}`,
+            borderRadius: 14,
+            pointerEvents: "none",
+          }}
+        />
+      </>
+    );
   }
 
   const errors =

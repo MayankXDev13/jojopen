@@ -167,6 +167,13 @@ export class SelectToolController implements ToolController {
           if (!positions.has(c.id)) positions.set(c.id, { x: c.x, y: c.y });
         }
       }
+      if (el.type === "diagram") {
+        for (const c of elements()) {
+          if (c.frameId === el.id) {
+            if (!positions.has(c.id)) positions.set(c.id, { x: c.x, y: c.y });
+          }
+        }
+      }
     }
     pushHistory("move");
 
@@ -480,6 +487,9 @@ export class SelectToolController implements ToolController {
       for (const id of d.originalIds || []) {
         const el = S.doc.elements[id];
         if (!el || el.type === "slide") continue;
+        if (el.frameId && S.doc.elements[el.frameId]?.type === "diagram") {
+          continue;
+        }
         const midX =
           el.type === "arrow" && el.points?.length
             ? el.x + (el.points[0].x + el.points[el.points.length - 1].x) / 2

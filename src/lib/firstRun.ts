@@ -1,6 +1,7 @@
 /* First-run board: seed the URL-shortener demo or import the live site's board.
    The live key is only ever read, never written. */
 
+import { compileDiagramDoc } from "./diagram";
 import { parseDSL } from "./dsl";
 import { layoutDiagram } from "./layout";
 import { MAKE, blankDoc, normalizeDoc, type BoardDoc } from "./model";
@@ -17,22 +18,24 @@ export function seedDemo(): BoardDoc {
   const dsl = TEMPLATES.system;
   const parsed = parseDSL(dsl);
   const layout = layoutDiagram(parsed);
+  const Dt = 48;
   const diagram = MAKE.diagram({
     x: 0,
     y: 0,
-    width: layout.width,
-    height: layout.height,
+    width: layout.width + Dt * 2,
+    height: layout.height + Dt * 2,
     title: parsed.title || "URL shortener",
     dsl,
   });
   diagram.index = 1;
+  doc.elements[diagram.id] = diagram;
+  compileDiagramDoc(doc, diagram.id, dsl);
   const sticky = MAKE.sticky({
     x: 0,
-    y: layout.height + 48,
+    y: diagram.height + 48,
     text: STICKY_TEXT,
   });
-  sticky.index = 2;
-  doc.elements[diagram.id] = diagram;
+  sticky.index = 100;
   doc.elements[sticky.id] = sticky;
   return doc;
 }

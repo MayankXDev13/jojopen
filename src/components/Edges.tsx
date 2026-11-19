@@ -121,39 +121,44 @@ export function Edges() {
               className="hit"
               data-id={el.id}
             />
-            {el.label && S.editingId !== el.id ? (() => {
-              const font = fontFor(el);
-              const fontSize = 14 * (el.textScale ?? 1);
-              const padX = 8;
-              const padY = 4;
-              const charW = fontSize * 0.58;
-              const pillW = Math.max(28, el.label.length * charW + padX * 2);
-              const pillH = fontSize + padY * 2;
-              return (
-                <g data-id={el.id} data-label="1" cursor="move">
-                  <rect
-                    x={geom.labelPoint.x - pillW / 2}
-                    y={geom.labelPoint.y - pillH / 2}
-                    width={pillW}
-                    height={pillH}
-                    rx={6}
-                    fill={th.labelPill}
-                  />
-                  <text
-                    x={geom.labelPoint.x}
-                    y={geom.labelPoint.y}
-                    dominantBaseline="central"
-                    textAnchor="middle"
-                    fontFamily={font}
-                    fontSize={fontSize}
-                    fill={paint.stroke || th.muted}
-                    style={{ pointerEvents: "none", userSelect: "none" }}
-                  >
-                    {el.label}
-                  </text>
-                </g>
-              );
-            })() : null}
+            {el.label && S.editingId !== el.id
+              ? (() => {
+                  const font = fontFor(el);
+                  const fontSize = 14 * (el.textScale ?? 1);
+                  const padX = 8;
+                  const padY = 4;
+                  const charW = fontSize * 0.58;
+                  const pillW = Math.max(
+                    28,
+                    el.label.length * charW + padX * 2,
+                  );
+                  const pillH = fontSize + padY * 2;
+                  return (
+                    <g data-id={el.id} data-label="1" cursor="move">
+                      <rect
+                        x={geom.labelPoint.x - pillW / 2}
+                        y={geom.labelPoint.y - pillH / 2}
+                        width={pillW}
+                        height={pillH}
+                        rx={6}
+                        fill={th.labelPill}
+                      />
+                      <text
+                        x={geom.labelPoint.x}
+                        y={geom.labelPoint.y}
+                        dominantBaseline="central"
+                        textAnchor="middle"
+                        fontFamily={font}
+                        fontSize={fontSize}
+                        fill={paint.stroke || th.muted}
+                        style={{ pointerEvents: "none", userSelect: "none" }}
+                      >
+                        {el.label}
+                      </text>
+                    </g>
+                  );
+                })()
+              : null}
             {S.selection.has(el.id)
               ? (() => {
                   const linePts = geom.pts

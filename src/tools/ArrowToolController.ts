@@ -5,6 +5,7 @@ import {
   cleanupArrowPoints,
   nextFrameElement,
   normalizedAnchorOf,
+  pointInElement,
   projectOntoPolyline,
   suggestedBinding,
 } from "../lib/geometry";
@@ -17,6 +18,7 @@ import {
   removeElements,
   scheduleNotify,
   settings,
+  slides,
   sortedElements,
   theme,
 } from "../state/store";
@@ -194,7 +196,7 @@ export class ArrowToolController implements ToolController {
 
   onPointerDown(e: CanvasPointerEvent, ctx: ToolContext): void {
     const target = e.target as HTMLElement;
-    const nodeEl = target?.closest?.(".node") as HTMLElement | null;
+    const nodeEl = target?.closest?.(".node:not(.slide)") as HTMLElement | null;
     const startEl = nodeEl ? S.doc.elements[nodeEl.dataset.id!] : null;
     this.startArrow(e, ctx, startEl);
   }
@@ -325,6 +327,19 @@ export class ArrowToolController implements ToolController {
               isPrecise: false,
               snap: "edge",
             };
+          }
+          const sl =
+            (el.start?.elementId && S.doc.elements[el.start.elementId]?.frameId
+              ? S.doc.elements[S.doc.elements[el.start.elementId].frameId!]
+              : null) ||
+            (el.end?.elementId && S.doc.elements[el.end.elementId]?.frameId
+              ? S.doc.elements[S.doc.elements[el.end.elementId].frameId!]
+              : null) ||
+            slides().find((s) =>
+              pointInElement((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, s),
+            );
+          if (sl) {
+            el.frameId = sl.id;
           }
           S.selection = new Set([el.id]);
         }

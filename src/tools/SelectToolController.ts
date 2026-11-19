@@ -1,5 +1,5 @@
 import type { CanvasPointerEvent, ToolContext, ToolController } from "./types";
-import { elementBounds } from "../lib/geometry";
+import { elementBounds, pointInElement } from "../lib/geometry";
 import {
   S,
   elements,
@@ -10,10 +10,18 @@ import {
   scheduleNotify,
   selectionElements,
   settings,
+  slideChildren,
+  slides,
   sortedElements,
   theme,
 } from "../state/store";
-import { beginEdit, present, setPanel, setTool, syncEnclosedShapes } from "../state/actions";
+import {
+  beginEdit,
+  present,
+  setPanel,
+  setTool,
+  syncEnclosedShapes,
+} from "../state/actions";
 import { textTool } from "./TextToolController";
 import { deep, uid } from "../lib/dom";
 import { hitTestArrow } from "../lib/geometry";
@@ -125,10 +133,7 @@ export class SelectToolController implements ToolController {
     const enclosed = all.filter((el) => {
       const bb = elementBounds(el);
       return (
-        bb.minX >= a.x &&
-        bb.maxX <= b.x &&
-        bb.minY >= a.y &&
-        bb.maxY <= b.y
+        bb.minX >= a.x && bb.maxX <= b.x && bb.minY >= a.y && bb.maxY <= b.y
       );
     });
     const targets = enclosed.length
@@ -136,10 +141,7 @@ export class SelectToolController implements ToolController {
       : all.filter((el) => {
           const bb = elementBounds(el);
           return (
-            bb.maxX >= a.x &&
-            bb.minX <= b.x &&
-            bb.maxY >= a.y &&
-            bb.minY <= b.y
+            bb.maxX >= a.x && bb.minX <= b.x && bb.maxY >= a.y && bb.minY <= b.y
           );
         });
     for (const el of targets) {
@@ -161,7 +163,7 @@ export class SelectToolController implements ToolController {
     for (const el of list) {
       positions.set(el.id, { x: el.x, y: el.y });
       if (el.type === "slide") {
-        for (const c of sortedElements().filter((x) => x.frameId === el.id)) {
+        for (const c of slideChildren(el)) {
           if (!positions.has(c.id)) positions.set(c.id, { x: c.x, y: c.y });
         }
       }
@@ -206,7 +208,7 @@ export class SelectToolController implements ToolController {
   startResize(e: CanvasPointerEvent, handle: string, ctx: ToolContext): void {
     e.stopPropagation();
     const el = selectionElements()[0];
-    if (!el) return;
+    if (!el || el.type === "slide") return;
     if (el.type === "text" && (handle.includes("e") || handle.includes("w"))) {
       pushHistory("wrap text");
       el.autoSize = false;
@@ -470,6 +472,20 @@ export class SelectToolController implements ToolController {
       if (d.isDuplicate && S.history.length) {
         S.history[S.history.length - 1].label = "duplicate";
       }
+      for (const id of d.originalIds || []) {
+        const el = S.doc.elements[id];
+        if (!el || el.type === "slide") continue;
+        const midX =
+          el.type === "arrow" && el.points?.length
+            ? el.x + (el.points[0].x + el.points[el.points.length - 1].x) / 2
+            : el.x + (el.width || 0) / 2;
+        const midY =
+          el.type === "arrow" && el.points?.length
+            ? el.y + (el.points[0].y + el.points[el.points.length - 1].y) / 2
+            : el.y + (el.height || 0) / 2;
+        const sl = slides().find((s) => pointInElement(midX, midY, s));
+        el.frameId = sl ? sl.id : null;
+      }
       S.drag = null;
       S.panning = false;
       syncEnclosedShapes();
@@ -537,15 +553,7 @@ export class SelectToolController implements ToolController {
     const arrows = sortedElements().filter((el) => el.type === "arrow");
     for (let i = arrows.length - 1; i >= 0; i--) {
       const arrow = arrows[i];
-      if (
-        hitTestArrow(
-          w,
-          arrow,
-          (id) => S.doc.elements[id],
-          th,
-          tolerance,
-        )
-      ) {
+      if (hitTestArrow(w, arrow, (id) => S.doc.elements[id], th, tolerance)) {
         if (!arrow.locked) {
           S.selection = new Set([arrow.id]);
           beginEdit(arrow.id);
@@ -561,13 +569,7 @@ export class SelectToolController implements ToolController {
         selEl &&
         selEl.type === "arrow" &&
         !selEl.locked &&
-        hitTestArrow(
-          w,
-          selEl,
-          (id) => S.doc.elements[id],
-          th,
-          tolerance * 2,
-        )
+        hitTestArrow(w, selEl, (id) => S.doc.elements[id], th, tolerance * 2)
       ) {
         beginEdit(selEl.id);
         return;

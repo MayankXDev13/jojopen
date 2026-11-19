@@ -4,6 +4,7 @@
 import { clamp, deep, download, plural, slug, uid } from "../lib/dom";
 import { boundsOf, arrowGeom, shapeEncloses } from "../lib/geometry";
 import { layoutDiagram } from "../lib/layout";
+import { clearDiagramCache } from "../lib/diagram";
 import { fitTextBox, wrapMeasured } from "../lib/textMeasure";
 import { parseDSL } from "../lib/dsl";
 import { MAKE, SLIDE_H, SLIDE_W, blankDoc, normalizeDoc } from "../lib/model";
@@ -138,10 +139,13 @@ export function openMermaid() {
   if (!useBoardStore.getState().mermaidText) {
     useBoardStore.setState({
       mermaidText:
-        "flowchart LR\n  Browser[Browser] --> CDN[CDN]\n  CDN --> API(API gateway)\n  API --> DB[(URL database)]\n  API --> Cache[(Redis cache)]\n  API -.-> Queue[Kafka queue]",
+        "flowchart LR\n  A[Browser] --> B(API)\n  B --> C[(Postgres)]\n  B -..-> D{{Queue}}",
     } as any);
   }
   useBoardStore.setState({ mermaidError: "" } as any);
+  if (S.panel !== "code") {
+    setPanel("code");
+  }
   notify();
 }
 
@@ -442,22 +446,76 @@ export function presentNav(delta: number) {
 
 export function codeTarget() {
   const sel = selectionElements().find((e) => e.type === "diagram");
-  if (sel) return sel;
-  const id = S.codeFor;
-  return id ? S.doc.elements[id] : null;
+  return sel || null;
 }
 
 export function syncCodeDraft() {
   const target = codeTarget();
-  if (S.codeDraft == null || S.codeFor !== (target?.id || null)) {
-    useBoardStore.setState({ codeFor: target?.id || null } as any);
-    useBoardStore.setState({ codeDraft: target?.dsl || TEMPLATES.demo } as any);
+  if (target) {
+    if (S.codeFor !== target.id) {
+      useBoardStore.setState({
+        codeFor: target.id,
+        codeDraft: target.dsl || "",
+      } as any);
+    }
+  } else {
+    if (S.codeFor !== null) {
+      useBoardStore.setState({
+        codeFor: null,
+      } as any);
+    }
   }
 }
 
 export function setCodeDraft(v: string) {
   useBoardStore.setState({ codeDraft: v } as any);
   notify();
+}
+
+export function updateCodeDraftAndSync(src: string) {
+  useBoardStore.setState({ codeDraft: src } as any);
+  const target = codeTarget();
+  if (target) {
+    const parsed = parseDSL(src);
+    if (!parsed.diagnostics.some((d) => d.severity === "error")) {
+      target.dsl = src;
+      if (parsed.title) target.title = parsed.title;
+      const layout = layoutDiagram(parsed);
+      target.width = Math.max(target.width, layout.width);
+      target.height = Math.max(target.height, layout.height);
+      clearDiagramCache();
+      persist();
+    }
+  }
+  notify();
+}
+
+export function copyCode() {
+  const target = codeTarget();
+  const text = S.codeDraft ?? target?.dsl ?? "";
+  if (navigator?.clipboard?.writeText) {
+    navigator.clipboard.writeText(text);
+  }
+  toast("Copied code to clipboard");
+}
+
+export function tidyCode() {
+  const target = codeTarget();
+  const src = S.codeDraft || target?.dsl || "";
+  const parsed = parseDSL(src);
+  if (parsed.diagnostics.some((d) => d.severity === "error")) {
+    return toast("Fix diagram errors first");
+  }
+  pushHistory("tidy diagram");
+  if (target) {
+    const layout = layoutDiagram(parsed);
+    target.width = layout.width;
+    target.height = layout.height;
+    clearDiagramCache();
+    persist();
+  }
+  notify();
+  toast("Tidied up");
 }
 
 export function applyCode() {
@@ -508,22 +566,50 @@ export function validateCode() {
 }
 
 export function newDiagram() {
-  useBoardStore.getState().selection.clear();
-  useBoardStore.setState({ codeFor: null } as any);
+  const dsl = `direction: right
+
+User [user]
+CDN [cdn]
+API Gateway [gateway]
+
+group Backend {
+  Auth service
+  Orders service
+}
+
+Postgres [cylinder]
+Redis [redis]
+Kafka [kafka]
+
+User -> CDN -> API Gateway
+API Gateway -> Auth service: verify
+API Gateway -> Orders service
+Orders service -> Postgres: write
+Orders service -> Redis: cache
+Orders service --> Kafka: order.created`;
+  const parsed = parseDSL(dsl);
+  const layout = layoutDiagram(parsed);
+  const c = viewportCenter();
+  const el = MAKE.diagram({
+    x: c.x - layout.width / 2,
+    y: c.y - layout.height / 2,
+    width: Math.max(240, layout.width),
+    height: Math.max(180, layout.height),
+    title: parsed.title || "URL shortener",
+    dsl,
+  });
+  pushHistory("new diagram");
+  addElement(el);
   useBoardStore.setState({
-    codeDraft: `title: New diagram
-direction: right
-
-Client [actor]
-API [compute]
-Database [data]
-
-Client -> API: request
-API -> Database: read`,
+    selection: new Set([el.id]),
+    codeFor: el.id,
+    codeDraft: dsl,
+    panel: "code",
   } as any);
-  useBoardStore.setState({ panel: "code" } as any);
+  persist();
   notify();
-  toast("New diagram — edit the code, then Apply");
+  fitAll();
+  toast("Created new diagram");
 }
 
 export function exampleCode() {
@@ -542,22 +628,30 @@ export function mermaidConvert() {
   useBoardStore.setState({ mermaidError: "" } as any);
   useBoardStore.setState({ mermaidOpen: false } as any);
   pushHistory("import mermaid");
-  S.selection.clear();
-  useBoardStore.setState({ codeFor: null } as any);
   useBoardStore.setState({ codeDraft: res.dsl! } as any);
   const parsed = parseDSL(res.dsl!);
   const layout = layoutDiagram(parsed);
-  const el = MAKE.diagram({
-    x: 80,
-    y: 80,
-    width: Math.max(240, layout.width),
-    height: Math.max(180, layout.height),
-    title: parsed.title || "Imported diagram",
-    dsl: res.dsl!,
-  });
-  addElement(el);
-  useBoardStore.setState({ selection: new Set([el.id]) } as any);
-  useBoardStore.setState({ codeFor: el.id } as any);
+
+  const target = codeTarget();
+  if (target) {
+    target.dsl = res.dsl!;
+    target.title = parsed.title || target.title || "Imported";
+    target.width = Math.max(240, layout.width);
+    target.height = Math.max(180, layout.height);
+  } else {
+    S.selection.clear();
+    const el = MAKE.diagram({
+      x: 80,
+      y: 80,
+      width: Math.max(240, layout.width),
+      height: Math.max(180, layout.height),
+      title: parsed.title || "Imported",
+      dsl: res.dsl!,
+    });
+    addElement(el);
+    useBoardStore.setState({ selection: new Set([el.id]) } as any);
+    useBoardStore.setState({ codeFor: el.id } as any);
+  }
   notify();
   persist();
   fitAll();
@@ -724,7 +818,8 @@ export function forgetKey() {
 /* ---------- boards ---------- */
 
 export function saveRename(name: string, newId?: string) {
-  const v = name.trim() || useBoardStore.getState().doc.name || "Untitled board";
+  const v =
+    name.trim() || useBoardStore.getState().doc.name || "Untitled board";
   const prevId = useBoardStore.getState().doc.id;
   const trimmedId = newId?.trim();
   const id = trimmedId && trimmedId !== prevId ? trimmedId : prevId;
@@ -1213,7 +1308,8 @@ export function toggleTheme() {
 }
 
 export function toggleBw() {
-  settings().palette = (settings().palette ?? "roles") === "mono" ? "roles" : "mono";
+  settings().palette =
+    (settings().palette ?? "roles") === "mono" ? "roles" : "mono";
   notify();
   persist();
 }
@@ -1372,14 +1468,14 @@ export function setRoute(route: string) {
 export function toggleDash() {
   pushHistory("dash");
   const arrows = selectionElements().filter((e) => e.type === "arrow");
-  const allDashed = arrows.length > 0 && arrows.every((e) => (e as any).dash === "dashed");
+  const allDashed =
+    arrows.length > 0 && arrows.every((e) => (e as any).dash === "dashed");
   arrows.forEach((e) => {
     (e as any).dash = allDashed ? "solid" : "dashed";
   });
   notify();
   persist();
 }
-
 
 /** Forget hand-made bends and route automatically around boxes (original Re-route). */
 export function rerouteSelection() {

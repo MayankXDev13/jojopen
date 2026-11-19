@@ -5,6 +5,7 @@ import { edgeIconPos, edgeIconSize, resolveIcon } from "../lib/iconLibrary";
 import { S, colorFor, diagram, fontFor, settings } from "../state/store";
 import { Icon, LibraryIcon } from "./Icon";
 import { useEditingId, useVersion } from "../state/boardStore";
+import { beginEdit, renameSlide } from "../state/actions";
 
 const roughDefs = `<defs><filter id="rough" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.021" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.8"/></filter></defs>`;
 
@@ -193,9 +194,38 @@ export function NodeView({
     );
   } else if (el.type === "slide") {
     body = (
-      <div className="badge">
-        <b>{slideNumber ?? 1}</b>
-        {el.title || "Slide"}
+      <div
+        className="badge"
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          beginEdit(el.id);
+        }}
+      >
+        <Icon name="slides" size={14} />
+        {editingId === el.id ? (
+          <input
+            className="slide-title-inline"
+            autoFocus
+            defaultValue={el.title || "Untitled slide"}
+            onBlur={(e) => {
+              renameSlide(el.id, e.target.value);
+              beginEdit("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                renameSlide(el.id, (e.target as HTMLInputElement).value);
+                beginEdit("");
+              }
+              if (e.key === "Escape") {
+                beginEdit("");
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span>{el.title || "Untitled slide"}</span>
+        )}
       </div>
     );
   } else if (el.type === "diagram" && diagramRender) {

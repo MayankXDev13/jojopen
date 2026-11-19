@@ -1735,8 +1735,13 @@ kbd {
   cursor: default;
 }
 .slides-tool.is-primary {
-  border-color: color-mix(in srgb, var(--text) 22%, var(--border));
-  font-weight: 600;
+  background: #1c1c1c;
+  color: #ffffff;
+  border-color: var(--border);
+  font-weight: 500;
+}
+.slides-tool.is-primary:hover:not(:disabled) {
+  background: #2e2e2e;
 }
 .slides-tool.is-ghost {
   border-color: transparent;
@@ -1793,7 +1798,8 @@ kbd {
 .slides-list {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 10px 14px 16px;
   display: flex;
   flex-direction: column;

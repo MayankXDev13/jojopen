@@ -21,7 +21,9 @@ import {
   buildAdd,
   buildReplay,
   cleanIt,
+  codeTarget,
   copyBoardLink,
+  copyCode,
   deleteBoard,
   deleteSlide,
   downloadJSON,
@@ -29,6 +31,7 @@ import {
   exampleCode,
   forgetKey,
   importJSON,
+  mermaidConvert,
   newBoard,
   newDiagram,
   openBoard,
@@ -43,7 +46,9 @@ import {
   setPanel,
   stopAI,
   syncCodeDraft,
+  tidyCode,
   toggleBuilds,
+  updateCodeDraftAndSync,
   validateCode,
 } from "../state/actions";
 import { Icon } from "./Icon";
@@ -61,16 +66,21 @@ export function PanelRoot() {
 function PanelHeader({
   icon,
   title,
+  count,
   children,
 }: {
   icon: string;
   title: string;
+  count?: number;
   children?: React.ReactNode;
 }) {
   return (
     <header>
       <span className="sidetitle">
         <Icon name={icon} size={16} /> {title}
+        {typeof count === "number" ? (
+          <span className="slides-count">{count}</span>
+        ) : null}
       </span>
       <div className="sidehead-actions">
         {children}
@@ -157,16 +167,21 @@ function SlideThumb({ slide }: { slide: BoardElement }) {
 
 export function SlidesPanel() {
   const list = slides();
+  const activeSlide = list.find((s) => S.selection.has(s.id)) || list[0];
+  const activeIdx = activeSlide
+    ? list.findIndex((s) => s.id === activeSlide.id)
+    : 0;
+
   return (
-    <aside className="sidepanel" aria-label="Slides">
-      <PanelHeader icon="slides" title="Slides">
+    <aside className="sidepanel slides-sidepanel" aria-label="Slides">
+      <PanelHeader icon="slides" title="Slides" count={list.length}>
         <button
           className="slides-present"
           data-act="present"
           onClick={() => present(0)}
           disabled={!list.length}
         >
-          <Icon name="present" size={14} sw={2} /> Present
+          <Icon name="play" size={12} /> Present
         </button>
       </PanelHeader>
       <div className="slides-tools">
@@ -233,30 +248,39 @@ export function SlidesPanel() {
               is on the slide.
             </p>
             <p className="muted">
-              Add one from a layout, turn a selection into a slide, or press
-              Mod+Enter to present.
+              Add one from a layout, turn a selection into a slide, or ask the
+              assistant for a deck.
             </p>
           </div>
         ) : (
           list.map((sl, i) => (
             <div
-              className={`slidecard${S.selection.has(sl.id) ? " is-active" : ""}`}
+              className={`slidecard${activeSlide?.id === sl.id ? " is-active" : ""}`}
               key={sl.id}
               data-slide={sl.id}
+              onClick={() => {
+                S.selection = new Set([sl.id]);
+                notify();
+              }}
             >
               <div className="slidecard-head">
                 <span className="slidecard-num">{i + 1}</span>
                 <input
                   className="slidecard-title"
-                  defaultValue={sl.title || ""}
+                  defaultValue={sl.title || "Untitled slide"}
+                  key={sl.id + ":" + (sl.title || "")}
                   aria-label="Slide title"
                   onBlur={(e) => renameSlide(sl.id, e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter")
                       (e.target as HTMLInputElement).blur();
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 />
-                <div className="slidecard-actions">
+                <div
+                  className="slidecard-actions"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     className="iconbtn"
                     data-act="presentFromThumb"
@@ -265,15 +289,6 @@ export function SlidesPanel() {
                     title="Present from here"
                   >
                     <Icon name="play" size={13} />
-                  </button>
-                  <button
-                    className="iconbtn"
-                    data-act="duplicateSlide"
-                    data-id={sl.id}
-                    onClick={() => duplicateSlide(sl.id)}
-                    title="Duplicate"
-                  >
-                    <Icon name="duplicate" size={13} />
                   </button>
                   <button
                     className="iconbtn"
@@ -287,158 +302,432 @@ export function SlidesPanel() {
                 </div>
               </div>
               <SlideThumb slide={sl} />
-              <div className="builds">
-                <label className="builds-check">
-                  <input
-                    type="checkbox"
-                    data-act="toggleBuilds"
-                    data-id={sl.id}
-                    checked={(sl.builds || []).length > 0}
-                    onChange={(e) => toggleBuilds(sl.id, e.target.checked)}
-                  />{" "}
-                  Replay how it was drawn, step by step (
-                  {slideChildren(sl).length} steps)
-                </label>
-                <div className="builds-actions">
-                  <button
-                    data-act="buildAdd"
-                    data-mode="appear"
-                    data-id={sl.id}
-                    onClick={() => buildAdd(sl.id, "appear")}
-                    title="Reveal the selected items one by one"
-                  >
-                    + Appear
-                  </button>
-                  <button
-                    data-act="buildAdd"
-                    data-mode="highlight"
-                    data-id={sl.id}
-                    onClick={() => buildAdd(sl.id, "highlight")}
-                    title="Emphasise the selected items"
-                  >
-                    + Highlight
-                  </button>
-                  <button
-                    data-act="buildReplay"
-                    data-id={sl.id}
-                    onClick={() => buildReplay(sl.id)}
-                    title="Replay the build from the start"
-                  >
-                    <Icon name="play" size={11} /> Replay
-                  </button>
-                </div>
-              </div>
-              <div className="notes">
-                <textarea
-                  defaultValue={sl.notes || ""}
-                  placeholder="Speaker notes…"
-                  onBlur={(e) => setNotes(sl.id, e.target.value)}
-                />
-              </div>
             </div>
           ))
         )}
       </div>
+      {activeSlide ? (
+        <div className="slide-inspector">
+          <div className="slide-inspector-title">
+            SLIDE {activeIdx + 1} · BUILDS
+          </div>
+          <label className="builds-check">
+            <input
+              type="checkbox"
+              data-act="toggleBuilds"
+              data-id={activeSlide.id}
+              checked={(activeSlide.builds || []).length > 0}
+              onChange={(e) => toggleBuilds(activeSlide.id, e.target.checked)}
+            />{" "}
+            Replay how it was drawn, step by step (
+            {slideChildren(activeSlide).length} steps)
+          </label>
+          <div className="builds-hint">
+            Or add your own builds: select things on the slide, then add one
+            (custom builds replace the replay).
+          </div>
+          <div className="builds-actions">
+            <button
+              className="build-btn"
+              data-act="buildAdd"
+              data-mode="appear"
+              data-id={activeSlide.id}
+              onClick={() => buildAdd(activeSlide.id, "appear")}
+              title="Reveal the selected items one by one"
+            >
+              + Appear
+            </button>
+            <button
+              className="build-btn"
+              data-act="buildAdd"
+              data-mode="highlight"
+              data-id={activeSlide.id}
+              onClick={() => buildAdd(activeSlide.id, "highlight")}
+              title="Emphasise the selected items"
+            >
+              + Highlight
+            </button>
+            <button
+              className="build-btn"
+              data-act="buildReplay"
+              data-id={activeSlide.id}
+              onClick={() => buildReplay(activeSlide.id)}
+              title="Replay the build from the start"
+            >
+              <Icon name="hourglass" size={12} /> + Replay
+            </button>
+          </div>
+          <div className="slide-inspector-title" style={{ marginTop: 14 }}>
+            SPEAKER NOTES
+          </div>
+          <textarea
+            className="speaker-notes-area"
+            defaultValue={activeSlide.notes || ""}
+            key={activeSlide.id + ":notes"}
+            placeholder="What to say on this slide..."
+            onBlur={(e) => setNotes(activeSlide.id, e.target.value)}
+          />
+        </div>
+      ) : null}
     </aside>
   );
 }
 
 /* ---------- code ---------- */
 
+function renderSyntax(line: string): React.ReactNode {
+  if (!line) return "";
+
+  // Comment
+  const hashIdx = line.indexOf("#");
+  if (hashIdx !== -1) {
+    const before = line.slice(0, hashIdx);
+    const comment = line.slice(hashIdx);
+    return (
+      <>
+        {before ? renderSyntax(before) : null}
+        <span style={{ color: "var(--code-comment)" }}>{comment}</span>
+      </>
+    );
+  }
+
+  // Directives
+  const dirMatch = line.match(/^(\s*)(direction|title)(:)(\s*)(.*)$/);
+  if (dirMatch) {
+    const [, indent, kw, colon, sp, val] = dirMatch;
+    return (
+      <>
+        {indent}
+        <span style={{ color: "var(--code-kw)" }}>
+          {kw}
+          {colon}
+        </span>
+        {sp}
+        <span style={{ color: "var(--code-str)" }}>{val}</span>
+      </>
+    );
+  }
+
+  // Group
+  const grpMatch = line.match(/^(\s*)(group)(\b[\s\S]*)$/);
+  if (grpMatch) {
+    const [, indent, kw, rest] = grpMatch;
+    return (
+      <>
+        {indent}
+        <span style={{ color: "var(--code-kw)" }}>{kw}</span>
+        {renderSyntaxInline(rest)}
+      </>
+    );
+  }
+
+  return renderSyntaxInline(line);
+}
+
+function renderSyntaxInline(text: string): React.ReactNode {
+  const tokenRegex =
+    /(\[[^\]]*\]|-->|->|<->|<--|<-|-\.\.->|-\.\.>|-\.->|---|--|:\s*[^[\]\-><]+)/g;
+  let lastIndex = 0;
+  const parts: React.ReactNode[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith("[")) {
+      parts.push(
+        <span key={match.index} style={{ color: "var(--code-attr)" }}>
+          {token}
+        </span>,
+      );
+    } else if (token.startsWith(":")) {
+      parts.push(
+        <span key={match.index} style={{ color: "var(--code-str)" }}>
+          {token}
+        </span>,
+      );
+    } else {
+      parts.push(
+        <span key={match.index} style={{ color: "var(--code-op)" }}>
+          {token}
+        </span>,
+      );
+    }
+    lastIndex = match.index + token.length;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts;
+}
+
+function DiagramCodeEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+  const gutterRef = useRef<HTMLDivElement>(null);
+
+  const lines = value.split("\n");
+
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    const top = e.currentTarget.scrollTop;
+    const left = e.currentTarget.scrollLeft;
+    if (preRef.current) {
+      preRef.current.scrollTop = top;
+      preRef.current.scrollLeft = left;
+    }
+    if (gutterRef.current) {
+      gutterRef.current.scrollTop = top;
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const ta = e.currentTarget;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = ta.value;
+      const next = val.substring(0, start) + "  " + val.substring(end);
+      onChange(next);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = start + 2;
+      });
+    }
+  };
+
+  return (
+    <div className="code">
+      <div className="cm-editor">
+        <div
+          className="cm-scroller"
+          style={{
+            display: "flex",
+            height: "100%",
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          <div
+            ref={gutterRef}
+            className="cm-gutters"
+            aria-hidden="true"
+            style={{
+              flex: "0 0 auto",
+              padding: "10px 10px 10px 14px",
+              textAlign: "right",
+              userSelect: "none",
+              color: "var(--subtle)",
+              minWidth: 34,
+              overflow: "hidden",
+            }}
+          >
+            {lines.map((_, i) => (
+              <div
+                key={i}
+                className="cm-gutterElement"
+                style={{ height: 22, lineHeight: "22px" }}
+              >
+                {i + 1}
+              </div>
+            ))}
+          </div>
+          <div
+            className="cm-content"
+            style={{
+              flex: "1 1 auto",
+              position: "relative",
+              height: "100%",
+              overflow: "hidden",
+              padding: "10px 14px 10px 6px",
+            }}
+          >
+            <pre
+              ref={preRef}
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 6,
+                right: 14,
+                bottom: 10,
+                margin: 0,
+                padding: 0,
+                fontFamily: "JetBrains Mono, ui-monospace, monospace",
+                fontSize: 12.5,
+                lineHeight: "22px",
+                whiteSpace: "pre",
+                overflow: "hidden",
+                pointerEvents: "none",
+                tabSize: 2,
+              }}
+            >
+              {lines.map((line, i) => (
+                <div key={i} style={{ height: 22, lineHeight: "22px" }}>
+                  {renderSyntax(line) || "\u00A0"}
+                </div>
+              ))}
+            </pre>
+            <textarea
+              ref={textareaRef}
+              id="codeArea"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onScroll={handleScroll}
+              onKeyDown={handleKeyDown}
+              spellCheck={false}
+              aria-label="Diagram source"
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 6,
+                right: 14,
+                bottom: 10,
+                margin: 0,
+                padding: 0,
+                border: "none",
+                outline: "none",
+                resize: "none",
+                background: "transparent",
+                color: "transparent",
+                caretColor: "var(--text)",
+                fontFamily: "JetBrains Mono, ui-monospace, monospace",
+                fontSize: 12.5,
+                lineHeight: "22px",
+                whiteSpace: "pre",
+                overflow: "auto",
+                tabSize: 2,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CodePanel() {
+  useVersion();
   useEffect(() => {
     syncCodeDraft();
   });
-  const target = S.codeFor ? S.doc.elements[S.codeFor] : null;
+  const target = codeTarget();
   const draft = S.codeDraft ?? "";
   const parsed = parseDSL(draft);
+  const hasError = parsed.diagnostics.some((d) => d.severity === "error");
+
   return (
-    <aside className="sidepanel" aria-label="Diagram code">
+    <aside className="sidepanel code-sidepanel" aria-label="Diagram code">
       <PanelHeader icon="code" title="Diagram code" />
-      <div className="sidebody">
-        <p className="note" style={{ marginTop: 0 }}>
-          JojoPen diagrams are written in a small, forgiving text language.
-          Describe structure only — layout and colors are automatic.
-        </p>
-        <textarea
-          className="input codearea"
-          id="codeArea"
-          spellCheck={false}
-          aria-label="Diagram source"
-          value={draft}
-          onChange={(e) => setCodeDraft(e.target.value)}
-        />
-        <div className="row" style={{ marginTop: 10 }}>
-          <button className="primary" data-act="applyCode" onClick={applyCode}>
-            <Icon name="check" size={15} />{" "}
-            {target ? "Apply to diagram" : "Add diagram"}
-          </button>
-          <button
-            className="secondary"
-            data-act="validateCode"
-            onClick={validateCode}
-          >
-            Validate
-          </button>
-          <button
-            className="secondary"
-            data-act="newDiagram"
-            onClick={newDiagram}
-          >
-            <Icon name="plus" size={14} /> New diagram
-          </button>
-          <button
-            className="secondary"
-            data-act="mermaid"
-            onClick={openMermaid}
-          >
-            <Icon name="upload" size={14} /> Import Mermaid
-          </button>
-          <button
-            className="secondary"
-            data-act="exampleCode"
-            onClick={exampleCode}
-          >
-            Example
-          </button>
+      {!target ? (
+        <div className="sideempty">
+          <p>
+            Select a diagram to edit its code, or start one. Write structure
+            only — colors and layout are automatic.
+          </p>
+          <div className="code-actions">
+            <button
+              className="primary"
+              data-act="newDiagram"
+              onClick={newDiagram}
+            >
+              New diagram
+            </button>
+            <button
+              className="secondary"
+              data-act="mermaid"
+              onClick={openMermaid}
+            >
+              Import Mermaid
+            </button>
+          </div>
         </div>
-        <div className="section-label">Structure</div>
-        <div className="kv">
-          <span>Title</span>
-          <b>{parsed.title || "—"}</b>
-        </div>
-        <div className="kv">
-          <span>Direction</span>
-          <b>{parsed.direction}</b>
-        </div>
-        <div className="kv">
-          <span>Nodes</span>
-          <b>{parsed.nodes.size}</b>
-        </div>
-        <div className="kv">
-          <span>Groups</span>
-          <b>{parsed.groups.size}</b>
-        </div>
-        <div className="kv">
-          <span>Edges</span>
-          <b>{parsed.edges.length}</b>
-        </div>
-        <div className="section-label">Diagnostics</div>
-        {parsed.diagnostics.length ? (
-          parsed.diagnostics.map((d, i) => (
-            <div className={`diag ${d.severity}`} key={i}>
-              Line {d.line}: {d.message}
+      ) : (
+        <>
+          <div className="code-meta">
+            <span className="framechip" title={target.title || "Diagram"}>
+              {target.title ? `# ${target.title}` : "# Diagram"}
+            </span>
+            <span className={`sync${hasError ? " is-error" : ""}`}>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: hasError ? "var(--danger)" : "#10b981",
+                }}
+              />{" "}
+              {hasError ? "Syntax error" : "Synced with canvas"}
+            </span>
+          </div>
+          <DiagramCodeEditor value={draft} onChange={updateCodeDraftAndSync} />
+        </>
+      )}
+
+      {S.mermaidOpen ? (
+        <div className="mermaid">
+          <label>Paste a Mermaid flowchart</label>
+          <textarea
+            value={S.mermaidText || ""}
+            onChange={(e) => {
+              useBoardStore.setState({ mermaidText: e.target.value } as any);
+              notify();
+            }}
+            placeholder="flowchart LR&#10;  A[Browser] --> B(API)&#10;  B --> C[(Postgres)]&#10;  B -..-> D{{Queue}}"
+            spellCheck={false}
+          />
+          {S.mermaidError ? (
+            <div className="diag error" style={{ margin: "6px 0" }}>
+              {S.mermaidError}
             </div>
-          ))
-        ) : (
-          <div className="diag info">No problems found.</div>
-        )}
-        <p className="note">
-          Tip: <code>A -&gt; B</code> sync · <code>--&gt;</code> async ·{" "}
-          <code>&lt;-&gt;</code> bidirectional · <code>-.&gt;</code> optional ·{" "}
-          <code>--</code> plain line. Groups nest with{" "}
-          <code>group Name {"{ }"}</code>.
-        </p>
+          ) : null}
+          <div className="row end" style={{ gap: 8, marginTop: 4 }}>
+            <button
+              className="cancel-btn"
+              onClick={() => {
+                useBoardStore.setState({ mermaidOpen: false } as any);
+                notify();
+              }}
+            >
+              Cancel
+            </button>
+            <button className="primary convert-btn" onClick={mermaidConvert}>
+              Convert to diagram
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="code-foot">
+        <button className="secondary" data-act="mermaid" onClick={openMermaid}>
+          Import Mermaid
+        </button>
+        {target ? (
+          <>
+            <button
+              className="secondary"
+              data-act="copyCode"
+              onClick={copyCode}
+            >
+              Copy
+            </button>
+            <button
+              className="secondary"
+              data-act="tidyCode"
+              onClick={tidyCode}
+            >
+              Tidy up
+            </button>
+          </>
+        ) : null}
       </div>
     </aside>
   );
@@ -578,8 +867,7 @@ export function BoardsPanel() {
   const collections = collectionsList();
   const allBoards = boardsList();
   const q = S.boardQuery || "";
-  const activeColId =
-    S.activeCollection || (collections[0]?.id ?? "col-jojo");
+  const activeColId = S.activeCollection || (collections[0]?.id ?? "col-jojo");
   const activeCol =
     collections.find((c) => c.id === activeColId) || collections[0];
 

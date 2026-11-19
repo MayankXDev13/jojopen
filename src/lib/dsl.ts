@@ -282,6 +282,7 @@ function parseDecl(str: string): ParsedDecl {
 const CONNECTORS = [
   { text: "<-->", kind: "bidirectional", reversed: false },
   { text: "<->", kind: "bidirectional", reversed: false },
+  { text: "-..>", kind: "optional", reversed: false },
   { text: "-.->", kind: "optional", reversed: false },
   { text: "<--", kind: "async", reversed: true },
   { text: "<-", kind: "sync", reversed: true },

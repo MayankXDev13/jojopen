@@ -12,9 +12,27 @@ describe("Shape Nesting & Auto No-Fill", () => {
   });
 
   test("shapeEncloses detects when outer shape contains inner shape", () => {
-    const outer = MAKE.shape({ id: "outer", x: 100, y: 100, width: 300, height: 200 });
-    const inner = MAKE.shape({ id: "inner", x: 150, y: 130, width: 100, height: 80 });
-    const outside = MAKE.shape({ id: "outside", x: 500, y: 500, width: 100, height: 80 });
+    const outer = MAKE.shape({
+      id: "outer",
+      x: 100,
+      y: 100,
+      width: 300,
+      height: 200,
+    });
+    const inner = MAKE.shape({
+      id: "inner",
+      x: 150,
+      y: 130,
+      width: 100,
+      height: 80,
+    });
+    const outside = MAKE.shape({
+      id: "outside",
+      x: 500,
+      y: 500,
+      width: 100,
+      height: 80,
+    });
 
     expect(shapeEncloses(outer, inner)).toBe(true);
     expect(shapeEncloses(inner, outer)).toBe(false);
@@ -23,11 +41,27 @@ describe("Shape Nesting & Auto No-Fill", () => {
 
   test("syncEnclosedShapes gives outer shape noFill = true and puts it behind inner", () => {
     // Inner was created first
-    const inner = MAKE.shape({ id: "inner", x: 150, y: 130, width: 100, height: 80, noFill: false, index: 1 });
+    const inner = MAKE.shape({
+      id: "inner",
+      x: 150,
+      y: 130,
+      width: 100,
+      height: 80,
+      noFill: false,
+      index: 1,
+    });
     S.doc.elements[inner.id] = inner;
 
     // Outer is created later on top of inner
-    const outer = MAKE.shape({ id: "outer", x: 100, y: 100, width: 300, height: 200, noFill: false, index: 2 });
+    const outer = MAKE.shape({
+      id: "outer",
+      x: 100,
+      y: 100,
+      width: 300,
+      height: 200,
+      noFill: false,
+      index: 2,
+    });
     S.doc.elements[outer.id] = outer;
 
     syncEnclosedShapes(outer);
@@ -40,11 +74,27 @@ describe("Shape Nesting & Auto No-Fill", () => {
 
   test("syncEnclosedShapes sets existing parent to noFill = true when inner is created inside it", () => {
     // Outer exists on canvas
-    const outer = MAKE.shape({ id: "outer", x: 100, y: 100, width: 300, height: 200, noFill: false, index: 1 });
+    const outer = MAKE.shape({
+      id: "outer",
+      x: 100,
+      y: 100,
+      width: 300,
+      height: 200,
+      noFill: false,
+      index: 1,
+    });
     S.doc.elements[outer.id] = outer;
 
     // Inner is created inside it
-    const inner = MAKE.shape({ id: "inner", x: 150, y: 130, width: 100, height: 80, noFill: false, index: 2 });
+    const inner = MAKE.shape({
+      id: "inner",
+      x: 150,
+      y: 130,
+      width: 100,
+      height: 80,
+      noFill: false,
+      index: 2,
+    });
     S.doc.elements[inner.id] = inner;
 
     syncEnclosedShapes(inner);
@@ -63,9 +113,21 @@ describe("Marquee Selection: Enclosure vs Intersection", () => {
 
   test("marquee selects only fully enclosed shape when another shape merely intersects", () => {
     // Orange shape: (x: 200, y: 100, w: 100, h: 50) -> bounds: 200..300, 100..150
-    const orange = MAKE.shape({ id: "orange", x: 200, y: 100, width: 100, height: 50 });
+    const orange = MAKE.shape({
+      id: "orange",
+      x: 200,
+      y: 100,
+      width: 100,
+      height: 50,
+    });
     // Blue shape: (x: 180, y: 140, w: 100, h: 50) -> bounds: 180..280, 140..190 (overlaps orange's bottom-left)
-    const blue = MAKE.shape({ id: "blue", x: 180, y: 140, width: 100, height: 50 });
+    const blue = MAKE.shape({
+      id: "blue",
+      x: 180,
+      y: 140,
+      width: 100,
+      height: 50,
+    });
 
     S.doc.elements[orange.id] = orange;
     S.doc.elements[blue.id] = blue;
@@ -82,7 +144,14 @@ describe("Marquee Selection: Enclosure vs Intersection", () => {
     };
 
     const mockCtx: any = {
-      container: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 1000 }) },
+      container: {
+        getBoundingClientRect: () => ({
+          left: 0,
+          top: 0,
+          width: 1000,
+          height: 1000,
+        }),
+      },
       toWorld: (x: number, y: number) => ({ x, y }),
     };
 
@@ -95,7 +164,13 @@ describe("Marquee Selection: Enclosure vs Intersection", () => {
   });
 
   test("marquee falls back to intersecting shapes if nothing is fully enclosed", () => {
-    const box = MAKE.shape({ id: "box", x: 100, y: 100, width: 200, height: 200 });
+    const box = MAKE.shape({
+      id: "box",
+      x: 100,
+      y: 100,
+      width: 200,
+      height: 200,
+    });
     S.doc.elements[box.id] = box;
 
     // Marquee touches corner of box, but doesn't fully enclose it
@@ -108,7 +183,14 @@ describe("Marquee Selection: Enclosure vs Intersection", () => {
     };
 
     const mockCtx: any = {
-      container: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 1000 }) },
+      container: {
+        getBoundingClientRect: () => ({
+          left: 0,
+          top: 0,
+          width: 1000,
+          height: 1000,
+        }),
+      },
       toWorld: (x: number, y: number) => ({ x, y }),
     };
 

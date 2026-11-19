@@ -54,9 +54,9 @@ export function SotReplay() {
           aria-label="Sands of Time replay"
         >
           <div className="sottop">
-            <span className="sottop-name">
-              <Icon name="hourglass" size={12} /> {rec.name}
-            </span>
+            <span className="sot-amber-dot" />
+            <span className="sottop-name">{rec.name}</span>
+            <span className="sotsep" />
             <span className="sotkey">
               <kbd>←</kbd>
               <kbd>→</kbd> step
@@ -82,18 +82,26 @@ export function SotReplay() {
           <div className="sotbar">
             <button
               className="sotghost"
+              onClick={() => sotSetIndex(0)}
+              title="First step"
+              disabled={idx === 0}
+            >
+              <Icon name="first" size={13} />
+            </button>
+            <button
+              className="sotghost"
               onClick={() => sotSetIndex(idx - 1)}
               title="Previous step"
               disabled={idx === 0}
             >
-              <Icon name="prev" size={15} />
+              <Icon name="stepPrev" size={12} />
             </button>
             <button
               className="sotplay"
               onClick={sotPlayToggle}
               title={rp.playing ? "Pause" : "Play"}
             >
-              <Icon name={rp.playing ? "pause" : "play"} size={15} />
+              <Icon name={rp.playing ? "pause" : "play"} size={14} />
             </button>
             <button
               className="sotghost"
@@ -101,21 +109,41 @@ export function SotReplay() {
               title="Next step"
               disabled={idx >= last}
             >
-              <Icon name="next" size={15} />
+              <Icon name="stepNext" size={12} />
             </button>
+            <span className="sotsep" />
             <span className="sotpos">
-              {idx}/{last}
+              <b>{idx}</b>/{last}
             </span>
-            <input
-              className="sotrange"
-              id="sotRange"
-              type="range"
-              min={0}
-              max={last}
-              value={idx}
-              aria-label="Replay position"
-              onChange={(e) => sotSetIndex(Number(e.target.value))}
-            />
+            <div className="sot-track-wrap">
+              <div className="sot-track-line">
+                <div
+                  className="sot-track-fill"
+                  style={{ width: `${last > 0 ? (idx / last) * 100 : 0}%` }}
+                />
+                {Array.from({ length: last + 1 }, (_, i) => (
+                  <span
+                    key={i}
+                    className={`sot-track-tick${i <= idx ? " is-passed" : ""}`}
+                    style={{ left: `${last > 0 ? (i / last) * 100 : 0}%` }}
+                  />
+                ))}
+                <div
+                  className="sot-track-thumb"
+                  style={{ left: `${last > 0 ? (idx / last) * 100 : 0}%` }}
+                />
+              </div>
+              <input
+                className="sotrange-overlay"
+                id="sotRange"
+                type="range"
+                min={0}
+                max={last}
+                value={idx}
+                aria-label="Replay position"
+                onChange={(e) => sotSetIndex(Number(e.target.value))}
+              />
+            </div>
             <span className="sotlabel">{label}</span>
             <span className="sotsep" />
             <span className="sotexport">
@@ -134,7 +162,24 @@ export function SotReplay() {
               title="Export as GIF or video"
               aria-expanded={rp.exportOpen}
             >
-              <Icon name="download" size={15} />
+              <Icon name="download" size={14} />
+            </button>
+            <button
+              className="sotspeed"
+              data-act="sotSpeed"
+              onClick={sotCycleSpeed}
+              title="Playback speed"
+            >
+              {rp.speed}×
+            </button>
+            <button
+              className="sotghost"
+              data-act="sotClose"
+              onClick={sotCloseReplay}
+              aria-label="Exit replay"
+              title="Exit replay (Esc)"
+            >
+              <Icon name="close" size={14} />
             </button>
             {rp.exportOpen ? (
               <span className="sotexport-menu" role="menu">
@@ -169,22 +214,6 @@ export function SotReplay() {
                 </button>
               </span>
             ) : null}
-            <button
-              className="sotspeed"
-              onClick={sotCycleSpeed}
-              title="Playback speed"
-            >
-              {rp.speed}×
-            </button>
-            <button
-              className="sotghost"
-              data-act="sotClose"
-              onClick={sotCloseReplay}
-              aria-label="Exit replay"
-              title="Exit replay (Esc)"
-            >
-              <Icon name="close" size={15} />
-            </button>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@ function mermaidSplit(line: string): {
   parts: string[];
   conns: { conn: string; label: string }[];
 } {
-  const re = /<-->|<->|-\.->|==>|-->|---|--|==/;
+  const re = /<-->|<->|-\.\.->|-\.->|==>|-->|---|--|==/;
   const parts: string[] = [];
   const conns: { conn: string; label: string }[] = [];
   let rest = line;
@@ -53,6 +53,9 @@ function mermaidNode(tok: string): MermaidNode | null {
       label = rest.slice(2, -2);
     } else if (rest.startsWith("[(") && rest.endsWith(")]")) {
       shape = "cylinder";
+      label = rest.slice(2, -2);
+    } else if (rest.startsWith("{{") && rest.endsWith("}}")) {
+      shape = "diamond";
       label = rest.slice(2, -2);
     } else if (rest.startsWith("[[") && rest.endsWith("]]")) {
       shape = "rectangle";
@@ -195,13 +198,15 @@ export function mermaidToDSL(src: string): { dsl?: string; error?: string } {
           addNode(a);
           addNode(b);
           const kind =
-            c.conn === "-.->"
-              ? "optional"
-              : c.conn === "---" || c.conn === "--"
-                ? "line"
-                : c.conn === "<->" || c.conn === "<-->"
-                  ? "bidirectional"
-                  : "sync";
+            c.conn === "-..->"
+              ? "-..>"
+              : c.conn === "-.->"
+                ? "optional"
+                : c.conn === "---" || c.conn === "--"
+                  ? "line"
+                  : c.conn === "<->" || c.conn === "<-->"
+                    ? "bidirectional"
+                    : "sync";
           edges.push({ from: a.id, to: b.id, kind, label: c.label || "" });
         }
     }
@@ -231,16 +236,14 @@ export function mermaidToDSL(src: string): { dsl?: string; error?: string } {
   };
   const decl = (n: MermaidNode) => {
     const name = nameFor(n);
-    const role = mermaidRole(n.label, n.shape);
-    let shape = n.shape;
-    if (role === "data" || role === "cache") shape = "cylinder";
-    return `${name} [${shape}, ${role}]`;
+    if (!n.shape || n.shape === "rectangle") return name;
+    return `${name} [${n.shape}]`;
   };
 
   const top = [...nodes.values()].filter((n) => !n.group);
   const inGroup = (g: { id: string }) =>
     [...nodes.values()].filter((n) => n.group && n.group.id === g.id);
-  let out = `title: ${header}\ndirection: ${direction}\n\n`;
+  let out = `direction: ${direction}\n\n`;
   for (const n of top) out += decl(n) + "\n";
   for (const g of groups) {
     const kids = inGroup(g);
@@ -254,13 +257,15 @@ export function mermaidToDSL(src: string): { dsl?: string; error?: string } {
     out += "\n";
     for (const e of edges) {
       const arrow =
-        e.kind === "optional"
-          ? "-.->"
-          : e.kind === "line"
-            ? "---"
-            : e.kind === "bidirectional"
-              ? "<->"
-              : "->";
+        e.kind === "-..>"
+          ? "-..>"
+          : e.kind === "optional"
+            ? "-.->"
+            : e.kind === "line"
+              ? "---"
+              : e.kind === "bidirectional"
+                ? "<->"
+                : "->";
       out += `${nameFor(nodes.get(e.from)!)} ${arrow} ${nameFor(nodes.get(e.to)!)}${e.label ? ": " + e.label : ""}\n`;
     }
   }

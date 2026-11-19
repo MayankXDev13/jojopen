@@ -1460,6 +1460,15 @@ export function setRoute(route: string) {
       e.routeMode = route;
       // Switching modes returns to automatic routing (original: route auto).
       e.route = "auto";
+      const pts = (e.points || []).map((p) => ({ x: e.x + p.x, y: e.y + p.y }));
+      if (pts.length >= 2) {
+        const a = pts[0];
+        const b = pts[pts.length - 1];
+        e.points = [
+          { x: a.x - e.x, y: a.y - e.y },
+          { x: b.x - e.x, y: b.y - e.y },
+        ];
+      }
     });
   notify();
   persist();

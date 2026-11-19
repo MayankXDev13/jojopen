@@ -175,19 +175,25 @@ export function Edges() {
                   const handleFill = "var(--bg)";
                   return (
                     <g data-id={el.id}>
-                      {[geom.p0, geom.p1].map((p, i) => (
-                        <circle
-                          key={`e${i}`}
-                          cx={p.x}
-                          cy={p.y}
-                          r={5.5 / z}
-                          fill={handleFill}
-                          stroke={selColor}
-                          strokeWidth={1.75 / z}
-                          data-id={el.id}
-                          data-handle={`endpoint:${i === 0 ? 0 : geom.pts.length - 1}`}
-                        />
-                      ))}
+                      {[geom.p0, geom.p1].map((p, i) => {
+                        const ptIndex =
+                          i === 0
+                            ? 0
+                            : Math.max(1, (el.points?.length || 2) - 1);
+                        return (
+                          <circle
+                            key={`e${i}`}
+                            cx={p.x}
+                            cy={p.y}
+                            r={5.5 / z}
+                            fill={handleFill}
+                            stroke={selColor}
+                            strokeWidth={1.75 / z}
+                            data-id={el.id}
+                            data-handle={`endpoint:${ptIndex}`}
+                          />
+                        );
+                      })}
                       {handles.map((h, i) => {
                         const key = `${h.kind}${i}`;
                         if (h.kind === "segment") {

@@ -106,6 +106,7 @@ export interface BoardDoc {
   schemaVersion: number;
   id: string;
   name: string;
+  collectionId?: string;
   settings: BoardSettings;
   elements: Record<string, BoardElement>;
   files: Record<string, string>;
@@ -235,6 +236,7 @@ export function blankDoc(name = "Scratch board"): BoardDoc {
     schemaVersion: 1,
     id: uid(),
     name,
+    collectionId: "col-jojo",
     settings: { ...DEFAULT_SETTINGS },
     elements: {},
     files: {},
@@ -247,6 +249,7 @@ export function normalizeDoc(d: any): BoardDoc {
     schemaVersion: 1,
     id: d.id || uid(),
     name: d.name || "Untitled board",
+    collectionId: d.collectionId || "col-jojo",
     settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) },
     elements: {},
     files: d.files || {},

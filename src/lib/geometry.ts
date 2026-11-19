@@ -62,6 +62,52 @@ export const pointInElement = (x: number, y: number, e: BoardElement) => {
   return x >= b.minX && x <= b.maxX && y >= b.minY && y <= b.maxY;
 };
 
+/** Whether outer shape contains or encloses inner shape. */
+export function shapeEncloses(
+  outer: BoardElement,
+  inner: BoardElement,
+): boolean {
+  if (outer.type !== "shape" || inner.type !== "shape") return false;
+  if (outer.width < inner.width && outer.height < inner.height) return false;
+
+  const pad = 8;
+  const fullyInside =
+    inner.x >= outer.x - pad &&
+    inner.y >= outer.y - pad &&
+    inner.x + inner.width <= outer.x + outer.width + pad &&
+    inner.y + inner.height <= outer.y + outer.height + pad;
+
+  if (fullyInside) return true;
+
+  const innerCx = inner.x + inner.width / 2;
+  const innerCy = inner.y + inner.height / 2;
+  const centerInside =
+    innerCx >= outer.x &&
+    innerCx <= outer.x + outer.width &&
+    innerCy >= outer.y &&
+    innerCy <= outer.y + outer.height;
+
+  if (centerInside && outer.width >= inner.width && outer.height >= inner.height) {
+    const xOverlap = Math.max(
+      0,
+      Math.min(outer.x + outer.width, inner.x + inner.width) -
+        Math.max(outer.x, inner.x),
+    );
+    const yOverlap = Math.max(
+      0,
+      Math.min(outer.y + outer.height, inner.y + inner.height) -
+        Math.max(outer.y, inner.y),
+    );
+    const overlapArea = xOverlap * yOverlap;
+    const innerArea = inner.width * inner.height;
+    if (innerArea > 0 && overlapArea / innerArea >= 0.7) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function nextFrameElement(
   list: BoardElement[],
   point: Point,

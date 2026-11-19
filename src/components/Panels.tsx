@@ -6,11 +6,14 @@ import { AI_SUGGESTIONS } from "../state/actions";
 import {
   S,
   boardsList,
+  collectionsList,
+  createCollection,
   elements,
   notify,
   slideChildren,
   slides,
 } from "../state/store";
+import { useBoardStore, useVersion } from "../state/boardStore";
 import {
   addSlide,
   applyCode,
@@ -571,19 +574,84 @@ export function AssistantPanel() {
 /* ---------- boards ---------- */
 
 export function BoardsPanel() {
-  const list = boardsList();
+  useVersion();
+  const collections = collectionsList();
+  const allBoards = boardsList();
   const q = S.boardQuery || "";
-  const filtered = list.filter(
-    (b: any) => !q || b.name.toLowerCase().includes(q.toLowerCase()),
-  );
+  const activeColId =
+    S.activeCollection || (collections[0]?.id ?? "col-jojo");
+  const activeCol =
+    collections.find((c) => c.id === activeColId) || collections[0];
+
+  const [newColName, setNewColName] = useState("");
+
+  const collectionCounts: Record<string, number> = {};
+  for (const b of allBoards) {
+    const colId = b.collectionId || "col-jojo";
+    collectionCounts[colId] = (collectionCounts[colId] || 0) + 1;
+  }
+
+  const filtered = allBoards.filter((b: any) => {
+    if (q) {
+      return b.name.toLowerCase().includes(q.toLowerCase());
+    }
+    return (b.collectionId || "col-jojo") === activeColId;
+  });
+
+  const handleAddCollection = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && newColName.trim()) {
+      e.preventDefault();
+      const created = createCollection(newColName.trim());
+      if (created) {
+        useBoardStore.setState({ activeCollection: created.id } as any);
+        setNewColName("");
+        notify();
+      }
+    }
+  };
+
   return (
     <aside className="sidepanel" aria-label="My boards">
-      <PanelHeader icon="docshape" title="My boards" />
-      <div className="sidebody">
-        <div className="row">
+      <header
+        style={{
+          padding: "0 14px 0 18px",
+          height: 52,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <span
+          className="sidetitle"
+          style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}
+        >
+          My boards
+        </span>
+        <div className="sidehead-actions">
+          <button
+            className="iconbtn"
+            onClick={() => setPanel("none")}
+            aria-label="Close panel"
+          >
+            <Icon name="close" size={16} />
+          </button>
+        </div>
+      </header>
+
+      <div
+        className="sidebody boardspanel"
+        style={{
+          padding: "14px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
+        {/* Search */}
+        <div className="boardsearch">
+          <Icon name="search" size={15} />
           <input
-            className="input"
-            style={{ flex: 1 }}
             placeholder="Search all boards"
             value={q}
             onChange={(e) => {
@@ -591,91 +659,181 @@ export function BoardsPanel() {
               notify();
             }}
           />
-          <Icon name="search" size={15} />
+          {q ? (
+            <button
+              className="iconbtn small"
+              style={{ padding: 2 }}
+              onClick={() => {
+                S.boardQuery = "";
+                notify();
+              }}
+              title="Clear search"
+            >
+              <Icon name="close" size={12} />
+            </button>
+          ) : null}
         </div>
-        <div className="row" style={{ marginTop: 8 }}>
-          <button className="primary" data-act="newBoard" onClick={newBoard}>
-            <Icon name="plus" size={14} sw={2} /> New board
-          </button>
-          <button className="secondary" data-act="import" onClick={importJSON}>
-            Import
-          </button>
-          <button
-            className="secondary"
-            data-act="backup"
-            onClick={downloadJSON}
+
+        {/* Collections */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div
+            className="section-label"
+            style={{
+              padding: 0,
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+            }}
           >
-            Backup
+            Collections
+          </div>
+
+          <div
+            className="collections"
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+              padding: 0,
+            }}
+          >
+            {collections.map((col) => {
+              const isOn = activeColId === col.id;
+              return (
+                <button
+                  key={col.id}
+                  className={isOn ? "is-on" : ""}
+                  onClick={() => {
+                    useBoardStore.setState({ activeCollection: col.id } as any);
+                    notify();
+                  }}
+                >
+                  <span>{col.name}</span>
+                  <small>{collectionCounts[col.id] || 0}</small>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="newcollection" style={{ padding: 0 }}>
+            <input
+              className="input"
+              style={{
+                height: 32,
+                fontSize: 13,
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: "color-mix(in srgb, var(--text) 3%, transparent)",
+              }}
+              placeholder="+ New collection..."
+              value={newColName}
+              onChange={(e) => setNewColName(e.target.value)}
+              onKeyDown={handleAddCollection}
+            />
+          </div>
+
+          <button
+            className="btn is-primary"
+            data-act="newBoard"
+            style={{
+              width: "100%",
+              height: 36,
+              borderRadius: 10,
+              justifyContent: "center",
+              fontWeight: 600,
+              fontSize: 13.5,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              cursor: "pointer",
+              marginTop: 4,
+            }}
+            onClick={newBoard}
+          >
+            <Icon name="plus" size={14} sw={2.2} /> New board
           </button>
         </div>
-        <div className="section-label">Boards</div>
-        <ul className="boardlist">
-          {filtered.length ? (
-            filtered.map((b: any) => (
+
+        {/* Boards in Collection / Matching Boards */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div
+            className="section-label"
+            style={{
+              padding: 0,
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+            }}
+          >
+            {q
+              ? "Matching boards"
+              : `BOARDS IN ${(activeCol?.name || "COLLECTION").toUpperCase()}`}
+          </div>
+
+          <ul
+            className="boardlist"
+            style={{
+              padding: 0,
+              margin: 0,
+              listStyle: "none",
+              display: "grid",
+              gap: 2,
+            }}
+          >
+            {filtered.length ? (
+              filtered.map((b: any) => {
+                const isCurrent = b.id === S.doc.id;
+                return (
+                  <li
+                    key={b.id}
+                    className="board-row"
+                    style={{ position: "relative" }}
+                  >
+                    <a
+                      href={`#/b/${b.id}`}
+                      className={`boardlink${isCurrent ? " is-current" : ""}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openBoard(b.id);
+                      }}
+                    >
+                      <div className="boardtitle">{b.name}</div>
+                      <div className="boardmeta">
+                        <span>
+                          {new Date(b.updatedAt).toLocaleDateString()}
+                        </span>
+                        <Icon name="lock" size={11} />
+                      </div>
+                    </a>
+                    <button
+                      className="iconbtn small board-del-btn"
+                      data-act="deleteBoard"
+                      data-id={b.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteBoard(b.id);
+                      }}
+                      title="Delete board"
+                    >
+                      <Icon name="trash" size={13} />
+                    </button>
+                  </li>
+                );
+              })
+            ) : (
               <li
-                className={`boarditem${b.id === S.doc.id ? " is-current" : ""}`}
-                key={b.id}
-                data-act="openBoard"
-                data-id={b.id}
-                onClick={() => openBoard(b.id)}
+                className="muted"
+                style={{ padding: "10px 8px", fontSize: 12 }}
               >
-                <span className="thumbmini">
-                  <Icon name="board" size={18} />
-                </span>
-                <span className="bt">
-                  <b>{b.name}</b>
-                  <small>
-                    {b.kind === "deck" ? "Slides · " : ""}
-                    {new Date(b.updatedAt).toLocaleDateString()}
-                  </small>
-                </span>
-                {b.id === S.doc.id ? (
-                  <span className="small muted">open</span>
-                ) : null}
-                <button
-                  className="iconbtn small"
-                  data-act="deleteBoard"
-                  data-id={b.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteBoard(b.id);
-                  }}
-                  title="Delete"
-                >
-                  <Icon name="trash" size={13} />
-                </button>
+                {q ? "No boards match." : "No boards in this collection."}
               </li>
-            ))
-          ) : (
-            <li className="muted" style={{ padding: "10px 8px", fontSize: 12 }}>
-              {list.length ? "No boards match." : "No saved boards yet."}
-            </li>
-          )}
-        </ul>
-        <div className="section-label">This board</div>
-        <div className="kv">
-          <span>Name</span>
-          <b>{S.doc.name}</b>
+            )}
+          </ul>
         </div>
-        <div className="kv">
-          <span>Elements</span>
-          <b>{elements().length}</b>
-        </div>
-        <div className="kv">
-          <span>Slides</span>
-          <b>{slides().length}</b>
-        </div>
-        <div className="kv">
-          <span>Storage</span>
-          <b>This device</b>
-        </div>
-        <button
-          className="secondary"
-          style={{ marginTop: 12 }}
-          onClick={copyBoardLink}
-        >
-          <Icon name="link" size={14} /> Copy board link
-        </button>
       </div>
     </aside>
   );

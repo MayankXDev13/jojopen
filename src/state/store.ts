@@ -33,6 +33,7 @@ import { useBoardStore } from "./boardStore";
 
 export const KEY_DOC = "jojopen.doc.v1";
 export const KEY_BOARDS = "jojopen.boards.v1";
+export const KEY_COLLECTIONS = "jojopen.collections.v1";
 export const KEY_BOARD = "jojopen.current.v1";
 export const KEY_AI = "jojopen.ai.v1";
 
@@ -247,10 +248,10 @@ export const selectionElements = () =>
 export function toast(msg: string, ms = 1900) {
   S.toast = msg;
   clearTimeout(S.toastTimer);
-  S.toastTimer = window.setTimeout(() => {
+  S.toastTimer = setTimeout(() => {
     S.toast = null;
     notify();
-  }, ms);
+  }, ms) as any;
   notify();
 }
 
@@ -319,6 +320,113 @@ export function redo() {
 let saveTimer = 0;
 let saveCopyTimer = 0;
 
+export type Collection = {
+  id: string;
+  name: string;
+  createdAt: number;
+};
+
+export const DEFAULT_COLLECTIONS: Collection[] = [
+  { id: "col-jojo", name: "jojo", createdAt: 1 },
+  { id: "col-ledger-x", name: "ledger-x", createdAt: 2 },
+  { id: "col-sketcha", name: "sketcha", createdAt: 3 },
+];
+
+export function collectionsList(): Collection[] {
+  try {
+    const raw = localStorage.getItem(KEY_COLLECTIONS);
+    if (!raw) {
+      localStorage.setItem(KEY_COLLECTIONS, JSON.stringify(DEFAULT_COLLECTIONS));
+      return DEFAULT_COLLECTIONS;
+    }
+    const cols = JSON.parse(raw);
+    return Array.isArray(cols) && cols.length ? cols : DEFAULT_COLLECTIONS;
+  } catch {
+    return DEFAULT_COLLECTIONS;
+  }
+}
+
+export function saveCollections(cols: Collection[]) {
+  try {
+    localStorage.setItem(KEY_COLLECTIONS, JSON.stringify(cols));
+  } catch {}
+}
+
+export function createCollection(name: string): Collection | null {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const list = collectionsList();
+  const existing = list.find(
+    (c) => c.name.toLowerCase() === trimmed.toLowerCase(),
+  );
+  if (existing) return existing;
+  const col: Collection = {
+    id: "col-" + uid(),
+    name: trimmed,
+    createdAt: Date.now(),
+  };
+  list.push(col);
+  saveCollections(list);
+  return col;
+}
+
+export function deleteCollection(id: string) {
+  const list = collectionsList().filter((c) => c.id !== id);
+  saveCollections(list.length ? list : DEFAULT_COLLECTIONS);
+}
+
+const DEFAULT_INITIAL_BOARDS = [
+  {
+    id: "b-peppy-token",
+    name: "Peppy Token",
+    collectionId: "col-jojo",
+    updatedAt: Date.now(),
+    kind: "board",
+  },
+  {
+    id: "b-gap-analysis",
+    name: "Text Arrow Pen vs Excalidraw - Gap Analysis",
+    collectionId: "col-jojo",
+    updatedAt: Date.now(),
+    kind: "board",
+  },
+  {
+    id: "b-aws",
+    name: "AWS",
+    collectionId: "col-jojo",
+    updatedAt: Date.now() - 86400000,
+    kind: "board",
+  },
+  {
+    id: "b-ledger-core",
+    name: "Ledger Core Architecture",
+    collectionId: "col-ledger-x",
+    updatedAt: Date.now(),
+    kind: "board",
+  },
+  {
+    id: "b-event-stream",
+    name: "Event Sourcing Pipeline",
+    collectionId: "col-ledger-x",
+    updatedAt: Date.now() - 86400000,
+    kind: "board",
+  },
+  {
+    id: "b-system-blueprint",
+    name: "System Blueprint",
+    collectionId: "col-sketcha",
+    updatedAt: Date.now(),
+    kind: "board",
+  },
+  {
+    id: "b-network-topology",
+    name: "Network Topology",
+    collectionId: "col-sketcha",
+    updatedAt: Date.now() - 86400000,
+    kind: "board",
+  },
+];
+
 export function persist(now = false) {
   clearTimeout(saveTimer);
   const run = () => {
@@ -330,6 +438,11 @@ export function persist(now = false) {
       const rec = {
         id: S.doc.id,
         name: S.doc.name,
+        collectionId:
+          S.doc.collectionId ||
+          ex?.collectionId ||
+          S.activeCollection ||
+          "col-jojo",
         updatedAt: Date.now(),
         kind: slides().length ? "deck" : "board",
       };
@@ -347,9 +460,45 @@ export function persist(now = false) {
 
 export function boardsList(): any[] {
   try {
-    return JSON.parse(localStorage.getItem(KEY_BOARDS) || "[]");
+    const raw = localStorage.getItem(KEY_BOARDS);
+    if (!raw) {
+      localStorage.setItem(KEY_BOARDS, JSON.stringify(DEFAULT_INITIAL_BOARDS));
+      return DEFAULT_INITIAL_BOARDS;
+    }
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list) || list.length === 0) {
+      localStorage.setItem(KEY_BOARDS, JSON.stringify(DEFAULT_INITIAL_BOARDS));
+      return DEFAULT_INITIAL_BOARDS;
+    }
+    // If the list only has 1 board or has boards missing collectionId
+    let changed = false;
+    const populated = list.map((b: any) => {
+      if (!b.collectionId) {
+        changed = true;
+        return { ...b, collectionId: "col-jojo" };
+      }
+      return b;
+    });
+
+    // If there's only 1 board (e.g. initial demo board), merge default demo boards
+    // so collections don't look completely empty on first opening of collections
+    if (populated.length <= 1) {
+      for (const d of DEFAULT_INITIAL_BOARDS) {
+        if (!populated.some((b: any) => b.id === d.id || b.name === d.name)) {
+          populated.push(d);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      try {
+        localStorage.setItem(KEY_BOARDS, JSON.stringify(populated.slice(0, 60)));
+      } catch {}
+    }
+    return populated;
   } catch {
-    return [];
+    return DEFAULT_INITIAL_BOARDS;
   }
 }
 

@@ -9,7 +9,7 @@ import {
   scheduleNotify,
   settings,
 } from "../state/store";
-import { setTool } from "../state/actions";
+import { setTool, syncEnclosedShapes } from "../state/actions";
 
 export const SHAPE_TOOLS = [
   "rectangle",
@@ -85,6 +85,9 @@ export class ShapeToolController implements ToolController {
         }
         el.width = Math.max(16, el.width);
         el.height = Math.max(16, el.height);
+        if (el.type === "shape") {
+          syncEnclosedShapes(el);
+        }
         S.selection = new Set([el.id]);
       }
       setTool("select");

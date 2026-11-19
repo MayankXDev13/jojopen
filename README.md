@@ -14,6 +14,9 @@ bun run preview
 - Feature reference: [`docs/FEATURES.md`](docs/FEATURES.md)
 - Code audit: [`docs/AUDIT.md`](docs/AUDIT.md)
 - Architecture and migration notes: [`docs/MIGRATION.md`](docs/MIGRATION.md)
+- MCP integration: [`docs/MCP.md`](docs/MCP.md)
+- Privacy policy: [`docs/PRIVACY.md`](docs/PRIVACY.md)
+- Terms of service: [`docs/TERMS.md`](docs/TERMS.md)
 - Parity harness: [`docs/harness/`](docs/harness/)
 
 Everything persists locally (`jojopen.*` localStorage keys). No account or network

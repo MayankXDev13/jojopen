@@ -64,8 +64,8 @@ export function shapeMarkup(
     case "document":
       return `<path d="M1 1 H${w - 1} V${h - 14} C${w * 0.72} ${h - 2} ${w * 0.3} ${h - 26} 1 ${h - 12} Z" ${common}/>`;
     case "person": {
-      const r = Math.min(w, h) * 0.2;
-      return `<circle cx="${w / 2}" cy="${18}" r="${r}" ${common}/><path d="M${w / 2 - r * 1.5} ${h - 3} C${w / 2 - r * 1.5} ${h - r * 2.6} ${w / 2 + r * 1.5} ${h - r * 2.6} ${w / 2 + r * 1.5} ${h - 3}" ${common}/>`;
+      const c = (h - 2) / 2;
+      return `<path d="M${c + 1} 1 H${w - 1 - c} A${c} ${c} 0 0 1 ${w - 1 - c} ${h - 1} H${c + 1} A${c} ${c} 0 0 1 ${c + 1} 1 Z" ${common}/>`;
     }
     default:
       return `<rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="${Math.min(13, h / 2 - 2)}" ${common}/>`;

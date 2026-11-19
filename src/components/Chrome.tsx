@@ -42,6 +42,7 @@ import {
   setTool,
   textSizeLabel,
   toggleBw,
+  toggleDash,
   toggleFont,
   toggleGrid,
   toggleLock,
@@ -550,7 +551,7 @@ function bottomItems(): BottomItem[] {
       title: "Random colors — every shape and arrow gets its own color",
       act: "random",
       run: randomColors,
-      active: !!S.randomMode,
+      active: (settings().palette ?? "roles") === "random",
     },
     {
       id: "undo",
@@ -670,6 +671,21 @@ export function BottomBar() {
   );
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  actor: "Actor",
+  network: "Edge",
+  compute: "Service",
+  data: "Data",
+  cache: "Cache",
+  messaging: "Queue",
+  storage: "Storage",
+  security: "Auth",
+  analytics: "Analytics",
+  observability: "Logs",
+  neutral: "Neutral",
+  custom: "Custom",
+};
+
 export function ContextBar() {
   useVersion();
   const list = selectionElementsSafe();
@@ -678,112 +694,154 @@ export function ContextBar() {
   const c = colorFor(el);
   const locked = list.every((e) => e.locked);
   const shapeBtns: [string, string, string][] = [
-    ["rectangle", "rectangle", "Box"],
+    ["rounded", "rectangle", "Box"],
     ["ellipse", "ellipse", "Ellipse"],
     ["diamond", "diamond", "Diamond (decision)"],
     ["cylinder", "cylinder", "Cylinder (data)"],
-    ["document", "note", "Document"],
+    ["person", "person", "Pill (person / actor)"],
+    ["document", "docshape", "Document"],
   ];
   const layer = (kind: string) => {
     S.layerPop = false;
     orderSelection(kind);
     notify();
   };
+  const role = roleOf(el);
+  const roleName =
+    ROLE_LABELS[role] ||
+    (role ? role.charAt(0).toUpperCase() + role.slice(1) : "Neutral");
+
+  const hasColor = list.some(
+    (e) =>
+      e.type === "shape" ||
+      e.type === "container" ||
+      (e.type === "image" && typeof (e as any).meta?.icon === "string"),
+  );
+  const hasShape = list.some((e) => e.type === "shape");
+  const hasArrow = list.some((e) => e.type === "arrow");
+  const hasText = list.some(
+    (e) =>
+      e.type === "shape" ||
+      e.type === "sticky" ||
+      e.type === "text",
+  );
+  const hasScale = list.some(
+    (e) =>
+      e.type === "diagram" ||
+      e.type === "shape" ||
+      e.type === "text" ||
+      (e.type === "image" && typeof (e as any).meta?.icon === "string"),
+  );
+
   return (
     <div className="contextbar" id="contextbar">
       {list.length > 1 ? (
         <span className="count">{list.length} selected</span>
       ) : null}
-      {paletteOn() ? (
-        <button
-          className="chip"
-          onClick={autoColor}
-          title="Color picked automatically from the name"
-        >
-          <span
-            className="swatch"
-            style={{
-              background: c.fill === "transparent" ? "#fff" : c.fill,
-              borderColor: c.stroke,
-            }}
-          />
-          <span>{el.colorLocked ? "Fixed" : "Auto"}</span>
-          <span className="muted">· {roleOf(el)}</span>
-        </button>
-      ) : null}
-      <span className="colorwrap">
-        <button
-          className="colordot"
-          type="button"
-          title="Color"
-          aria-label="Color"
-          aria-expanded={!!S.colorPop}
-          style={{
-            background: c.fill === "transparent" ? "#fff" : c.fill,
-            borderColor: c.stroke,
-          }}
-          onClick={() => {
-            S.colorPop = !S.colorPop;
-            notify();
-          }}
-        />
-        {S.colorPop ? (
-          <span className="colorpop" role="menu" aria-label="Colors">
+      {hasColor ? (
+        <>
+          {(settings().palette ?? "roles") === "roles" ? (
             <button
-              className={`palchip${!el.colorLocked ? " is-active" : ""}`}
-              type="button"
-              onClick={() => {
-                S.colorPop = false;
-                autoColor();
-              }}
-              title="Automatic color"
-              data-act="color-auto"
+              className="chip"
+              onClick={autoColor}
+              title={
+                el.colorLocked
+                  ? "Color locked — click to return to auto"
+                  : "Color picked automatically from the name"
+              }
             >
-              Auto
+              <span
+                className="swatch"
+                style={{
+                  background:
+                    c.fill === "transparent" ? "transparent" : c.fill,
+                  borderColor: c.stroke,
+                }}
+              />
+              <span>{el.colorLocked ? "Fixed" : "Auto"}</span>
+              <span className="muted">· {roleName}</span>
             </button>
-            {COLOR_KEYS.map((k) => {
-              const paint =
-                k === "ink"
-                  ? roleColor("ink")
-                  : roleColor(COLOR_TO_ROLE[k] || "neutral");
-              const active = !!el.colorLocked && el.color === k;
-              return (
+          ) : null}
+          <span className="colorwrap">
+            <button
+              className={`colordot${S.colorPop ? " is-on" : ""}`}
+              type="button"
+              title="Color"
+              aria-label="Color"
+              aria-expanded={!!S.colorPop}
+              onClick={() => {
+                S.colorPop = !S.colorPop;
+                notify();
+              }}
+            >
+              <span
+                className="swatch"
+                style={{
+                  background:
+                    c.fill === "transparent" ? "transparent" : c.fill,
+                  borderColor: c.stroke,
+                }}
+              />
+            </button>
+            {S.colorPop ? (
+              <span className="colorpop" role="menu" aria-label="Colors">
                 <button
-                  key={k}
-                  className={`paldot${active ? " is-active" : ""}`}
+                  className={`palchip${!el.colorLocked ? " is-active" : ""}`}
                   type="button"
-                  style={{ background: paint.stroke }}
                   onClick={() => {
                     S.colorPop = false;
-                    applyColor(k);
+                    autoColor();
                   }}
-                  title={k}
-                  aria-label={k}
-                  aria-pressed={active}
-                  data-act="color"
-                  data-color={k}
-                />
-              );
-            })}
-            {list.some((e) => e.type === "shape" && !e.locked) ? (
-              <button
-                className={`paldot nofill${list.filter((e) => e.type === "shape").every((e) => e.noFill) ? " is-active" : ""}`}
-                type="button"
-                onClick={() => {
-                  S.colorPop = false;
-                  toggleNoFill();
-                }}
-                title="No fill — outline only, see through"
-                aria-label="No fill"
-                data-act="color-nofill"
-              />
+                  title="Automatic color"
+                  data-act="color-auto"
+                >
+                  Auto
+                </button>
+                {COLOR_KEYS.map((k) => {
+                  const paint =
+                    k === "ink"
+                      ? roleColor("ink")
+                      : roleColor(COLOR_TO_ROLE[k] || "neutral");
+                  const active = !!el.colorLocked && el.color === k;
+                  return (
+                    <button
+                      key={k}
+                      className={`paldot${active ? " is-active" : ""}`}
+                      type="button"
+                      style={{ background: paint.stroke }}
+                      onClick={() => {
+                        S.colorPop = false;
+                        applyColor(k);
+                      }}
+                      title={k}
+                      aria-label={k}
+                      aria-pressed={active}
+                      data-act="color"
+                      data-color={k}
+                    />
+                  );
+                })}
+                {list.some((e) => e.type === "shape" && !e.locked) ? (
+                  <button
+                    className={`paldot nofill${list.filter((e) => e.type === "shape").every((e) => e.noFill) ? " is-active" : ""}`}
+                    type="button"
+                    onClick={() => {
+                      S.colorPop = false;
+                      toggleNoFill();
+                    }}
+                    title="No fill — outline only, see through"
+                    aria-label="No fill"
+                    data-act="color-nofill"
+                  />
+                ) : null}
+              </span>
             ) : null}
           </span>
-        ) : null}
-      </span>
-      {list.some((e) => e.type === "shape") ? (
+        </>
+      ) : null}
+      {hasShape ? (
         <>
-          <span className="vsep more" />
+          {hasColor ? <span className="vsep more" /> : null}
           {shapeBtns.map(([shape, icon, title]) => (
             <button
               key={shape}
@@ -798,28 +856,46 @@ export function ContextBar() {
           ))}
         </>
       ) : null}
-      {list.some((e) => e.type === "arrow") ? (
+      {hasArrow ? (
         <>
-          {["orthogonal", "curved", "straight"].map((r) => (
-            <button
-              key={r}
-              className="iconbtn"
-              onClick={() => setRoute(r)}
-              title={`${r} route`}
-              style={{ width: 30, height: 30 }}
-            >
-              <Icon
-                name={
-                  r === "orthogonal"
-                    ? "route"
-                    : r === "curved"
-                      ? "curve"
-                      : "straight"
-                }
-                size={15}
-              />
-            </button>
-          ))}
+          {[
+            ["orthogonal", "route", "Elbow route"],
+            ["curved", "curve", "Curved route"],
+            ["straight", "straight", "Straight route"],
+          ].map(([r, icon, title]) => {
+            const active =
+              list
+                .filter((e) => e.type === "arrow")
+                .every((e) => (e.routeMode || "orthogonal") === r);
+            return (
+              <button
+                key={r}
+                className={"iconbtn" + (active ? " is-active" : "")}
+                onClick={() => setRoute(r)}
+                title={title}
+                aria-label={title}
+                style={{ width: 30, height: 30 }}
+              >
+                <Icon name={icon} size={15} />
+              </button>
+            );
+          })}
+          <button
+            className={
+              "iconbtn" +
+              (list
+                .filter((e) => e.type === "arrow")
+                .every((e) => (e as any).dash === "dashed")
+                ? " is-active"
+                : "")
+            }
+            onClick={toggleDash}
+            title="Dashed (async)"
+            aria-label="Dashed (async)"
+            style={{ width: 30, height: 30 }}
+          >
+            <Icon name="dash" size={15} />
+          </button>
           {list.some(
             (e) => e.type === "arrow" && (e as any).route === "manual",
           ) ? (
@@ -835,58 +911,64 @@ export function ContextBar() {
           ) : null}
         </>
       ) : null}
-      <span className="vsep more" />
-      <button
-        className="iconbtn textsize"
-        onClick={() => bumpText(-1)}
-        title={`Smaller text (now ${textSizeLabel(el)})`}
-        aria-label="Smaller text"
-      >
-        <span style={{ fontSize: 11 }}>A</span>
-        <span className="textsize-sign">−</span>
-      </button>
-      <button
-        className="iconbtn textsize"
-        onClick={() => bumpText(1)}
-        title={`Bigger text (now ${textSizeLabel(el)})`}
-        aria-label="Bigger text"
-      >
-        <span style={{ fontSize: 15 }}>A</span>
-        <span className="textsize-sign">+</span>
-      </button>
-      <span className="layerwrap">
-        <button
-          className="textbtn"
-          onClick={() => {
-            S.sizePop = !S.sizePop;
-            notify();
-          }}
-          title="Scale selection — 2x doubles the size"
-          aria-label="Scale selection"
-          aria-expanded={!!S.sizePop}
-        >
-          <span>Size</span>
-        </button>
-        {S.sizePop ? (
-          <div className="layerpop" role="menu" aria-label="Scale selection">
-            {[0.75, 0.9, 1, 1.25, 1.5, 1.75, 2].map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => {
-                  S.sizePop = false;
-                  scaleSelection(p);
-                }}
-                title={
-                  p === 1 ? "Keep current size" : `Scale selection to ${p}x`
-                }
-              >
-                <span>{p}x</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </span>
+      {hasText || hasScale ? <span className="vsep more" /> : null}
+      {hasText ? (
+        <>
+          <button
+            className="iconbtn textsize"
+            onClick={() => bumpText(-1)}
+            title={`Smaller text (now ${textSizeLabel(el)})`}
+            aria-label="Smaller text"
+          >
+            <span style={{ fontSize: 11 }}>A</span>
+            <span className="textsize-sign">−</span>
+          </button>
+          <button
+            className="iconbtn textsize"
+            onClick={() => bumpText(1)}
+            title={`Bigger text (now ${textSizeLabel(el)})`}
+            aria-label="Bigger text"
+          >
+            <span style={{ fontSize: 15 }}>A</span>
+            <span className="textsize-sign">+</span>
+          </button>
+        </>
+      ) : null}
+      {hasScale ? (
+        <span className="layerwrap">
+          <button
+            className="textbtn"
+            onClick={() => {
+              S.sizePop = !S.sizePop;
+              notify();
+            }}
+            title="Scale selection — 2x doubles the size"
+            aria-label="Scale selection"
+            aria-expanded={!!S.sizePop}
+          >
+            <span>Size {(el as any).scale ?? 1}x</span>
+          </button>
+          {S.sizePop ? (
+            <div className="layerpop" role="menu" aria-label="Scale selection">
+              {[0.75, 0.9, 1, 1.25, 1.5, 1.75, 2].map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => {
+                    S.sizePop = false;
+                    scaleSelection(p);
+                  }}
+                  title={
+                    p === 1 ? "Keep current size" : `Scale selection to ${p}x`
+                  }
+                >
+                  <span>{p}x</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </span>
+      ) : null}
       <span className="vsep more" />
       <span className="layerwrap">
         <button
@@ -941,7 +1023,7 @@ export function ContextBar() {
         onClick={cleanIt}
         title="Clean it — AI presentation layout (Ctrl+Shift+K)"
       >
-        <Icon name="spark" size={15} /> Clean it
+        <Icon name="sparkles" size={15} /> Clean it
       </button>
     </div>
   );

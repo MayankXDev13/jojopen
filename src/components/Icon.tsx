@@ -26,6 +26,9 @@ const TOOL_ICONS_20 = new Set([
   "frame",
   "eraser",
   "laser",
+  "person",
+  "docshape",
+  "dash",
 ]);
 
 export function Icon({

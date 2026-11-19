@@ -95,6 +95,10 @@ select {
 .canvas.tool-hand.panning {
   cursor: grabbing;
 }
+.canvas.is-duplicate,
+.canvas.is-duplicate * {
+  cursor: copy !important;
+}
 .canvas.tool-shape {
   cursor: crosshair;
 }
@@ -332,7 +336,7 @@ select {
   position: absolute;
   width: 9px;
   height: 9px;
-  background: #fff;
+  background: var(--bg);
   border: 1.5px solid var(--select);
   border-radius: 2px;
   pointer-events: auto;

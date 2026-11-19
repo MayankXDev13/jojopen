@@ -87,6 +87,10 @@ export function notify() {
 /** Coalesce high-frequency canvas updates into one render per frame. */
 export function scheduleNotify() {
   if (frame) return;
+  if (typeof requestAnimationFrame === "undefined") {
+    notify();
+    return;
+  }
   frame = requestAnimationFrame(() => {
     frame = 0;
     notify();
@@ -108,7 +112,7 @@ export const theme = (): Theme => THEME[styleKey()];
 export const roleColor = (role: string) =>
   ((ROLE_COLORS[styleKey()] || ROLE_COLORS.light) as Palette)[role] ||
   ROLE_COLORS[styleKey()].neutral;
-export const paletteOn = () => (settings().palette ?? "roles") === "roles";
+export const paletteOn = () => (settings().palette ?? "roles") !== "mono";
 export const handFont = () =>
   settings().handFont === "excalifont"
     ? "'Excalifont','Kalam','Comic Neue',cursive"
@@ -154,13 +158,59 @@ export function hexPaint(hex: string) {
   };
 }
 
+export function hashIdToColor(id: string): string {
+  let n = 2166136261;
+  for (let a = 0; a < id.length; a++)
+    n = Math.imul(n ^ id.charCodeAt(a), 16777619);
+  return COLOR_KEYS[(n >>> 0) % COLOR_KEYS.length];
+}
+
+export function randomColorsMap(): Record<string, string> {
+  const els = elements().filter(
+    (k) =>
+      k.type === "shape" ||
+      k.type === "container" ||
+      k.type === "arrow" ||
+      k.type === "freehand",
+  );
+  const n: Record<string, string> = {};
+  const a: string[] = [];
+  for (const el of els) {
+    let c = COLOR_KEYS.indexOf(hashIdToColor(el.id));
+    if (c === -1) c = 0;
+    for (let r = 0; r < COLOR_KEYS.length && a.includes(COLOR_KEYS[c]); r++)
+      c = (c + 3) % COLOR_KEYS.length;
+    const o = COLOR_KEYS[c];
+    n[el.id] = o;
+    a.push(o);
+    if (a.length > 2) a.shift();
+  }
+  return n;
+}
+
 export function colorFor(el: BoardElement) {
-  if (!paletteOn())
+  const palette = settings().palette ?? "roles";
+  if (palette === "mono")
     return { fill: "transparent", stroke: theme().ink, text: theme().ink };
   if (el.colorLocked && el.color) {
     if (el.color.startsWith("#")) return hexPaint(el.color);
     if (el.color === "ink") return roleColor("ink");
     return roleColor(COLOR_TO_ROLE[el.color] || "neutral");
+  }
+  if (palette === "random") {
+    if (el.type === "text")
+      return { fill: "transparent", stroke: theme().ink, text: theme().ink };
+    const randMap = randomColorsMap();
+    const colorKey = randMap[el.id] || hashIdToColor(el.id);
+    const role = COLOR_TO_ROLE[colorKey] || "neutral";
+    const paint = roleColor(role);
+    if (el.type === "arrow" || el.type === "freehand") {
+      return { fill: "transparent", stroke: paint.stroke, text: theme().muted };
+    }
+    return paint;
+  }
+  if (el.type === "arrow") {
+    return { fill: "transparent", stroke: theme().arrow, text: theme().muted };
   }
   return roleColor(roleOf(el));
 }
@@ -283,7 +333,7 @@ export function persist(now = false) {
     }
   };
   if (now) run();
-  else saveTimer = window.setTimeout(run, 350);
+  else saveTimer = setTimeout(run, 350) as any;
 }
 
 export function boardsList(): any[] {

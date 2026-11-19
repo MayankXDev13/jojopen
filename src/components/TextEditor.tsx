@@ -41,9 +41,12 @@ export function TextEditor() {
   if (isArrow) {
     try {
       const geom = arrowGeom(el, (id) => S.doc.elements[id], theme());
-      left = geom.labelPoint.x * z + S.camera.x - 80;
-      top = geom.labelPoint.y * z + S.camera.y - 16;
-      wpx = 160;
+      const labelText = el.label || "";
+      const w = Math.max(120, Math.min(320, (labelText.length + 2) * 9));
+      left = geom.labelPoint.x * z + S.camera.x - w / 2;
+      top = geom.labelPoint.y * z + S.camera.y - 17;
+      wpx = w;
+      hpx = 34;
     } catch {
       /* fallback to bbox */
     }
@@ -58,6 +61,16 @@ export function TextEditor() {
 
   /* The box grows to its text instead of scrolling (not for fixed editors). */
   const grow = (ta: HTMLTextAreaElement) => {
+    if (isArrow) {
+      const len = ta.value.length;
+      const w = Math.max(120, Math.min(320, (len + 2) * 9));
+      try {
+        const geom = arrowGeom(el, (id) => S.doc.elements[id], theme());
+        ta.style.width = `${w}px`;
+        ta.style.left = `${geom.labelPoint.x * z + S.camera.x - w / 2}px`;
+      } catch {}
+      return;
+    }
     if (fixedBox) return;
     ta.style.height = "auto";
     ta.style.height = `${Math.max(28, ta.scrollHeight)}px`;
@@ -79,7 +92,9 @@ export function TextEditor() {
     <textarea
       key={el.id}
       ref={ref}
-      className="texteditor"
+      className={`texteditor${isArrow ? " is-arrow" : ""}${isText ? " is-text" : ""}`}
+      placeholder={isArrow ? "Label…" : undefined}
+      aria-label={isArrow ? "Arrow label" : "Edit text"}
       defaultValue={
         el.type === "arrow" ? el.label || "" : (el.text ?? el.label ?? "")
       }
@@ -88,30 +103,34 @@ export function TextEditor() {
         left,
         top,
         width: isArrow ? wpx : Math.max(60, (b.maxX - b.minX) * z),
-        height: isArrow ? Math.max(28, (b.maxY - b.minY) * z) : hpx,
-        fontSize: fontPx * z,
-        lineHeight: lineH,
+        height: isArrow ? 34 : hpx,
+        fontSize: isArrow ? 14 : fontPx * z,
+        lineHeight: isArrow ? "20px" : lineH,
         fontFamily:
-          isText || isSticky || el.type === "shape" || isContainer
+          isText || isSticky || el.type === "shape" || isContainer || isArrow
             ? fontFor(el)
             : "var(--sans)",
-        textAlign: (isText
-          ? el.align || "left"
-          : el.type === "shape"
-            ? "center"
-            : "left") as any,
-        // Shape/container: caret starts vertically centered via padding,
-        // matching the centered label (original). Sticky gets 18/16.
-        padding: fixedBox
-          ? `${vPad}px ${12 * z}px`
-          : isSticky
-            ? `${18 * z}px ${16 * z}px`
-            : isText
-              ? 0
-              : "6px 10px",
-        background: isSticky ? "#fff3b8" : undefined,
-        // Tinted while typing like the committed label (original uses g.text).
-        color: isSticky ? undefined : colorFor(el).text,
+        textAlign: (isArrow
+          ? "center"
+          : isText
+            ? el.align || "left"
+            : el.type === "shape"
+              ? "center"
+              : "left") as any,
+        padding: isArrow
+          ? "6px 10px"
+          : fixedBox
+            ? `${vPad}px ${12 * z}px`
+            : isSticky
+              ? `${18 * z}px ${16 * z}px`
+              : isText
+                ? 0
+                : "6px 10px",
+        background: isSticky ? "#fff3b8" : isArrow ? "var(--chrome)" : undefined,
+        color: isSticky ? undefined : isArrow ? "var(--text)" : colorFor(el).text,
+        border: isArrow ? "1.5px solid #4c6fff" : undefined,
+        borderRadius: isArrow ? "10px" : undefined,
+        boxShadow: isArrow ? "var(--shadow)" : undefined,
       }}
       onBlur={() => finish(false)}
       onInput={(e) => {
@@ -140,8 +159,8 @@ export function TextEditor() {
           ta.selectionStart = ta.selectionEnd = s + 2;
           grow(ta);
         }
-        /* Original: Enter = newline, Cmd/Ctrl+Enter or Escape commit, blur commits. */
-        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        /* Enter commits arrow immediately; multiline shapes commit on Cmd/Ctrl+Enter or blur */
+        if (e.key === "Enter" && (isArrow || e.metaKey || e.ctrlKey)) {
           e.preventDefault();
           finish(false);
         }

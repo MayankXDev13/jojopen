@@ -109,8 +109,8 @@ describe("Diagram: Shape Markup Generation", () => {
     expect(cylinder).toContain("<path");
 
     const person = shapeMarkup("person", 80, 80, "#fff", "#000", "");
-    expect(person).toContain("<circle");
     expect(person).toContain("<path");
+    expect(person).toContain('d="M40 1 H40 A39 39');
 
     const rounded = shapeMarkup("rounded", 100, 50, "#fff", "#000", "");
     expect(rounded).toContain("<rect");

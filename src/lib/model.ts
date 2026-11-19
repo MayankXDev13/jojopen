@@ -87,6 +87,7 @@ export interface BoardElement {
   endHead?: string;
   dash?: string;
   kind?: string;
+  labelT?: number;
 
   [key: string]: any;
 }
@@ -225,7 +226,7 @@ export const MAKE = {
     dash: e.dash ?? "solid",
     label: e.label ?? "",
     kind: e.kind ?? "sync",
-    labelPoint: (e as any).labelPoint ?? null,
+    labelT: (e as any).labelT ?? (e as any).labelRatio ?? 0.5,
   }),
 };
 
@@ -269,12 +270,28 @@ export function normalizeDoc(d: any): BoardDoc {
     }
     if (merged.type === "sticky" && merged.align == null) merged.align = "left";
     if (merged.type === "freehand") {
+      if (Array.isArray(merged.points)) {
+        merged.points = merged.points.filter(
+          (p: any) => p && typeof p.x === "number" && typeof p.y === "number",
+        );
+      }
       if (!Array.isArray(merged.pressures))
         merged.pressures = (merged.points || []).map(() => 0.5);
       if (merged.isPen == null) merged.isPen = false;
       if (merged.isClosed == null) merged.isClosed = false;
     }
     if (merged.type === "arrow") {
+      if (Array.isArray(merged.points)) {
+        merged.points = merged.points.filter(
+          (p: any) => p && typeof p.x === "number" && typeof p.y === "number",
+        );
+      }
+      if (!merged.points || merged.points.length < 2) {
+        merged.points = [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+        ];
+      }
       if ((merged as any).route == null) (merged as any).route = "auto";
       for (const k of ["start", "end"] as const) {
         const a = (merged as any)[k];

@@ -1,7 +1,7 @@
-import type { BoardElement } from "../lib/model";
+import type { BoardElement, Point } from "../lib/model";
 import { arrowGeom, arrowHandlesFor, arrowHead } from "../lib/geometry";
 import { strokeOutlinePath } from "../lib/ink";
-import { S, colorFor, sortedElements, theme } from "../state/store";
+import { S, colorFor, fontFor, sortedElements, theme } from "../state/store";
 import { useVersion } from "../state/boardStore";
 
 export function Edges() {
@@ -25,11 +25,16 @@ export function Edges() {
       {list.map((el) => {
         if (el.type === "freehand") {
           const paint = colorFor(el);
-          const inkPts = (el.points || []).map((p, i) => ({
-            x: el.x + p.x,
-            y: el.y + p.y,
-            pressure: (el.pressures || [])[i] ?? 0.5,
-          }));
+          const inkPts = (el.points || [])
+            .filter(
+              (p): p is Point =>
+                !!p && typeof p.x === "number" && typeof p.y === "number",
+            )
+            .map((p, i) => ({
+              x: el.x + p.x,
+              y: el.y + p.y,
+              pressure: (el.pressures || [])[i] ?? 0.5,
+            }));
           const d = strokeOutlinePath(
             inkPts,
             (el.strokeWidth || 2) * 2.2,
@@ -116,30 +121,39 @@ export function Edges() {
               className="hit"
               data-id={el.id}
             />
-            {el.label ? (
-              <g data-id={el.id} data-label="1">
-                <rect
-                  x={geom.labelPoint.x - labelW / 2}
-                  y={geom.labelPoint.y - 10}
-                  width={labelW}
-                  height={20}
-                  rx={5}
-                  fill={th.labelPill}
-                  stroke={th.slideEdge}
-                  strokeWidth={0.8}
-                />
-                <text
-                  x={geom.labelPoint.x}
-                  y={geom.labelPoint.y + 4}
-                  textAnchor="middle"
-                  fontFamily="Inter,system-ui,sans-serif"
-                  fontSize={11}
-                  fill={th.muted}
-                >
-                  {el.label}
-                </text>
-              </g>
-            ) : null}
+            {el.label && S.editingId !== el.id ? (() => {
+              const font = fontFor(el);
+              const fontSize = 14 * (el.textScale ?? 1);
+              const padX = 8;
+              const padY = 4;
+              const charW = fontSize * 0.58;
+              const pillW = Math.max(28, el.label.length * charW + padX * 2);
+              const pillH = fontSize + padY * 2;
+              return (
+                <g data-id={el.id} data-label="1" cursor="move">
+                  <rect
+                    x={geom.labelPoint.x - pillW / 2}
+                    y={geom.labelPoint.y - pillH / 2}
+                    width={pillW}
+                    height={pillH}
+                    rx={6}
+                    fill={th.labelPill}
+                  />
+                  <text
+                    x={geom.labelPoint.x}
+                    y={geom.labelPoint.y}
+                    dominantBaseline="central"
+                    textAnchor="middle"
+                    fontFamily={font}
+                    fontSize={fontSize}
+                    fill={paint.stroke || th.muted}
+                    style={{ pointerEvents: "none", userSelect: "none" }}
+                  >
+                    {el.label}
+                  </text>
+                </g>
+              );
+            })() : null}
             {S.selection.has(el.id)
               ? (() => {
                   const linePts = geom.pts
@@ -151,27 +165,20 @@ export function Edges() {
                     el.route,
                     S.camera.zoom,
                   );
+                  const z = S.camera.zoom || 1;
+                  const selColor = "#7c93ff";
+                  const handleFill = "var(--bg)";
                   return (
                     <g data-id={el.id}>
-                      {/* Raw polyline underlay (original line), like the original board. */}
-                      <polyline
-                        points={linePts}
-                        fill="none"
-                        stroke={th.arrow}
-                        strokeWidth={1}
-                        strokeOpacity={0.5}
-                        strokeDasharray="4 4"
-                        data-id={el.id}
-                      />
                       {[geom.p0, geom.p1].map((p, i) => (
                         <circle
                           key={`e${i}`}
                           cx={p.x}
                           cy={p.y}
-                          r={5.5}
-                          fill="#4d7cfe"
-                          stroke="#fff"
-                          strokeWidth={1.75}
+                          r={5.5 / z}
+                          fill={handleFill}
+                          stroke={selColor}
+                          strokeWidth={1.75 / z}
                           data-id={el.id}
                           data-handle={`endpoint:${i === 0 ? 0 : geom.pts.length - 1}`}
                         />
@@ -179,8 +186,8 @@ export function Edges() {
                       {handles.map((h, i) => {
                         const key = `${h.kind}${i}`;
                         if (h.kind === "segment") {
-                          const w = h.axis === "h" ? 16 : 6;
-                          const ht = h.axis === "h" ? 6 : 16;
+                          const w = (h.axis === "h" ? 16 : 6) / z;
+                          const ht = (h.axis === "h" ? 6 : 16) / z;
                           return (
                             <rect
                               key={key}
@@ -188,16 +195,20 @@ export function Edges() {
                               y={h.point.y - ht / 2}
                               width={w}
                               height={ht}
-                              rx={3}
-                              fill="#4d7cfe"
-                              stroke="#fff"
-                              strokeWidth={1.5}
+                              rx={3 / z}
+                              fill={handleFill}
+                              stroke={selColor}
+                              strokeWidth={1.5 / z}
                               data-id={el.id}
                               data-handle={`segment:${h.index}:${h.axis}`}
                             />
                           );
                         }
                         if (h.kind === "insert") {
+                          if (S.editingId === el.id || el.label) return null;
+                          const r = 5 / z;
+                          const arm = 2.5 / z;
+                          const sw = 1.25 / z;
                           return (
                             <g
                               key={key}
@@ -208,16 +219,16 @@ export function Edges() {
                               <circle
                                 cx={h.point.x}
                                 cy={h.point.y}
-                                r={5}
-                                fill="#fff"
-                                stroke="#4d7cfe"
-                                strokeWidth={1.25}
-                                strokeDasharray="2 2"
+                                r={r}
+                                fill={handleFill}
+                                stroke={selColor}
+                                strokeWidth={sw}
+                                strokeDasharray={`${2 / z} ${2 / z}`}
                               />
                               <path
-                                d={`M${h.point.x - 2.5} ${h.point.y}H${h.point.x + 2.5}M${h.point.x} ${h.point.y - 2.5}V${h.point.y + 2.5}`}
-                                stroke="#4d7cfe"
-                                strokeWidth={1.25}
+                                d={`M${h.point.x - arm} ${h.point.y}H${h.point.x + arm}M${h.point.x} ${h.point.y - arm}V${h.point.y + arm}`}
+                                stroke={selColor}
+                                strokeWidth={sw}
                               />
                             </g>
                           );
@@ -227,10 +238,10 @@ export function Edges() {
                             key={key}
                             cx={h.point.x}
                             cy={h.point.y}
-                            r={5}
-                            fill="#4d7cfe"
-                            stroke="#fff"
-                            strokeWidth={1.75}
+                            r={5 / z}
+                            fill={handleFill}
+                            stroke={selColor}
+                            strokeWidth={1.75 / z}
                             data-id={el.id}
                             data-handle={`waypoint:${h.index}`}
                           />

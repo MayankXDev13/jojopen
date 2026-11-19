@@ -25,7 +25,7 @@ export const ICONS: Record<string, string> = {
   slides:
     '<rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M12 18v3"/>',
   code: '<path d="m9 8-4 4 4 4M15 8l4 4-4 4"/>',
-  docshape: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4"/>',
+  docshape: '<path d="M4 3.5h12V15c-2-1.2-4-1.2-6 0s-4 1.2-6 0z"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.3 9a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.2-2.7 3.6M12 17h.01"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
@@ -42,6 +42,10 @@ export const ICONS: Record<string, string> = {
   chevdown: '<path d="m6 9 6 6 6-6"/>',
   sparkles:
     '<path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  spark:
+    '<path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  rounded: '<rect x="3" y="5" width="18" height="14" rx="4.5"/>',
+  person: '<path d="M6 5h8a5 5 0 0 1 0 10H6A5 5 0 0 1 6 5z"/>',
   hourglass:
     '<path d="M6 3h12M6 21h12"/><path d="M7 3v3.5c0 2 5 3.6 5 5.5s-5 3.5-5 5.5V21M17 3v3.5c0 2-5 3.6-5 5.5s5 3.5 5 5.5V21"/>',
   present:
@@ -78,6 +82,7 @@ export const ICONS: Record<string, string> = {
     '<path d="M4 6h6a3 3 0 0 1 3 3v6a3 3 0 0 0 3 3h4"/><path d="m17 15 3 3-3 3"/>',
   curve: '<path d="M4 18c6 0 4-12 10-12h6"/><path d="m17 3 3 3-3 3"/>',
   straight: '<path d="M4 19 20 5"/><path d="m15 5h5v5"/>',
+  dash: '<path d="M3 10h3M8.5 10h3M14 10h3"/>',
   note: '<path d="M5 3h14v14l-4 4H5z"/><path d="M15 21v-4h4M8 8h8M8 12h6"/>',
   board:
     '<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 18v3M17 18v3M7 9h4M7 13h7"/>',

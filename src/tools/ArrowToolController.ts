@@ -5,6 +5,7 @@ import {
   cleanupArrowPoints,
   nextFrameElement,
   normalizedAnchorOf,
+  projectOntoPolyline,
   suggestedBinding,
 } from "../lib/geometry";
 import {
@@ -30,6 +31,7 @@ export class ArrowToolController implements ToolController {
     startEl: any = null,
   ): void {
     pushHistory("add arrow");
+    const isLine = S.tool === "line";
     const w = { x: e.worldX, y: e.worldY };
     const el = MAKE.arrow({
       x: 0,
@@ -39,7 +41,10 @@ export class ArrowToolController implements ToolController {
         { x: w.x, y: w.y },
       ],
       route: "auto",
-      endHead: S.tool === "line" ? "none" : "triangle",
+      kind: isLine ? "line" : "sync",
+      routeMode: isLine ? "straight" : "orthogonal",
+      startHead: "none",
+      endHead: isLine ? "none" : "triangle",
     });
     if (startEl) {
       el.start = {
@@ -75,12 +80,13 @@ export class ArrowToolController implements ToolController {
     const labelG = (e.target as HTMLElement)?.closest?.("g[data-label]");
     if (el.type === "arrow" && labelG && !el.locked) {
       pushHistory("move label");
+      const wasSelected = S.selection.has(el.id);
       S.selection = new Set([el.id]);
       S.drag = {
         mode: "label",
         id: el.id,
-        start: { x: e.clientX, y: e.clientY },
-        orig: (el as any).labelPoint || { dx: 0, dy: 0 },
+        moved: false,
+        wasSelected,
       };
       ctx.capturePointer(e.pointerId);
       notify();
@@ -264,10 +270,14 @@ export class ArrowToolController implements ToolController {
     if (d.mode === "label") {
       const el = S.doc.elements[d.id];
       if (!el) return;
-      const dx = (e.clientX - d.start.x) / S.camera.zoom;
-      const dy = (e.clientY - d.start.y) / S.camera.zoom;
-      (el as any).labelPoint = { dx: d.orig.dx + dx, dy: d.orig.dy + dy };
+      d.moved = true;
+      const geom = arrowGeom(el, (id) => S.doc.elements[id], theme());
+      const { t } = projectOntoPolyline(geom.pts, w);
+      (el as any).labelT = t;
+      (el as any).labelRatio = t;
+      delete (el as any).labelPoint;
       scheduleNotify();
+      return;
     }
   }
 
@@ -383,11 +393,16 @@ export class ArrowToolController implements ToolController {
     }
 
     if (d.mode === "label") {
+      const editId = !d.moved && d.wasSelected ? d.id : null;
       S.selection = new Set([d.id]);
       S.drag = null;
       S.panning = false;
       notify();
       persist();
+      if (editId) {
+        beginEdit(editId);
+      }
+      return;
     }
   }
 

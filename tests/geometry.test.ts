@@ -14,6 +14,8 @@ import {
   anchorPoint,
   hitArrowHandle,
   arrowGeom,
+  projectOntoPolyline,
+  pointAlongPolyline,
 } from "../src/lib/geometry";
 import type { BoardElement } from "../src/lib/model";
 import { THEME } from "../src/lib/palette";
@@ -298,5 +300,75 @@ describe("Geometry: Arrow Routing and Handles", () => {
     expect(geom.p1).toEqual({ x: 90, y: 90 });
     expect(geom.d).toContain("M10 10 L90 90");
     expect(geom.pts.length).toBe(2);
+  });
+
+  test("handles null or corrupted points gracefully without throwing", () => {
+    const corruptArrow = makeEl({
+      type: "arrow",
+      x: 10,
+      y: 20,
+      points: [null as any, { x: 50, y: 50 }, undefined as any],
+    });
+    const bounds = elementBounds(corruptArrow);
+    expect(bounds).toEqual({ minX: 60, minY: 70, maxX: 60, maxY: 70 });
+
+    const geom = arrowGeom(corruptArrow, () => undefined, THEME.light);
+    expect(geom).toBeDefined();
+    expect(geom.pts.length).toBeGreaterThanOrEqual(2);
+
+    const corruptFreehand = makeEl({
+      type: "freehand",
+      x: 0,
+      y: 0,
+      points: [null as any, null as any],
+    });
+    const freehandBounds = elementBounds(corruptFreehand);
+    expect(freehandBounds).toEqual({ minX: 0, minY: 0, maxX: 0, maxY: 0 });
+    expect(distToElement({ x: 5, y: 5 }, corruptFreehand)).toBe(Infinity);
+  });
+
+  test("projectOntoPolyline constrains projections strictly onto polyline segments", () => {
+    const pts = [
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+    ];
+    // Far above and to the right
+    const res1 = projectOntoPolyline(pts, { x: 500, y: 500 });
+    expect(res1.point.y).toBe(0);
+    expect(res1.point.x).toBeLessThanOrEqual(200);
+    expect(res1.point.x).toBeGreaterThanOrEqual(0);
+
+    // Far to the left
+    const res2 = projectOntoPolyline(pts, { x: -300, y: -200 });
+    expect(res2.point.y).toBe(0);
+    expect(res2.point.x).toBeGreaterThanOrEqual(0);
+
+    // Midway
+    const res3 = projectOntoPolyline(pts, { x: 100, y: 999 });
+    expect(res3.point).toEqual({ x: 100, y: 0 });
+    expect(res3.t).toBeCloseTo(0.5, 2);
+  });
+
+  test("arrow label remains strictly on the arrow line across different labelT values", () => {
+    const arrow = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      routeMode: "straight",
+      points: [
+        { x: 0, y: 100 },
+        { x: 300, y: 100 },
+      ],
+      label: "Mayank",
+      labelT: 0.25,
+    });
+    const geom1 = arrowGeom(arrow, () => undefined, THEME.dark);
+    expect(geom1.labelPoint.y).toBe(100);
+    expect(geom1.labelPoint.x).toBeCloseTo(75, 1);
+
+    arrow.labelT = 0.8;
+    const geom2 = arrowGeom(arrow, () => undefined, THEME.dark);
+    expect(geom2.labelPoint.y).toBe(100);
+    expect(geom2.labelPoint.x).toBeCloseTo(240, 1);
   });
 });

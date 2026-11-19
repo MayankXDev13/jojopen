@@ -405,38 +405,61 @@ export function Rail() {
       text: "AI",
       icon: null,
       label: "AI assistant",
+      title: "AI assistant (Ctrl+I)",
       active: S.panel === "assistant",
+      className: "cp-aibtn",
     },
     {
       act: "sot",
       icon: "hourglass",
-      red: !!S.rec,
       count: recs,
       label: S.rec
         ? `Stop recording (${S.rec.steps} step${S.rec.steps === 1 ? "" : "s"} so far)`
         : recs
           ? `Sands of Time — ${recs} recording${recs === 1 ? "" : "s"}`
           : "Sands of Time — record what you draw",
+      title: S.rec
+        ? `Stop recording (${S.rec.steps} step${S.rec.steps === 1 ? "" : "s"} so far)`
+        : recs
+          ? `Sands of Time — ${recs} recording${recs === 1 ? "" : "s"}`
+          : "Sands of Time — record what you draw",
       active: !!S.sot.replay,
+      className: `sotbtn cp-sotbtn ${S.rec ? "is-recording is-rec" : "is-off"}${recs && !S.rec ? " has-saved" : ""}`,
     },
     {
       act: "slides",
       icon: "slides",
       label: "Slides",
+      title: "Slides (Ctrl+Shift+S)",
       active: S.panel === "slides",
+    },
+    {
+      act: "boards",
+      icon: "boards",
+      label: "My boards",
+      title: "My boards",
+      active: S.panel === "boards",
     },
     {
       act: "code",
       icon: "code",
       label: "Diagram code",
+      title: "Diagram code (Ctrl+E)",
       active: S.panel === "code",
+      more: true,
     },
-    { act: "shortcuts", icon: "help", label: "Keyboard shortcuts" },
-  ] as any[];
+    {
+      act: "shortcuts",
+      icon: "help",
+      label: "Keyboard shortcuts",
+      title: "Keyboard shortcuts (?)",
+      more: true,
+    },
+  ];
 
   return (
     <div
-      className="rail collapsible"
+      className="rail cp-rail cp-panel collapsible cp-collapsible"
       id="rail"
       style={{ right: S.panel === "none" ? 16 : 416 }}
     >
@@ -444,8 +467,8 @@ export function Rail() {
         <button
           key={i.act}
           data-act={i.act}
-          className={`iconbtn${i.active ? " is-active" : ""}${i.act === "code" || i.act === "shortcuts" ? " more" : ""}${i.red ? " is-rec" : ""}${i.count && !S.rec ? " has-saved" : ""}`}
-          title={i.label}
+          className={`iconbtn cp-iconbtn${i.active ? " is-active" : ""}${i.more ? " more cp-more" : ""}${i.className ? " " + i.className : ""}`}
+          title={i.title || i.label}
           aria-label={i.label}
           aria-pressed={!!(i.active || (i.act === "sot" && S.rec))}
           onClick={() => {
@@ -455,12 +478,14 @@ export function Rail() {
           }}
         >
           {i.text ? (
-            <span className="aibtn">{i.text}</span>
+            i.text
           ) : (
-            <Icon name={i.icon} size={18} />
+            <Icon name={i.icon!} size={18} />
           )}
           {i.count && !S.rec ? (
-            <span className="railcount">{i.count}</span>
+            <span className="sotbadge railcount cp-sotbadge" aria-hidden="true">
+              {i.count}
+            </span>
           ) : null}
         </button>
       ))}

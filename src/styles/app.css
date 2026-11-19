@@ -88,6 +88,8 @@ select {
   -webkit-user-select: none;
   cursor: default;
   background: var(--board, #fafaf7);
+  z-index: 1;
+  isolation: isolate;
 }
 .canvas.tool-hand {
   cursor: grab;

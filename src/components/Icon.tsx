@@ -29,6 +29,11 @@ const TOOL_ICONS_20 = new Set([
   "person",
   "docshape",
   "dash",
+  "hourglass",
+  "slides",
+  "boards",
+  "code",
+  "help",
 ]);
 
 export function Icon({

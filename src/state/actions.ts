@@ -724,19 +724,24 @@ export function forgetKey() {
 /* ---------- boards ---------- */
 
 export function saveRename(name: string, newId?: string) {
-  const v = name.trim();
-  if (v) {
-    const prevId = useBoardStore.getState().doc.id;
-    const trimmedId = newId?.trim();
-    const id = trimmedId && trimmedId !== prevId ? trimmedId : prevId;
-    useBoardStore.setState({
-      doc: { ...useBoardStore.getState().doc, name: v, id },
-    } as any);
-    if (id !== prevId) {
-      saveBoardCopy();
+  const v = name.trim() || useBoardStore.getState().doc.name || "Untitled board";
+  const prevId = useBoardStore.getState().doc.id;
+  const trimmedId = newId?.trim();
+  const id = trimmedId && trimmedId !== prevId ? trimmedId : prevId;
+  useBoardStore.setState({
+    doc: { ...useBoardStore.getState().doc, name: v, id },
+  } as any);
+  if (id !== prevId) {
+    saveBoardCopy();
+    if (typeof history !== "undefined" && typeof window !== "undefined") {
+      const segments = window.location.pathname.split("/").filter(Boolean);
+      if (segments.length >= 3) {
+        segments[2] = id;
+        window.history.replaceState(null, "", "/" + segments.join("/"));
+      }
     }
-    persist(true);
   }
+  persist(true);
   useBoardStore.setState({ renameOpen: false } as any);
   notify();
 }

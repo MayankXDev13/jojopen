@@ -657,12 +657,14 @@ function BoardSettings() {
   // Compute clean link prefix without any erroneous leading slash
   // Format: {host}/{username}/{collection}/{slug}
   const host = (
-    typeof window !== "undefined"
+    typeof window !== "undefined" && window.location
       ? window.location.host || "jojopen.com"
       : "jojopen.com"
   ).replace(/^\/+/, "");
   const pathname =
-    typeof window !== "undefined" ? window.location.pathname : "";
+    typeof window !== "undefined" && window.location
+      ? window.location.pathname || ""
+      : "";
   const segments = pathname.split("/").filter(Boolean);
 
   // 1. Username selected on sign-in (or from URL path / localStorage / default)
@@ -713,12 +715,26 @@ function BoardSettings() {
   };
 
   const onSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsSlugManual(true);
-    setSlugVal(e.target.value);
+    const raw = e.target.value.toLowerCase().replace(/\s+/g, "-");
+    setSlugVal(raw);
+    if (!raw.trim()) {
+      setIsSlugManual(false);
+    } else {
+      setIsSlugManual(true);
+    }
   };
 
   const handleSave = () => {
-    saveRename(name, slugVal);
+    const cleanName = name.trim() || S.doc.name || "Untitled board";
+    const cleanSlug =
+      slugVal
+        .trim()
+        .toLowerCase()
+        .replace(/^\/+|\/+$/g, "")
+        .replace(/[^a-z0-9-_.]/g, "-")
+        .replace(/-+/g, "-") || suffix;
+
+    saveRename(cleanName, cleanSlug);
   };
 
   const onKey = (e: React.KeyboardEvent) => {

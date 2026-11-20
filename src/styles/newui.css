@@ -1360,7 +1360,7 @@ kbd {
   cursor: pointer;
 }
 .sotlabel {
-  width: 96px;
+  max-width: 110px;
   font-size: 12px;
   color: var(--muted);
   white-space: nowrap;
@@ -1391,11 +1391,12 @@ kbd {
 .sotexport-menu {
   position: absolute;
   bottom: calc(100% + 10px);
-  right: -8px;
-  min-width: 196px;
+  right: 54px;
+  min-width: 206px;
   padding: 5px;
   z-index: 9;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 2px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -1403,10 +1404,14 @@ kbd {
   box-shadow: 0 14px 34px -14px #00000080;
 }
 .sotexport-menu button {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   text-align: left;
-  gap: 1px;
+  gap: 9px;
   padding: 7px 10px;
+  height: auto;
+  width: 100%;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -1421,7 +1426,8 @@ kbd {
   color: var(--muted);
 }
 .sotexport-menu button:hover {
-  background: color-mix(in srgb, var(--sand) 14%, transparent);
+  background: color-mix(in srgb, var(--sand, #d4a24c) 14%, transparent);
+  color: var(--text);
 }
 .sotexporting {
   font-size: 12px;
@@ -4317,7 +4323,7 @@ select.input {
 #sotRoot {
   position: fixed;
   top: 64px;
-  right: 16px;
+  right: 68px;
   z-index: 9;
 }
 #sotRoot .sotcard {

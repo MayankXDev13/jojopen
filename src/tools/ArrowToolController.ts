@@ -218,8 +218,11 @@ export class ArrowToolController implements ToolController {
   onPointerDown(e: CanvasPointerEvent, ctx: ToolContext): void {
     const target = e.target as HTMLElement;
     const nodeEl = target?.closest?.(".node:not(.slide):not(.diagram)") as HTMLElement | null;
-    const startEl = nodeEl ? S.doc.elements[nodeEl.dataset.id!] : null;
-    this.startArrow(e, ctx, startEl);
+    const directEl = nodeEl ? S.doc.elements[nodeEl.dataset.id!] : null;
+    const sug = !directEl
+      ? suggestedBinding(sortedElements(), { x: e.worldX, y: e.worldY }, null)
+      : null;
+    this.startArrow(e, ctx, directEl || sug?.el || null);
   }
 
   onPointerMove(e: CanvasPointerEvent): void {
@@ -245,6 +248,18 @@ export class ArrowToolController implements ToolController {
       d.endWorld = w;
       const sug = suggestedBinding(sortedElements(), w, el.id);
       (S as any).suggestedBinding = sug ? sug.el.id : null;
+      if (sug && sug.el.id !== el.start?.elementId) {
+        el.end = {
+          elementId: sug.el.id,
+          anchor: "auto",
+          normalizedAnchor: edgeNormalizedAnchor(sug.el, w),
+          isExact: false,
+          isPrecise: true,
+          snap: "edge",
+        };
+      } else {
+        el.end = null;
+      }
       scheduleNotify();
       return;
     }
@@ -339,36 +354,50 @@ export class ArrowToolController implements ToolController {
           S.selection.clear();
         } else {
           if (!el.start) {
-            const hit = nextFrameElement(
+            const sug0 = suggestedBinding(
               sortedElements(),
               { x: p0.x, y: p0.y },
               el.id,
             );
+            const hit =
+              sug0?.el ||
+              nextFrameElement(sortedElements(), { x: p0.x, y: p0.y }, el.id);
             if (hit) {
               el.start = {
                 elementId: hit.id,
                 anchor: "auto",
-                normalizedAnchor: edgeNormalizedAnchor(hit, { x: p0.x, y: p0.y }),
+                normalizedAnchor: edgeNormalizedAnchor(hit, {
+                  x: p0.x,
+                  y: p0.y,
+                }),
                 isExact: false,
                 isPrecise: true,
                 snap: "edge",
               };
             }
           }
-          const hit2 = nextFrameElement(
+          const sug2 = suggestedBinding(
             sortedElements(),
             { x: p1.x, y: p1.y },
             el.id,
           );
-          if (hit2) {
+          const hit2 =
+            sug2?.el ||
+            nextFrameElement(sortedElements(), { x: p1.x, y: p1.y }, el.id);
+          if (hit2 && hit2.id !== el.start?.elementId) {
             el.end = {
               elementId: hit2.id,
               anchor: "auto",
-              normalizedAnchor: edgeNormalizedAnchor(hit2, { x: p1.x, y: p1.y }),
+              normalizedAnchor: edgeNormalizedAnchor(hit2, {
+                x: p1.x,
+                y: p1.y,
+              }),
               isExact: false,
               isPrecise: true,
               snap: "edge",
             };
+          } else {
+            el.end = null;
           }
           const sl =
             (el.start?.elementId && S.doc.elements[el.start.elementId]?.frameId

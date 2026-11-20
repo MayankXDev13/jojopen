@@ -3,6 +3,7 @@ import { clamp } from "../lib/dom";
 import type { BoardElement } from "../lib/model";
 import {
   sotCanMp4,
+  sotCloseReplay,
   sotCycleSpeed,
   sotExport,
   sotFrameUnion,
@@ -12,7 +13,7 @@ import {
   sotSetIndex,
 } from "../state/sot";
 import { S, notify } from "../state/store";
-import { sotCloseReplay } from "../state/sot";
+import { useVersion } from "../state/boardStore";
 import { Icon } from "./Icon";
 import { SceneView } from "./SceneView";
 import { useViewport } from "./useViewport";
@@ -23,22 +24,26 @@ const elementsOf = (doc: any): BoardElement[] =>
   );
 
 export function SotReplay() {
+  useVersion();
   const { w: vw, h: vh } = useViewport();
   const rp = S.sot.replay;
   const rec = sotReplayRec();
 
   useEffect(() => {
-    if (rp && !rec) sotCloseReplay();
+    if (rp && (!rec || !rec.frames.length)) sotCloseReplay();
   }, [rp, rec]);
 
-  if (!rp || !rec) return null;
+  if (!rp || !rec || !rec.frames.length) return null;
 
-  const idx = clamp(rp.index, 0, rec.frames.length - 1);
   const last = rec.frames.length - 1;
+  const idx = clamp(rp.index, 0, last);
   const frame = rec.frames[idx];
-  if (!rp.union) rp.union = sotFrameUnion(rec);
-  const scene = sotSceneFrom(frame.json, rp.union);
-  const scale = Math.min((vw - 180) / scene.w, (vh - 220) / scene.h, 1.5);
+  const union = rp.union || sotFrameUnion(rec);
+  const scene = sotSceneFrom(frame.json, union);
+  const scale = Math.max(
+    0.1,
+    Math.min((vw - 180) / scene.w, (vh - 220) / scene.h, 1.5),
+  );
   const w = scene.w * scale;
   const h = scene.h * scale;
   const label = idx === 0 ? "Start" : frame.label || "Edit";
@@ -77,6 +82,7 @@ export function SotReplay() {
               width={scene.w}
               height={scene.h}
               scale={scale}
+              showSlides
             />
           </div>
           <div className="sotbar">

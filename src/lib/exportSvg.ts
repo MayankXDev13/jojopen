@@ -1,13 +1,21 @@
 /* Board and slide SVG generation used by every export path. */
 
 import { esc } from "./dom";
-import type { BoardElement } from "./model";
+import type { BoardElement, Point } from "./model";
 import type { ArrowGeom } from "./geometry";
 import { arrowHead } from "./geometry";
 import { iconInner, resolveIcon } from "./iconLibrary";
+import { strokeOutlinePath } from "./ink";
+import {
+  cylinderSecondaryPath,
+  getRoughFillPath,
+  getRoughPaths,
+  roughnessForStyle,
+  seedFromId,
+  shapePath,
+} from "./sketch";
 import {
   nodeIconMarkup,
-  shapeMarkup,
   type DiagramRender,
   type Paint,
 } from "./diagram";
@@ -18,9 +26,11 @@ import { wrapText } from "./layout";
 export type ExportEnv = {
   th: Theme;
   clean: boolean;
+  style?: "sketch" | "clean" | "chalkboard";
   colorFor: (el: BoardElement) => Paint;
   files: Record<string, string>;
   slides: BoardElement[];
+  elements?: BoardElement[];
   diagramFor: (dsl: string) => DiagramRender;
   arrowGeom: (el: BoardElement) => ArrowGeom;
 };
@@ -30,7 +40,8 @@ const roughDefs = `<defs><filter id="rough" x="-20%" y="-20%" width="140%" heigh
 export function elementSVG(e: BoardElement, env: ExportEnv): string {
   const th = env.th;
   const clean = env.clean;
-  const filter = clean ? "" : "url(#rough)";
+  const style = env.style ?? (clean ? "clean" : "sketch");
+  const roughness = roughnessForStyle(style);
   const c = env.colorFor(e);
   switch (e.type) {
     case "shape": {
@@ -46,15 +57,49 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
       const cx = e.icon && !edge ? e.width / 2 + 10 : e.width / 2;
       const ink = e.noFill ? c.stroke : c.text;
       const fs = 13 * (e.textScale ?? 1);
+      const p = shapePath(e.shape, e.width, e.height);
+      const secP = cylinderSecondaryPath(e.shape, e.width, e.height);
+      const seed = seedFromId(e.id);
+      const fillPath =
+        !e.noFill &&
+        (style === "sketch" ? getRoughFillPath(e.id, p, seed, roughness) : p);
+      const strokeWidth = clean ? 1.5 : style === "chalkboard" ? 2.2 : 1.8;
+      const roughStrokes =
+        roughness > 0
+          ? getRoughPaths(e.id, p, {
+              stroke: c.stroke,
+              strokeWidth,
+              roughness,
+            })
+          : null;
+      const secRoughStrokes =
+        secP && roughness > 0
+          ? getRoughPaths(`${e.id}:d`, secP, {
+              stroke: c.stroke,
+              strokeWidth,
+              roughness,
+            })
+          : null;
+      let strokeSvg = "";
+      if (roughStrokes) {
+        for (const pt of roughStrokes) {
+          strokeSvg += `<path d="${pt.d}" fill="none" stroke="${pt.stroke || c.stroke}" stroke-width="${pt.strokeWidth || strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`;
+        }
+      } else {
+        strokeSvg += `<path d="${p}" fill="none" stroke="${c.stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
+      if (secRoughStrokes) {
+        for (const pt of secRoughStrokes) {
+          strokeSvg += `<path d="${pt.d}" fill="none" stroke="${pt.stroke || c.stroke}" stroke-width="${pt.strokeWidth || strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`;
+        }
+      } else if (secP) {
+        strokeSvg += `<path d="${secP}" fill="none" stroke="${c.stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
       let defs = "";
-      let shapeStr = shapeMarkup(
-        e.shape,
-        e.width,
-        e.height,
-        e.noFill ? "none" : c.fill,
-        c.stroke,
-        filter,
-      );
+      const fillSvg = fillPath
+        ? `<path d="${fillPath}" fill="${c.fill}" stroke="none"/>`
+        : "";
+      let shapeStr = `${fillSvg}${strokeSvg}`;
       let edgeGlyph = "";
       if (edge) {
         const def = resolveIcon(e.icon!)!;
@@ -63,13 +108,16 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
         const ex = Math.round(esize * 1.3);
         const ey = -esize / 2;
         defs = `<mask id="edge-${e.id}" maskUnits="userSpaceOnUse" x="-40" y="${-40 - esize}" width="${e.width + 80}" height="${e.height + 80 + esize}"><rect x="-40" y="${-40 - esize}" width="${e.width + 80}" height="${e.height + 80 + esize}" fill="#fff"/><rect x="${ex - gap}" y="${-esize}" width="${esize + gap * 2}" height="${esize * 2}" fill="#000"/></mask>`;
-        shapeStr = `<g mask="url(#edge-${e.id})">${shapeStr}</g>`;
+        shapeStr = `${fillSvg}<g mask="url(#edge-${e.id})">${strokeSvg}</g>`;
         const inner = def.brand
           ? iconInner(e.icon!, { brandFill: c.stroke })
           : iconInner(e.icon!);
         edgeGlyph = `<g transform="translate(${ex} ${ey}) scale(${esize / 24})" fill="none" stroke="${c.stroke}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${inner}</g>`;
       }
-      let s = `<g transform="translate(${e.x} ${e.y})">`;
+      const rot = e.angle
+        ? ` rotate(${e.angle} ${e.width / 2} ${e.height / 2})`
+        : "";
+      let s = `<g transform="translate(${e.x} ${e.y})${rot}">`;
       if (defs) s += `<defs>${defs}</defs>`;
       s += shapeStr;
       if (e.icon && !edge)
@@ -120,6 +168,12 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
       return `<g><rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="3" fill="${th.slide}" stroke="${th.slideEdge}"/><text x="${e.x}" y="${e.y - 9}" font-family="Inter,system-ui,sans-serif" font-size="12" fill="${th.muted}">${n} · ${esc(e.title)}</text></g>`;
     }
     case "diagram": {
+      const hasCompiledChildren = !!env.elements?.some(
+        (c) => c.frameId === e.id,
+      );
+      if (hasCompiledChildren) {
+        return `<g><rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="14" fill="none" stroke="${th.frame}" stroke-width="1.5"/><text x="${e.x}" y="${e.y - 10}" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="500" fill="${th.frameText}"># ${esc(e.title || "Diagram")}</text></g>`;
+      }
       const r = env.diagramFor(e.dsl || "");
       return `<g transform="translate(${e.x} ${e.y})"><svg width="${e.width}" height="${e.height}" viewBox="0 0 ${r.layout.width} ${r.layout.height}" preserveAspectRatio="xMidYMid meet">${r.svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</svg></g>`;
     }
@@ -128,10 +182,25 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
       return `<image x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" href="${src}" preserveAspectRatio="xMidYMid meet"/>`;
     }
     case "freehand": {
-      const pts = (e.points || [])
-        .map((p) => `${e.x + p.x},${e.y + p.y}`)
-        .join(" ");
-      return `<polyline points="${pts}" fill="none" stroke="${env.colorFor(e).stroke}" stroke-width="${e.strokeWidth || 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      const inkPts = (e.points || [])
+        .filter(
+          (p): p is Point =>
+            !!p && typeof p.x === "number" && typeof p.y === "number",
+        )
+        .map((p, i) => ({
+          x: e.x + p.x,
+          y: e.y + p.y,
+          pressure: (e.pressures || [])[i] ?? 0.5,
+        }));
+      const stroke = env.colorFor(e).stroke;
+      if (inkPts.length === 1) {
+        const r = Math.max(1, (e.strokeWidth || 2) * 0.75);
+        return `<circle cx="${inkPts[0].x}" cy="${inkPts[0].y}" r="${r}" fill="${stroke}"/>`;
+      }
+      const d = strokeOutlinePath(inkPts, (e.strokeWidth || 2) * 2.2, 0.55);
+      if (d) return `<path d="${d}" fill="${stroke}"/>`;
+      const pts = inkPts.map((p) => `${p.x},${p.y}`).join(" ");
+      return `<polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="${e.strokeWidth || 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
     case "arrow": {
       const g = env.arrowGeom(e);
@@ -156,8 +225,13 @@ export function elementSVG(e: BoardElement, env: ExportEnv): string {
         maskAttr = `mask="url(#${maskId})"`;
       }
       let s = `${maskDef}<path d="${g.d}" fill="none" stroke="${paint.stroke}" stroke-width="${e.dash === "thick" ? 2.6 : 1.7}" stroke-linecap="round" stroke-linejoin="round" ${dash ? `stroke-dasharray="${dash}"` : ""} ${maskAttr}/>`;
-      if (e.kind !== "line") s += arrowHead(g, "end", paint.stroke);
-      if (e.kind === "bidirectional") s += arrowHead(g, "start", paint.stroke);
+      if (e.endHead !== "none" && e.kind !== "line")
+        s += arrowHead(g, "end", paint.stroke);
+      if (
+        (e.startHead && e.startHead !== "none") ||
+        e.kind === "bidirectional"
+      )
+        s += arrowHead(g, "start", paint.stroke);
       if (e.label) {
         s += `<g><text x="${g.labelPoint.x}" y="${g.labelPoint.y + 4}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="${th.muted}">${esc(e.label)}</text></g>`;
       }

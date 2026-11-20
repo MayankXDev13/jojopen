@@ -1,19 +1,25 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { S } from "../src/state/store";
+import { useBoardStore } from "../src/state/boardStore";
 import {
   sotRecList,
   sotFmtMs,
   sotStepWord,
   sotStart,
   sotStop,
+  recWatch,
   recFlush,
   sotOpenReplay,
   sotCloseReplay,
   sotReplayRec,
   sotSetIndex,
+  sotPlayToggle,
   sotCycleSpeed,
   sotDelete,
   sotFrameUnion,
+  sotFrameSVG,
+  sotSceneFrom,
+  sotResetForBoardSwitch,
   sotToggle,
 } from "../src/state/sot";
 import type { BoardElement } from "../src/lib/model";
@@ -298,5 +304,135 @@ describe("Sands of Time: Replay & Bounding Box Union", () => {
     sotDelete("sot-del-1");
     expect(S.doc.recordings?.length).toBe(0);
     expect(S.sot.replay).toBeNull();
+  });
+
+  test("sotFrameUnion and sotFrameSVG never mutate S.doc or trigger store updates", () => {
+    const originalDoc = S.doc;
+    let docMutations = 0;
+    const unsub = useBoardStore.subscribe((state, prev) => {
+      if (state.doc !== prev.doc) docMutations++;
+    });
+
+    const frameDoc = {
+      id: "other",
+      settings: { style: "clean", palette: "mono" },
+      elements: {
+        a: {
+          id: "a",
+          type: "shape",
+          shape: "rectangle",
+          label: "Box",
+          x: 20,
+          y: 30,
+          width: 120,
+          height: 60,
+        },
+      },
+    };
+    const rec: any = {
+      id: "sot-pure",
+      frames: [{ json: JSON.stringify(frameDoc), at: 0, label: "Start" }],
+    };
+
+    const union = sotFrameUnion(rec);
+    const svg = sotFrameSVG(rec.frames[0].json, union, 40, 400, 300);
+
+    unsub();
+    expect(S.doc).toBe(originalDoc);
+    expect(docMutations).toBe(0);
+    expect(svg).toContain("<svg");
+    expect(svg).toContain("Box");
+  });
+
+  test("recWatch defers capture while dragging or editing text", () => {
+    sotStart();
+    S.doc.elements["el-drag"] = {
+      id: "el-drag",
+      type: "shape",
+      x: 10,
+      y: 10,
+      width: 50,
+      height: 50,
+    } as any;
+
+    S.drag = { mode: "create", id: "el-drag" };
+    recWatch();
+    expect(S.rec?.timer).toBeNull();
+
+    S.drag = null;
+    S.editingId = "el-drag";
+    recWatch();
+    expect(S.rec?.timer).toBeNull();
+
+    S.editingId = null;
+    recWatch();
+    expect(S.rec?.timer).not.toBeNull();
+    clearTimeout(S.rec.timer);
+  });
+
+  test("sotPlayToggle, sotSetIndex, and sotCycleSpeed manage timers and index safely", () => {
+    const rec: any = {
+      id: "sot-play-1",
+      name: "Sands Play",
+      frames: [
+        { json: JSON.stringify({ elements: {} }), at: 0 },
+        { json: JSON.stringify({ elements: {} }), at: 300 },
+        { json: JSON.stringify({ elements: {} }), at: 600 },
+      ],
+      steps: [
+        { label: "Step 1", at: 300 },
+        { label: "Step 2", at: 600 },
+      ],
+      duration: 600,
+    };
+    S.doc.recordings = [rec];
+
+    sotOpenReplay("sot-play-1");
+    expect(S.sot.replay?.union).not.toBeNull();
+
+    sotPlayToggle();
+    expect(S.sot.replay?.playing).toBe(true);
+    expect(S.sot.replay?.timer).not.toBeNull();
+
+    // Cycling speed while playing keeps current index
+    S.sot.replay.index = 1;
+    sotCycleSpeed();
+    expect(S.sot.replay?.speed).toBe(2);
+    expect(S.sot.replay?.playing).toBe(true);
+    expect(S.sot.replay?.index).toBe(1);
+
+    // Manual scrub pauses playback
+    sotSetIndex(2);
+    expect(S.sot.replay?.index).toBe(2);
+    expect(S.sot.replay?.playing).toBe(false);
+    expect(S.sot.replay?.timer).toBeNull();
+
+    // Opening replay on 1-frame recording does not start interval
+    S.doc.recordings.push({
+      id: "sot-one",
+      name: "One",
+      frames: [{ json: JSON.stringify({ elements: {} }), at: 0 }],
+      steps: [],
+      duration: 0,
+    } as any);
+    sotOpenReplay("sot-one");
+    sotPlayToggle();
+    expect(S.sot.replay?.playing).toBe(false);
+  });
+
+  test("sotResetForBoardSwitch cleans up active recording, replay, and list", () => {
+    sotStart();
+    S.sot.listOpen = true;
+    sotResetForBoardSwitch();
+    expect(S.rec).toBeNull();
+    expect(S.sot.listOpen).toBe(false);
+    expect(S.sot.replay).toBeNull();
+  });
+
+  test("sotSceneFrom handles malformed JSON without throwing", () => {
+    const scene = sotSceneFrom("{not-valid-json");
+    expect(scene.doc).toBeDefined();
+    expect(scene.w).toBeGreaterThan(0);
+    expect(scene.h).toBeGreaterThan(0);
   });
 });

@@ -79,7 +79,7 @@ import {
 } from "./store";
 import { useBoardStore } from "./boardStore";
 
-import { sotToggle, sotCloseReplay } from "./sot";
+import { sotToggle, sotCloseReplay, sotResetForBoardSwitch } from "./sot";
 
 export { AI_SUGGESTIONS };
 
@@ -909,6 +909,7 @@ export function copyBoardLink() {
 }
 
 export function newBoard() {
+  sotResetForBoardSwitch();
   saveBoardCopy();
   const doc = blankDoc("Untitled board");
   doc.collectionId = S.activeCollection || "col-jojo";
@@ -928,6 +929,8 @@ export function newBoard() {
 
 export function openBoard(id: string) {
   try {
+    sotResetForBoardSwitch();
+    saveBoardCopy();
     let raw =
       localStorage.getItem("jojopen.board." + id) ||
       (S.doc.id === id ? JSON.stringify(S.doc) : null);

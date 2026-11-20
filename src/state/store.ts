@@ -101,7 +101,7 @@ export function scheduleNotify() {
 
 /* ---------- derived views ---------- */
 
-export const settings = () => S.doc.settings;
+export const settings = (doc: BoardDoc = S.doc) => doc.settings;
 export const resolvedTheme = (): "light" | "dark" =>
   S.themePref === "dark" ||
   (S.themePref === "system" &&
@@ -109,37 +109,38 @@ export const resolvedTheme = (): "light" | "dark" =>
     !!window.matchMedia?.("(prefers-color-scheme: dark)").matches)
     ? "dark"
     : "light";
-export const styleKey = (): StyleKey =>
-  settings().style === "chalkboard" ? "chalk" : resolvedTheme();
-export const theme = (): Theme => THEME[styleKey()];
-export const roleColor = (role: string) =>
-  ((ROLE_COLORS[styleKey()] || ROLE_COLORS.light) as Palette)[role] ||
-  ROLE_COLORS[styleKey()].neutral;
-export const paletteOn = () => (settings().palette ?? "roles") !== "mono";
-export const handFont = () =>
-  settings().handFont === "excalifont"
+export const styleKey = (doc: BoardDoc = S.doc): StyleKey =>
+  settings(doc)?.style === "chalkboard" ? "chalk" : resolvedTheme();
+export const theme = (doc: BoardDoc = S.doc): Theme => THEME[styleKey(doc)];
+export const roleColor = (role: string, doc: BoardDoc = S.doc) =>
+  ((ROLE_COLORS[styleKey(doc)] || ROLE_COLORS.light) as Palette)[role] ||
+  ROLE_COLORS[styleKey(doc)].neutral;
+export const paletteOn = (doc: BoardDoc = S.doc) =>
+  (settings(doc)?.palette ?? "roles") !== "mono";
+export const handFont = (doc: BoardDoc = S.doc) =>
+  settings(doc)?.handFont === "excalifont"
     ? "'Excalifont','Kalam','Comic Neue',cursive"
     : "'Kalam','Comic Neue',cursive";
 
-export function fontFor(el: BoardElement): string {
+export function fontFor(el: BoardElement, doc: BoardDoc = S.doc): string {
   if (el.type === "diagram") return "var(--sans)";
-  if (el.type === "sticky") return handFont();
+  if (el.type === "sticky") return handFont(doc);
   if (el.type === "text")
-    return settings().style === "clean" ? "var(--sans)" : handFont();
-  return settings().style === "clean" ? "var(--sans)" : handFont();
+    return settings(doc)?.style === "clean" ? "var(--sans)" : handFont(doc);
+  return settings(doc)?.style === "clean" ? "var(--sans)" : handFont(doc);
 }
 
-export function diagramEnv(): DiagramEnv {
+export function diagramEnv(doc: BoardDoc = S.doc): DiagramEnv {
   return {
-    th: theme(),
-    look: styleKey(),
-    clean: settings().style === "clean",
-    palette: paletteOn(),
+    th: theme(doc),
+    look: styleKey(doc),
+    clean: settings(doc)?.style === "clean",
+    palette: paletteOn(doc),
   };
 }
 
-export function diagram(dsl: string): DiagramRender {
-  return diagramFor(dsl, diagramEnv());
+export function diagram(dsl: string, doc: BoardDoc = S.doc): DiagramRender {
+  return diagramFor(dsl, diagramEnv(doc));
 }
 
 export function roleOf(el: BoardElement): string {
@@ -153,11 +154,11 @@ export function roleOf(el: BoardElement): string {
 }
 
 /** A painter for a raw hex colour chosen with the context-bar colour dot. */
-export function hexPaint(hex: string) {
+export function hexPaint(hex: string, doc: BoardDoc = S.doc) {
   return {
     fill: `color-mix(in srgb, ${hex} 14%, transparent)`,
     stroke: hex,
-    text: theme().ink,
+    text: theme(doc).ink,
   };
 }
 
@@ -169,9 +170,9 @@ export function hashIdToColor(id: string): string {
   return vibrant[(n >>> 0) % vibrant.length];
 }
 
-export function randomColorsMap(): Record<string, string> {
+export function randomColorsMap(doc: BoardDoc = S.doc): Record<string, string> {
   const vibrant = COLOR_KEYS.filter((k) => k !== "gray" && k !== "ink");
-  const els = elements().filter(
+  const els = (Object.values(doc.elements || {}) as BoardElement[]).filter(
     (k) =>
       k.type === "shape" ||
       k.type === "container" ||
@@ -193,29 +194,29 @@ export function randomColorsMap(): Record<string, string> {
   return n;
 }
 
-export function colorFor(el: BoardElement) {
-  const palette = settings().palette ?? "roles";
+export function colorFor(el: BoardElement, doc: BoardDoc = S.doc) {
+  const palette = settings(doc)?.palette ?? "roles";
+  const th = theme(doc);
   if (palette === "mono")
-    return { fill: "transparent", stroke: theme().ink, text: theme().ink };
+    return { fill: "transparent", stroke: th.ink, text: th.ink };
   if (el.colorLocked && el.color) {
-    if (el.color.startsWith("#")) return hexPaint(el.color);
-    if (el.color === "ink") return roleColor("ink");
-    return roleColor(COLOR_TO_ROLE[el.color] || "neutral");
+    if (el.color.startsWith("#")) return hexPaint(el.color, doc);
+    if (el.color === "ink") return roleColor("ink", doc);
+    return roleColor(COLOR_TO_ROLE[el.color] || "neutral", doc);
   }
   if (palette === "random") {
     if (el.type === "text")
-      return { fill: "transparent", stroke: theme().ink, text: theme().ink };
-    const randMap = randomColorsMap();
+      return { fill: "transparent", stroke: th.ink, text: th.ink };
+    const randMap = randomColorsMap(doc);
     const colorKey = randMap[el.id] || hashIdToColor(el.id);
     const role = COLOR_TO_ROLE[colorKey] || "neutral";
-    const paint = roleColor(role);
+    const paint = roleColor(role, doc);
     if (el.type === "arrow" || el.type === "freehand") {
-      return { fill: "transparent", stroke: paint.stroke, text: theme().muted };
+      return { fill: "transparent", stroke: paint.stroke, text: th.muted };
     }
     return paint;
   }
   if (el.type === "sticky") {
-    const th = theme();
     return {
       fill: th.sticky,
       stroke: (th as any).stickyFold || "#c8ac3f",
@@ -223,9 +224,9 @@ export function colorFor(el: BoardElement) {
     };
   }
   if (el.type === "arrow") {
-    return { fill: "transparent", stroke: theme().arrow, text: theme().muted };
+    return { fill: "transparent", stroke: th.arrow, text: th.muted };
   }
-  return roleColor(roleOf(el));
+  return roleColor(roleOf(el), doc);
 }
 
 export const elements = (): BoardElement[] => Object.values(S.doc.elements);
@@ -442,6 +443,7 @@ export function restore(json: string) {
 }
 
 export function pushHistory(label = "edit") {
+  if (S.rec) recCapture(label);
   const s = snapshot();
   if (S.history[S.history.length - 1]?.json === s) return;
   S.history.push({ json: s, label });
@@ -449,7 +451,6 @@ export function pushHistory(label = "edit") {
   S.timeline.push({ json: s, label, at: Date.now() });
   if (S.timeline.length > 200) S.timeline.shift();
   S.future = [];
-  if (S.rec) recCapture(label);
   notify();
 }
 
@@ -466,6 +467,7 @@ export function undo() {
   restore(h.json);
   S.selection.clear();
   S.editingId = null;
+  if (S.rec) recCapture("Undo");
   notify();
   persist();
   toast("Undo");
@@ -478,6 +480,7 @@ export function redo() {
   restore(h.json);
   S.selection.clear();
   S.editingId = null;
+  if (S.rec) recCapture("Redo");
   notify();
   persist();
 }

@@ -772,7 +772,7 @@ export function fitAll() {
       (r.height - pad) / Math.max(1, b.height),
     ),
     0.08,
-    2,
+    1,
   );
   S.camera.zoom = z;
   S.camera.x = (r.width - b.width * z) / 2 - b.minX * z;

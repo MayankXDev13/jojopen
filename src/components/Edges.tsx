@@ -1,5 +1,10 @@
 import type { BoardElement, Point } from "../lib/model";
-import { arrowGeom, arrowHandlesFor, arrowHead } from "../lib/geometry";
+import {
+  arrowGeom,
+  arrowHandlesFor,
+  arrowHead,
+  elementBounds,
+} from "../lib/geometry";
 import { strokeOutlinePath } from "../lib/ink";
 import {
   S,
@@ -10,6 +15,20 @@ import {
   theme,
 } from "../state/store";
 import { useVersion } from "../state/boardStore";
+
+function obstaclesForArrow(el: BoardElement, all: BoardElement[]) {
+  const sId = el.start?.elementId;
+  const tId = el.end?.elementId;
+  return all
+    .filter(
+      (o) =>
+        o.id !== el.id &&
+        o.id !== sId &&
+        o.id !== tId &&
+        (o.type === "shape" || o.type === "sticky" || o.type === "image"),
+    )
+    .map(elementBounds);
+}
 
 export function Edges() {
   useVersion();
@@ -68,6 +87,7 @@ export function Edges() {
           el,
           (id) => S.doc.elements[id] as BoardElement | undefined,
           th,
+          obstaclesForArrow(el, list),
         );
         const paint = colorFor(el);
         const dash =
@@ -191,6 +211,7 @@ export function ArrowHandles() {
   const selColor = "#7c93ff";
   const handleFill = "var(--bg, #1a1a1a)";
 
+  const all = sortedElements();
   return (
     <svg className="arrow-handles" width="10" height="10">
       {selectedArrows.map((el) => {
@@ -198,6 +219,7 @@ export function ArrowHandles() {
           el,
           (id) => S.doc.elements[id] as BoardElement | undefined,
           th,
+          obstaclesForArrow(el, all),
         );
         const handles = arrowHandlesFor(
           geom.pts,

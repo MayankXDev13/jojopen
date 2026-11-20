@@ -319,24 +319,22 @@ export function NodeView({
                 d={p}
                 fill="none"
                 stroke={containerStroke}
-                strokeWidth={1.5}
-                strokeDasharray="6 5"
+                strokeWidth={1.35}
                 strokeLinejoin="round"
                 strokeLinecap="round"
               />
             ) : (
               getRoughPaths(el.id, p, {
                 stroke: containerStroke,
-                strokeWidth: 1.5,
-                roughness,
-                dashed: true,
+                strokeWidth: 1.35,
+                roughness: Math.min(roughness, 0.45),
               }).map((pt, i) => (
                 <path
                   key={i}
                   d={pt.d}
                   fill="none"
                   stroke={pt.stroke || containerStroke}
-                  strokeWidth={pt.strokeWidth || 1.5}
+                  strokeWidth={pt.strokeWidth || 1.35}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -344,7 +342,15 @@ export function NodeView({
             )}
           </svg>
         </div>
-        <div className="clabel">{el.label}</div>
+        <div
+          className="clabel"
+          style={{
+            color: c.text,
+            fontFamily: fontFor(el),
+          }}
+        >
+          {el.label}
+        </div>
       </>
     );
   } else if (el.type === "slide") {

@@ -117,7 +117,7 @@ export const DEFAULT_SETTINGS: BoardSettings = {
   style: "sketch",
   colorMode: "soft",
   showLegend: false,
-  showGrid: true,
+  showGrid: false,
   snapToGrid: true,
   gridSize: 16,
   palette: "roles",

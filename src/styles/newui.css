@@ -3156,14 +3156,21 @@ select.input {
   white-space: nowrap;
 }
 .boardname-btn svg {
-  opacity: 0.45;
+  opacity: 0;
+  width: 0;
+  margin-left: -6px;
+  overflow: hidden;
   flex: none;
+  transition: opacity 0.14s ease, width 0.14s ease, margin-left 0.14s ease;
 }
 .boardname-btn:hover {
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
-.boardname-btn:hover svg {
-  opacity: 0.9;
+.boardname-btn:hover svg,
+.boardname-btn:focus-visible svg {
+  opacity: 0.75;
+  width: 12px;
+  margin-left: 0;
 }
 .linkfield {
   display: flex;
@@ -4018,34 +4025,57 @@ select.input {
 .topright .seg {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
 }
 .topright .viewgroup {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0;
+  height: 42px;
+  padding: 0 4px;
+  border-radius: 13px;
+}
+.topright .viewgroup .seg button.is-on {
+  background: transparent;
+  color: var(--text);
+}
+.topright.collapsible:hover .viewgroup .seg button.is-on,
+.topright.collapsible:focus-within .viewgroup .seg button.is-on {
+  background: var(--primary);
+  color: var(--on-primary);
 }
 .bottomleft {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
+}
+.bottomleft > * + * {
+  margin-left: 8px;
 }
 .bottomleft .group {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
+}
+.bottomleft.collapsible:hover .group,
+.bottomleft.collapsible:focus-within .group {
+  gap: 1px;
 }
 .bottomleft .group .textbtn + .textbtn {
-  margin-left: 6px;
+  margin-left: 0;
 }
-.topright .seg button + .button,
-.topright .seg button + button {
+.bottomleft.collapsible:hover .group .textbtn + .textbtn,
+.bottomleft.collapsible:focus-within .group .textbtn + .textbtn {
   margin-left: 4px;
+}
+.topright.collapsible:hover .seg button + button,
+.topright.collapsible:focus-within .seg button + button {
+  margin-left: 1px;
 }
 
 .topright .seg button.more {
-  padding-left: 12px;
-  padding-right: 12px;
+  padding-left: 11px;
+  padding-right: 11px;
 }
 .bottomleft .textbtn.more {
   padding-left: 9px;

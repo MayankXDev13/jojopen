@@ -50,12 +50,12 @@ export function nodeSize(n: ParsedNode): { w: number; h: number } {
   const label = n.label || n.key;
   const lines = wrapText(label, 190, 13);
   const longest = Math.max(...lines.map((l) => l.length), 4);
-  let w = clamp(longest * 7.2 + 46, 104, 250);
-  if (n.icon) w += 6;
-  let h = 64;
-  if (n.shape === "person") h = 78;
-  if (n.shape === "ellipse") h = 76;
-  if (n.shape === "cylinder") h = 78;
+  let w = clamp(longest * 7.4 + 46, 108, 250);
+  if (n.icon) w += 14;
+  let h = 52;
+  if (n.shape === "person") h = 64;
+  if (n.shape === "ellipse") h = 64;
+  if (n.shape === "cylinder") h = 74;
   if (lines.length > 1) h += 16;
   return { w: Math.round(w), h: Math.round(h) };
 }
@@ -115,12 +115,13 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
     ranks.get(r)!.push(n);
   }
   const sortedRanks = [...ranks.keys()].sort((a, b) => a - b);
-  const gapPrimary = 106;
-  const gapCross = 26;
+  const baseGapPrimary = horizontal ? 156 : 104;
+  const gapCross = horizontal ? 54 : 44;
   const boxes = new Map<string, LayoutBox>();
   const sizes = new Map<string, { w: number; h: number }>();
   let cursor = 0;
-  for (const r of sortedRanks) {
+  for (let ri = 0; ri < sortedRanks.length; ri++) {
+    const r = sortedRanks[ri];
     const list = ranks.get(r)!.sort((a, b) => a.order - b.order);
     list.forEach((n) => sizes.set(n.key, nodeSize(n)));
     const size = (n: ParsedNode) => sizes.get(n.key)!;
@@ -141,7 +142,40 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
         cross += size(n).w + gapCross;
       }
     }
-    cursor += primary + gapPrimary;
+
+    // Adaptive gap to next rank: room for edge labels, crossing edges, and group borders
+    let rankGap = baseGapPrimary;
+    const nextR = sortedRanks[ri + 1];
+    if (nextR !== undefined) {
+      const nextList = ranks.get(nextR) || [];
+      const curGroups = new Set(list.map((n) => n.group || ""));
+      const nextGroups = new Set(nextList.map((n) => n.group || ""));
+      let crossesGroup = false;
+      for (const g of curGroups) {
+        if (!nextGroups.has(g)) crossesGroup = true;
+      }
+      if (crossesGroup) rankGap += 44;
+
+      let crossingEdges = 0;
+      for (const e of p.edges) {
+        const rf = rank.get(e.from);
+        const rt = rank.get(e.to);
+        if (
+          (rf === r && rt === nextR) ||
+          (rf === nextR && rt === r) ||
+          (rf !== undefined && rt !== undefined && rf <= r && rt >= nextR)
+        ) {
+          if (rf === r && rt === nextR) crossingEdges++;
+          if (horizontal && e.label) {
+            const needed = Math.ceil(e.label.length * 7.8) + 68;
+            rankGap = Math.max(rankGap, needed + (crossesGroup ? 28 : 0));
+          }
+        }
+      }
+      if (crossingEdges >= 3) rankGap += 24;
+    }
+
+    cursor += primary + rankGap;
   }
   /* mirror for left/up */
   if (dir === "left" || dir === "up") {
@@ -195,8 +229,8 @@ export function layoutDiagram(p: ParsedDiagram): Layout {
       maxY = Math.max(maxY, b.y + b.h);
     }
     if (!Number.isFinite(minX)) return null;
-    const pad = 26;
-    const top = 30;
+    const pad = 22;
+    const top = 28;
     const box = {
       key: k,
       label: g.label,

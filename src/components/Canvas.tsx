@@ -234,7 +234,9 @@ export function Canvas() {
               (el) =>
                 el.type !== "slide" &&
                 el.type !== "diagram" &&
-                el.type !== "container",
+                el.type !== "container" &&
+                el.type !== "arrow" &&
+                el.type !== "freehand",
             )
             .map((el) => (
               <NodeView key={el.id} el={el} selected={S.selection.has(el.id)} />

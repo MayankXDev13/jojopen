@@ -2454,9 +2454,9 @@ legend {
 #sotDim {
   position: fixed;
   inset: 0;
-  z-index: 4;
+  z-index: 6;
   background: transparent;
-  pointer-events: none;
+  pointer-events: auto;
 }
 #sotReplayRoot {
   position: fixed;
@@ -2781,20 +2781,28 @@ legend {
 }
 
 /* replay focus mode: hide the live board content under the replay stage */
+#app.is-sot-replay #world,
 #app.is-sot-replay #slides,
 #app.is-sot-replay #frames,
 #app.is-sot-replay #nodes,
 #app.is-sot-replay #edges,
+#app.is-sot-replay .edges,
+#app.is-sot-replay #sel,
+#app.is-sot-replay .sel,
+#app.is-sot-replay #marquee,
+#app.is-sot-replay #laser,
 #app.is-sot-replay .arrow-handles,
 #app.is-sot-replay #contextbar,
 #app.is-sot-replay .viewgroup {
   opacity: 0;
   pointer-events: none;
 }
+#app.is-sot-replay #world,
 #app.is-sot-replay #slides,
 #app.is-sot-replay #frames,
 #app.is-sot-replay #nodes,
 #app.is-sot-replay #edges,
+#app.is-sot-replay .edges,
 #app.is-sot-replay .arrow-handles,
 #app.is-sot-replay .viewgroup {
   transition: opacity 0.18s ease;

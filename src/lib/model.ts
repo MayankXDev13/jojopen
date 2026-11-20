@@ -22,7 +22,7 @@ export type BoardSettings = {
   showGrid: boolean;
   snapToGrid: boolean;
   gridSize: number;
-  palette: "roles" | "mono";
+  palette: "roles" | "mono" | "random";
   handFont: "excalifont" | "kalam";
 };
 

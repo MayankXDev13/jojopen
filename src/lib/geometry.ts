@@ -568,11 +568,16 @@ function autoOrthogonal(
 
   const hintSide = (box: Bounds, p?: Point): Side | null => {
     if (!p) return null;
-    if (Math.abs(p.x - box.maxX) < 2) return "right";
-    if (Math.abs(p.x - box.minX) < 2) return "left";
-    if (Math.abs(p.y - box.maxY) < 2) return "bottom";
-    if (Math.abs(p.y - box.minY) < 2) return "top";
-    return null;
+    const dRight = Math.abs(p.x - box.maxX);
+    const dLeft = Math.abs(p.x - box.minX);
+    const dBottom = Math.abs(p.y - box.maxY);
+    const dTop = Math.abs(p.y - box.minY);
+    const min = Math.min(dRight, dLeft, dBottom, dTop);
+    if (min >= 2) return null;
+    if (min === dBottom) return "bottom";
+    if (min === dTop) return "top";
+    if (min === dRight) return "right";
+    return "left";
   };
   const h1 = hintSide(a, p0Hint);
   const h2 = hintSide(b, p1Hint);
@@ -1047,7 +1052,73 @@ export function arrowGeom(
   if (sEl && el.start && seq.length) seq[0] = p0;
   if (tEl && el.end && seq.length) seq[seq.length - 1] = p1;
 
-  const orthogonalFallback = (p0: Point, p1: Point) => {
+  const boundSideOf = (
+    bindEl: BoardElement | undefined,
+    pt: Point,
+  ): Side | null => {
+    if (!bindEl) return null;
+    const b = elementBounds(bindEl);
+    const dRight = Math.abs(pt.x - b.maxX);
+    const dLeft = Math.abs(pt.x - b.minX);
+    const dBottom = Math.abs(pt.y - b.maxY);
+    const dTop = Math.abs(pt.y - b.minY);
+    const min = Math.min(dRight, dLeft, dBottom, dTop);
+    if (min >= 2) return null;
+    if (min === dBottom) return "bottom";
+    if (min === dTop) return "top";
+    if (min === dRight) return "right";
+    return "left";
+  };
+
+  const orthogonalFallback = (
+    p0: Point,
+    p1: Point,
+    sSide: Side | null = null,
+    tSide: Side | null = null,
+  ) => {
+    const isVert = (s: Side | null) => s === "top" || s === "bottom";
+    const isHoriz = (s: Side | null) => s === "left" || s === "right";
+
+    // Respect bound face normals so arrows leave/enter perpendicularly instead of sliding sideways along borders.
+    if (sSide && tSide) {
+      if (isVert(sSide) && isHoriz(tSide)) {
+        const pts = cleanupArrowPoints([p0, { x: p0.x, y: p1.y }, p1]);
+        return { d: roundedPath(pts), pts };
+      }
+      if (isHoriz(sSide) && isVert(tSide)) {
+        const pts = cleanupArrowPoints([p0, { x: p1.x, y: p0.y }, p1]);
+        return { d: roundedPath(pts), pts };
+      }
+    }
+
+    if (isVert(sSide) || (!sSide && isVert(tSide))) {
+      if (Math.abs(p1.x - p0.x) < 1) {
+        return { d: `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`, pts: [p0, p1] };
+      }
+      const my = (p0.y + p1.y) / 2;
+      const pts = cleanupArrowPoints([
+        p0,
+        { x: p0.x, y: my },
+        { x: p1.x, y: my },
+        p1,
+      ]);
+      return { d: roundedPath(pts), pts };
+    }
+
+    if (isHoriz(sSide) || (!sSide && isHoriz(tSide))) {
+      if (Math.abs(p1.y - p0.y) < 1) {
+        return { d: `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`, pts: [p0, p1] };
+      }
+      const mx = (p0.x + p1.x) / 2;
+      const pts = cleanupArrowPoints([
+        p0,
+        { x: mx, y: p0.y },
+        { x: mx, y: p1.y },
+        p1,
+      ]);
+      return { d: roundedPath(pts), pts };
+    }
+
     if (Math.abs(p1.x - p0.x) >= Math.abs(p1.y - p0.y)) {
       if (Math.abs(p1.y - p0.y) < 1) {
         return { d: `M${p0.x} ${p0.y} L${p1.x} ${p1.y}`, pts: [p0, p1] };
@@ -1063,6 +1134,9 @@ export function arrowGeom(
     const pts = [p0, { x: p0.x, y: my }, { x: p1.x, y: my }, p1];
     return { d: roundedPath(pts), pts };
   };
+
+  const sSide = boundSideOf(sEl, p0);
+  const tSide = boundSideOf(tEl, p1);
 
   if (
     mode === "orthogonal" &&
@@ -1082,7 +1156,7 @@ export function arrowGeom(
       d = roundedPath(routed);
       pts = routed;
     } else {
-      const fb = orthogonalFallback(p0, p1);
+      const fb = orthogonalFallback(p0, p1, sSide, tSide);
       d = fb.d;
       pts = fb.pts;
     }
@@ -1100,7 +1174,7 @@ export function arrowGeom(
   } else {
     // 2-point or auto-routed arrows: orthogonal keeps elbow, curved and straight stay straight until bent
     if (mode === "orthogonal") {
-      const fb = orthogonalFallback(p0, p1);
+      const fb = orthogonalFallback(p0, p1, sSide, tSide);
       d = fb.d;
       pts = fb.pts;
     } else {

@@ -85,7 +85,7 @@ export function Canvas() {
   };
 
   const onPointerMove = (e: React.PointerEvent | PointerEvent) => {
-    if (S.replay || S.present) return;
+    if (S.replay || S.present || S.sot.replay) return;
     const ce = createCanvasPointerEvent(e, toWorld);
     const ctx = getToolContext();
     const tool = resolveActiveTool(ce);
@@ -93,7 +93,7 @@ export function Canvas() {
   };
 
   const onPointerUp = (e: React.PointerEvent | PointerEvent) => {
-    if (S.present || S.replay) return;
+    if (S.present || S.replay || S.sot.replay) return;
     const ce = createCanvasPointerEvent(e, toWorld);
     const ctx = getToolContext();
     const tool = resolveActiveTool(ce);
@@ -101,6 +101,7 @@ export function Canvas() {
   };
 
   const onDoubleClick = (e: React.MouseEvent) => {
+    if (S.present || S.replay || S.sot.replay) return;
     const ce = createCanvasPointerEvent(e as any, toWorld);
     const ctx = getToolContext();
     const tool = resolveActiveTool(ce);
@@ -146,6 +147,7 @@ export function Canvas() {
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    if (S.present || S.replay || S.sot.replay) return;
     const f = e.dataTransfer?.files?.[0];
     if (!f || !f.type.startsWith("image/")) return;
     const fr = new FileReader();

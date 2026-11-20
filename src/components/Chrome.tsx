@@ -1178,7 +1178,7 @@ export function SotCard() {
   if (!S.sot.listOpen || S.rec || S.sot.replay) return null;
   const list = [...sotRecList()].reverse();
   return (
-    <div id="sotRoot">
+    <div id="sotRoot" style={{ right: S.panel === "none" ? 68 : 468 }}>
       <div className="sotcard" role="dialog" aria-label="Sands of Time">
         <div className="sotcard-head">
           <span className="sotcard-title">

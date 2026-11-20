@@ -1,8 +1,22 @@
 import type { BoardDoc, BoardElement, Point } from "../lib/model";
 import { NodeView } from "./NodeView";
-import { arrowGeom, arrowHead } from "../lib/geometry";
+import { arrowGeom, arrowHead, elementBounds } from "../lib/geometry";
 import { strokeOutlinePath } from "../lib/ink";
 import { S, colorFor, fontFor, theme } from "../state/store";
+
+function obstaclesForArrow(el: BoardElement, all: BoardElement[]) {
+  const sId = el.start?.elementId;
+  const tId = el.end?.elementId;
+  return all
+    .filter(
+      (o) =>
+        o.id !== el.id &&
+        o.id !== sId &&
+        o.id !== tId &&
+        (o.type === "shape" || o.type === "sticky" || o.type === "image"),
+    )
+    .map(elementBounds);
+}
 
 export function SceneView({
   doc,
@@ -13,6 +27,7 @@ export function SceneView({
   height,
   scale,
   hidden,
+  showSlides = false,
 }: {
   doc?: BoardDoc;
   elements: BoardElement[];
@@ -22,14 +37,23 @@ export function SceneView({
   height: number;
   scale: number;
   hidden?: Set<string>;
+  showSlides?: boolean;
 }) {
-  const th = theme();
+  const activeDoc = doc || S.doc;
+  const th = theme(activeDoc);
   const visible = elements.filter((el) => !hidden?.has(el.id));
+  const slideNodes = showSlides
+    ? visible
+        .filter((el) => el.type === "slide")
+        .sort(
+          (a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.id < b.id ? -1 : 1),
+        )
+    : [];
   const edges = visible.filter(
     (el) => el.type === "arrow" || el.type === "freehand",
   );
   const nodes = visible.filter(
-    (el) => el.type !== "arrow" && el.type !== "slide",
+    (el) => el.type !== "arrow" && el.type !== "slide" && el.type !== "freehand",
   );
 
   return (
@@ -46,6 +70,17 @@ export function SceneView({
         overflow: "hidden",
       }}
     >
+      {slideNodes.map((el, i) => (
+        <NodeView
+          key={el.id}
+          el={el}
+          doc={activeDoc}
+          ox={ox}
+          oy={oy}
+          slideNumber={i + 1}
+          thumb
+        />
+      ))}
       <svg
         className="scene-edges"
         style={{
@@ -61,7 +96,7 @@ export function SceneView({
         <g transform={`translate(${-ox}, ${-oy})`}>
           {edges.map((el) => {
             if (el.type === "freehand") {
-              const paint = colorFor(el);
+              const paint = colorFor(el, activeDoc);
               const inkPts = (el.points || [])
                 .filter(
                   (p): p is Point =>
@@ -72,6 +107,17 @@ export function SceneView({
                   y: el.y + p.y,
                   pressure: (el.pressures || [])[i] ?? 0.5,
                 }));
+              if (inkPts.length === 1) {
+                return (
+                  <circle
+                    key={el.id}
+                    cx={inkPts[0].x}
+                    cy={inkPts[0].y}
+                    r={Math.max(1, (el.strokeWidth || 2) * 0.75)}
+                    fill={paint.stroke}
+                  />
+                );
+              }
               const d = strokeOutlinePath(
                 inkPts,
                 (el.strokeWidth || 2) * 2.2,
@@ -99,11 +145,11 @@ export function SceneView({
               const geom = arrowGeom(
                 el,
                 (id) =>
-                  (doc?.elements || S.doc.elements)[id] as
-                    BoardElement | undefined,
+                  activeDoc.elements[id] as BoardElement | undefined,
                 th,
+                obstaclesForArrow(el, visible),
               );
-              const paint = colorFor(el);
+              const paint = colorFor(el, activeDoc);
               const dash =
                 el.kind === "async"
                   ? "7 5"
@@ -142,7 +188,7 @@ export function SceneView({
                   ) : null}
                   {el.label
                     ? (() => {
-                        const font = fontFor(el);
+                        const font = fontFor(el, activeDoc);
                         const fontSize = 14 * (el.textScale ?? 1);
                         const padX = 8;
                         const padY = 4;
@@ -185,7 +231,7 @@ export function SceneView({
         </g>
       </svg>
       {nodes.map((el) => (
-        <NodeView key={el.id} el={el} doc={doc} ox={ox} oy={oy} thumb />
+        <NodeView key={el.id} el={el} doc={activeDoc} ox={ox} oy={oy} thumb />
       ))}
     </div>
   );

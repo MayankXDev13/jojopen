@@ -35,12 +35,14 @@ export function NodeView({
 }: NodeViewProps) {
   useVersion();
   const editingId = useEditingId();
-  const c = colorFor(el);
-  const files = doc?.files || S.doc.files;
+  const activeDoc = doc || S.doc;
+  const st = settings(activeDoc);
+  const c = colorFor(el, activeDoc);
+  const files = activeDoc.files || S.doc.files;
 
   const diagramRender = useMemo(
-    () => (el.type === "diagram" ? diagram(el.dsl || "") : null),
-    [el.type, el.dsl, settings().style, settings().palette, S.themePref],
+    () => (el.type === "diagram" ? diagram(el.dsl || "", activeDoc) : null),
+    [el.type, el.dsl, st.style, st.palette, S.themePref],
   );
 
   const style: React.CSSProperties = {
@@ -56,8 +58,8 @@ export function NodeView({
   if (el.type === "shape") {
     const lib = el.icon ? resolveIcon(el.icon) : undefined;
     const edge = !!el.icon && !!el.iconEdge && !!lib;
-    const clean = settings().style === "clean";
-    const roughness = roughnessForStyle(settings().style);
+    const clean = st.style === "clean";
+    const roughness = roughnessForStyle(st.style);
     const esize = edgeIconSize(clean);
     const epos = edgeIconPos(esize);
     const maskId = `edge-${el.id}`;
@@ -66,12 +68,12 @@ export function NodeView({
     const seed = seedFromId(el.id);
     const fillPath =
       !el.noFill &&
-      (settings().style === "sketch"
+      (st.style === "sketch"
         ? getRoughFillPath(el.id, p, seed, roughness)
         : p);
     const strokeWidth = clean
       ? 1.5
-      : settings().style === "chalkboard"
+      : st.style === "chalkboard"
         ? 2.2
         : 1.8;
     const roughStrokes =
@@ -206,7 +208,7 @@ export function NodeView({
             alignItems: "center",
             justifyContent: "center",
             color: el.noFill ? c.stroke : c.text,
-            fontFamily: fontFor(el),
+            fontFamily: fontFor(el, activeDoc),
             fontSize: 14 * (el.textScale ?? 1),
             padding: "0 12px",
             textAlign: "center",
@@ -233,7 +235,7 @@ export function NodeView({
         style={{
           fontSize: el.fontSize,
           color: c.text,
-          fontFamily: fontFor(el),
+          fontFamily: fontFor(el, activeDoc),
         }}
       >
         {el.text}
@@ -280,7 +282,7 @@ export function NodeView({
             inset: 0,
             padding: "18px 16px 16px",
             color: stickyInk,
-            fontFamily: fontFor(el),
+            fontFamily: fontFor(el, activeDoc),
             fontSize: 19 * (el.textScale ?? 1),
             lineHeight: 1.3,
             textAlign: (el.align as any) || "left",
@@ -297,9 +299,9 @@ export function NodeView({
     body = <img src={files[el.fileId || ""] || ""} alt="" />;
   } else if (el.type === "container") {
     const p = shapePath("container", el.width, el.height);
-    const roughness = roughnessForStyle(settings().style);
+    const roughness = roughnessForStyle(st.style);
     const containerStroke = `color-mix(in srgb, ${c.stroke} 55%, transparent)`;
-    const containerFill = `color-mix(in srgb, ${c.stroke} ${settings().style === "chalkboard" ? 4 : 6}%, transparent)`;
+    const containerFill = `color-mix(in srgb, ${c.stroke} ${st.style === "chalkboard" ? 4 : 6}%, transparent)`;
     body = (
       <>
         <div className="sh">
@@ -346,7 +348,7 @@ export function NodeView({
           className="clabel"
           style={{
             color: c.text,
-            fontFamily: fontFor(el),
+            fontFamily: fontFor(el, activeDoc),
           }}
         >
           {el.label}
@@ -390,7 +392,7 @@ export function NodeView({
       </div>
     );
   } else if (el.type === "diagram") {
-    const th = theme();
+    const th = theme(activeDoc);
     body = (
       <>
         <div

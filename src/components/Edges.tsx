@@ -35,7 +35,7 @@ export function Edges() {
   const th = theme();
   const list = sortedElements();
   return (
-    <svg className="edges" width="10" height="10">
+    <svg className="edges" id="edges" width="10" height="10">
       {list.map((el) => {
         if (el.type === "freehand") {
           const paint = colorFor(el);

@@ -33,7 +33,10 @@ export function TimelineReplay() {
   const parsed = parseEntry(entry.json);
   const sw = parsed?.sw ?? 900;
   const sh = parsed?.sh ?? 600;
-  const scale = Math.min((vw - 140) / (sw + 80), (vh - 240) / (sh + 80), 1.4);
+  const scale = Math.max(
+    0.1,
+    Math.min((vw - 140) / (sw + 80), (vh - 240) / (sh + 80), 1.4),
+  );
 
   return (
     <div id="replayRoot">

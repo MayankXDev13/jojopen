@@ -426,6 +426,38 @@ describe("Geometry: Arrow Routing and Handles", () => {
     expect(geom.pts[2].x).toBe(200);
   });
 
+  test("orthogonal arrow bound on bottom face exits vertically instead of sliding sideways", () => {
+    const box = makeEl({ id: "box1", x: 100, y: 100, width: 200, height: 100 });
+    const arrow = makeEl({
+      type: "arrow",
+      x: 0,
+      y: 0,
+      routeMode: "orthogonal",
+      start: {
+        elementId: "box1",
+        anchor: "auto",
+        normalizedAnchor: { x: 0.5, y: 1 },
+        isPrecise: true,
+        snap: "edge",
+      },
+      end: null,
+      points: [
+        { x: 200, y: 200 },
+        { x: 500, y: 300 },
+      ],
+    });
+    const geom = arrowGeom(
+      arrow,
+      (id) => (id === "box1" ? box : undefined),
+      THEME.dark,
+    );
+    // First segment must leave downward (same x, increasing y), never sideways along y=200
+    expect(geom.pts[0].x).toBeCloseTo(200, 1);
+    expect(geom.pts[0].y).toBeCloseTo(200, 1);
+    expect(geom.pts[1].x).toBeCloseTo(200, 1);
+    expect(geom.pts[1].y).toBeGreaterThan(200);
+  });
+
   test("curved arrow stays straight by default and curves smoothly when bent by user", () => {
     // 2-point curved arrow stays straight by default
     const arrow2 = makeEl({

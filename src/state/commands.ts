@@ -574,6 +574,11 @@ function onKeyDown(e: KeyboardEvent) {
     }
     if (S.sot.replay) {
       e.preventDefault();
+      if (S.sot.replay.exportOpen) {
+        S.sot.replay.exportOpen = false;
+        notify();
+        return;
+      }
       return sotCloseReplay();
     }
     if (S.replay) {

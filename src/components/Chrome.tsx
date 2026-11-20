@@ -253,7 +253,7 @@ export function TopBar() {
             <Icon name="pencil" size={12} />
           </button>
           <span className="saved" id="saved">
-            <span className="dot-ok" /> Saved to your boards
+            <span className="dot-ok" /> Saved on this device
           </span>
         </div>
       </div>
@@ -269,6 +269,7 @@ export function TopBar() {
                     ? `is-on${style !== "clean" ? " is-hand" : ""}`
                     : `more${style !== "clean" ? " is-hand" : ""}`
                 }
+                aria-pressed={settings().style === style}
                 data-act="style"
                 data-style={style}
                 onClick={() => {
@@ -876,18 +877,23 @@ export function ContextBar() {
       {hasShape ? (
         <>
           {hasColor ? <span className="vsep more" /> : null}
-          {shapeBtns.map(([shape, icon, title]) => (
-            <button
-              key={shape}
-              className="iconbtn"
-              onClick={() => setShape(shape)}
-              title={title}
-              aria-label={title}
-              style={{ width: 30, height: 30 }}
-            >
-              <Icon name={icon} size={15} />
-            </button>
-          ))}
+          {shapeBtns.map(([shape, icon, title]) => {
+            const active = list
+              .filter((e) => e.type === "shape")
+              .every((e) => (e.shape || "rounded") === shape);
+            return (
+              <button
+                key={shape}
+                className={`iconbtn${active ? " is-active" : ""}`}
+                onClick={() => setShape(shape)}
+                title={title}
+                aria-label={title}
+                style={{ width: 30, height: 30 }}
+              >
+                <Icon name={icon} size={15} />
+              </button>
+            );
+          })}
         </>
       ) : null}
       {hasArrow ? (

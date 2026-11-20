@@ -31,14 +31,14 @@ export const ROLE_COLORS: { light: Palette; dark: Palette; chalk: Palette } = {
   dark: {
     actor: { fill: "#221c34", stroke: "#a78ef3", text: "#e5ddff" },
     network: { fill: "#122b27", stroke: "#4cc0af", text: "#ccf2ec" },
-    compute: { fill: "#15233a", stroke: "#6da3f3", text: "#d4e4fd" },
+    compute: { fill: "#233758", stroke: "#6da3f3", text: "#d4e4fd" },
     data: { fill: "#142a1b", stroke: "#63be7c", text: "#d1efd9" },
     cache: { fill: "#341f0f", stroke: "#f2965b", text: "#fde0cc" },
     messaging: { fill: "#2e260c", stroke: "#e3b545", text: "#f8eac2" },
     security: { fill: "#361a1f", stroke: "#f18093", text: "#ffd9de" },
     external: { fill: "#20242b", stroke: "#9ba9bc", text: "#dee5ee" },
-    neutral: { fill: "#191919", stroke: "#ededec", text: "#ededec" },
-    ink: { fill: "#191919", stroke: "#ededec", text: "#ededec" },
+    neutral: { fill: "#3b3b3b", stroke: "#ededec", text: "#ededec" },
+    ink: { fill: "#3b3b3b", stroke: "#ededec", text: "#ededec" },
   },
   chalk: {
     actor: {

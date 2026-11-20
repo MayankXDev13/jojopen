@@ -625,5 +625,37 @@ describe("Geometry: Arrow Routing and Handles", () => {
     const forced = anchorPoint(el, { x: 250, y: 50 }, true);
     expect(forced).toEqual({ x: 200, y: 100 });
   });
+
+  test("autoOrthogonal routes around intermediate obstacle shapes", () => {
+    const shortener = makeEl({ id: "s", x: 576, y: 128, width: 192, height: 64 });
+    const auth = makeEl({ id: "a", x: 576, y: 240, width: 192, height: 64 });
+    const redis = makeEl({ id: "r", x: 864, y: 208, width: 144, height: 64 });
+    const kafka = makeEl({ id: "k", x: 864, y: 368, width: 144, height: 64 });
+    const map: Record<string, BoardElement> = { s: shortener, a: auth, r: redis, k: kafka };
+    const arrow = makeEl({
+      type: "arrow",
+      route: "auto",
+      routeMode: "orthogonal",
+      start: { elementId: "s", isPrecise: true, normalizedAnchor: { x: 0.5, y: 1 } },
+      end: { elementId: "k", isPrecise: true, normalizedAnchor: { x: 0.5, y: 0 } },
+      points: [
+        { x: 672, y: 192 },
+        { x: 936, y: 368 },
+      ],
+    });
+    const obstacles = [elementBounds(auth), elementBounds(redis)];
+    const geom = arrowGeom(arrow, (id) => map[id], THEME.dark, obstacles);
+
+    for (let i = 0; i < geom.pts.length - 1; i++) {
+      const p = geom.pts[i];
+      const q = geom.pts[i + 1];
+      const mx = (p.x + q.x) / 2;
+      const my = (p.y + q.y) / 2;
+      const hitsAuth = mx > 576 && mx < 768 && my > 240 && my < 304;
+      const hitsRedis = mx > 864 && mx < 1008 && my > 208 && my < 272;
+      expect(hitsAuth).toBe(false);
+      expect(hitsRedis).toBe(false);
+    }
+  });
 });
 

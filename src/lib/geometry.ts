@@ -219,12 +219,17 @@ export function hitTestArrow(
   getElement: (id: string) => BoardElement | undefined,
   th: Theme,
   tolerance = 16,
+  obstacles?: Bounds[],
 ): boolean {
   if (el.type !== "arrow") return false;
   try {
-    const geom = arrowGeom(el, getElement, th);
-    for (let i = 1; i < geom.pts.length; i++) {
-      if (distPointToSeg(p, geom.pts[i - 1], geom.pts[i]) <= tolerance) {
+    const geom = arrowGeom(el, getElement, th, obstacles);
+    const testPts =
+      el.routeMode === "curved" && geom.pts.length >= 3
+        ? sampleSmoothPath(geom.pts)
+        : geom.pts;
+    for (let i = 1; i < testPts.length; i++) {
+      if (distPointToSeg(p, testPts[i - 1], testPts[i]) <= tolerance) {
         return true;
       }
     }
@@ -510,18 +515,56 @@ function freeTrack(
   return best;
 }
 
+function countObstacleHits(pts: Point[], obsBoxes: Bounds[]): number {
+  if (!obsBoxes.length) return 0;
+  let hits = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    for (const b of obsBoxes) {
+      if (segCrossesBox(pts[i], pts[i + 1], b)) hits++;
+    }
+  }
+  return hits;
+}
+
 function autoOrthogonal(
   a: Bounds,
   b: Bounds,
   p0Hint?: Point,
   p1Hint?: Point,
+  obstacles: Bounds[] = [],
 ): Point[] | null {
   const pad = 16;
   const ea = expand(a, pad);
   const eb = expand(b, pad);
   const boxes = [ea, eb];
+  const obsBoxes = obstacles.map((o) => expand(o, 10));
   const ac = { x: (a.minX + a.maxX) / 2, y: (a.minY + a.maxY) / 2 };
   const bc = { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 };
+
+  // Precompute obstacle-avoiding corridor coordinates (X and Y tracks between obstacles)
+  const obsXTracks: number[] = [];
+  const obsYTracks: number[] = [];
+  if (obsBoxes.length) {
+    const xSet = new Set<number>();
+    const ySet = new Set<number>();
+    for (const o of obsBoxes) {
+      xSet.add(o.minX - 6);
+      xSet.add(o.maxX + 6);
+      ySet.add(o.minY - 6);
+      ySet.add(o.maxY + 6);
+    }
+    // Also add midpoints between pairs of obstacle edges for centered corridors
+    const xEdges = obsBoxes.flatMap((o) => [o.minX, o.maxX]).sort((u, v) => u - v);
+    const yEdges = obsBoxes.flatMap((o) => [o.minY, o.maxY]).sort((u, v) => u - v);
+    for (let i = 0; i < xEdges.length - 1; i++) {
+      if (xEdges[i + 1] - xEdges[i] > 20) xSet.add((xEdges[i] + xEdges[i + 1]) / 2);
+    }
+    for (let i = 0; i < yEdges.length - 1; i++) {
+      if (yEdges[i + 1] - yEdges[i] > 20) ySet.add((yEdges[i] + yEdges[i + 1]) / 2);
+    }
+    obsXTracks.push(...xSet);
+    obsYTracks.push(...ySet);
+  }
 
   const hintSide = (box: Bounds, p?: Point): Side | null => {
     if (!p) return null;
@@ -730,13 +773,31 @@ function autoOrthogonal(
             pts: [p0, q0, { x: fx, y: q0.y }, { x: fx, y: q1.y }, q1, p1],
             bonus: 100,
           });
+
+        // Obstacle-avoiding corridor tracks (e.g. routing cleanly between sibling boxes)
+        if (obsBoxes.length) {
+          for (const tx of obsXTracks) {
+            cands.push({
+              pts: [p0, q0, { x: tx, y: q0.y }, { x: tx, y: q1.y }, q1, p1],
+              bonus: 10,
+            });
+          }
+          for (const ty of obsYTracks) {
+            cands.push({
+              pts: [p0, q0, { x: q0.x, y: ty }, { x: q1.x, y: ty }, q1, p1],
+              bonus: 10,
+            });
+          }
+        }
       }
 
       for (const cand of cands) {
         const c = cleanupArrowPoints(cand.pts);
         if (pathHitsBoxes(c, boxes)) continue;
+        const obsHits = countObstacleHits(c, obsBoxes);
         const bends = Math.max(0, c.length - 2);
-        const score = pathLen(c) + pen + bends * 25 + (cand.bonus || 0);
+        const score =
+          pathLen(c) + pen + bends * 25 + (cand.bonus || 0) + obsHits * 5000;
         if (score < bestScore) {
           bestScore = score;
           best = c;
@@ -928,6 +989,7 @@ export function arrowGeom(
   el: BoardElement,
   getElement: (id: string) => BoardElement | undefined,
   th: Theme,
+  obstacles?: Bounds[],
 ): ArrowGeom {
   const sEl = el.start?.elementId ? getElement(el.start.elementId) : undefined;
   const tEl = el.end?.elementId ? getElement(el.end.elementId) : undefined;
@@ -1014,6 +1076,7 @@ export function arrowGeom(
       elementBounds(tEl),
       p0,
       p1,
+      obstacles,
     );
     if (routed && routed.length >= 2) {
       d = roundedPath(routed);
@@ -1046,15 +1109,21 @@ export function arrowGeom(
     }
   }
 
+  const evalPts =
+    mode === "curved" && pts.length >= 3 ? sampleSmoothPath(pts) : pts;
+
   const rawT = (el as any).labelT ?? (el as any).labelRatio;
   const labelT =
     typeof rawT === "number" ? Math.max(0.05, Math.min(0.95, rawT)) : 0.5;
-  const labelPoint = pointAlongPolyline(pts, labelT);
+  const labelPoint = pointAlongPolyline(evalPts, labelT);
 
   const t = unit(p0, p1);
-  const leg0 = pts.length > 1 ? unit(pts[1], pts[0]) : { x: -t.x, y: -t.y };
+  const leg0 =
+    evalPts.length > 1 ? unit(evalPts[1], evalPts[0]) : { x: -t.x, y: -t.y };
   const leg1 =
-    pts.length > 1 ? unit(pts[pts.length - 2], pts[pts.length - 1]) : t;
+    evalPts.length > 1
+      ? unit(evalPts[evalPts.length - 2], evalPts[evalPts.length - 1])
+      : t;
 
   return {
     d,
@@ -1077,7 +1146,7 @@ export function arrowHead(
   const n = end === "end" ? geom.p1 : geom.p0;
   const t = end === "end" ? geom.tan1 : geom.tan0;
   const c = 12;
-  const v = c * 0.42;
+  const v = c * 0.45;
   const ox = t.x;
   const oy = t.y;
   const fx = -oy;
@@ -1088,8 +1157,7 @@ export function arrowHead(
   });
   const m = y(c, v);
   const b = y(c, -v);
-  const k = y(c * 0.74, 0);
-  return `<path d="M${p(n)} L${p(m)} L${p(k)} L${p(b)} Z" fill="${color}"/>`;
+  return `<path d="M${p(m)} L${p(n)} L${p(b)}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
 export const dashArray = (el: BoardElement): string => {

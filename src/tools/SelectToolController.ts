@@ -174,6 +174,24 @@ export class SelectToolController implements ToolController {
           }
         }
       }
+      if (el.type === "container") {
+        const cb = elementBounds(el);
+        for (const c of elements()) {
+          if (
+            c.id === el.id ||
+            c.type === "slide" ||
+            c.type === "diagram" ||
+            c.type === "arrow"
+          )
+            continue;
+          const b = elementBounds(c);
+          const cx = (b.minX + b.maxX) / 2;
+          const cy = (b.minY + b.maxY) / 2;
+          if (cx >= cb.minX && cx <= cb.maxX && cy >= cb.minY && cy <= cb.maxY) {
+            if (!positions.has(c.id)) positions.set(c.id, { x: c.x, y: c.y });
+          }
+        }
+      }
     }
     pushHistory("move");
 

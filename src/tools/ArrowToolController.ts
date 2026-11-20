@@ -175,12 +175,30 @@ export class ArrowToolController implements ToolController {
         }
       }
 
-      // Proximity fallback
+      // Proximity fallback (use live bound endpoints so moved shapes don't leave stale hit targets)
+      const geom = arrowGeom(el, (id) => S.doc.elements[id], theme());
+      const z = S.camera.zoom;
+      const lastIdx = Math.max(1, (el.points?.length || 2) - 1);
+      if (Math.hypot((geom.p0.x - w.x) * z, (geom.p0.y - w.y) * z) < 10) {
+        pushHistory("edit arrow");
+        S.drag = { mode: "arrow-edit", id: el.id, pointIdx: 0 };
+        (S as any).suggestedBinding = null;
+        ctx.capturePointer(e.pointerId);
+        notify();
+        return true;
+      }
+      if (Math.hypot((geom.p1.x - w.x) * z, (geom.p1.y - w.y) * z) < 10) {
+        pushHistory("edit arrow");
+        S.drag = { mode: "arrow-edit", id: el.id, pointIdx: lastIdx };
+        (S as any).suggestedBinding = null;
+        ctx.capturePointer(e.pointerId);
+        notify();
+        return true;
+      }
       const pts = (el.points || []).map((p) => ({
         x: el.x + p.x,
         y: el.y + p.y,
       }));
-      const z = S.camera.zoom;
       const hitIdx = pts.findIndex(
         (p) => Math.hypot((p.x - w.x) * z, (p.y - w.y) * z) < 10,
       );
@@ -247,7 +265,7 @@ export class ArrowToolController implements ToolController {
           const binding = {
             elementId: sug.el.id,
             anchor: "auto",
-            normalizedAnchor: sug.anchor,
+            normalizedAnchor: edgeNormalizedAnchor(sug.el, w),
             isExact: false,
             isPrecise: true,
             snap: "edge" as const,

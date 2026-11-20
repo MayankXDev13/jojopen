@@ -237,7 +237,7 @@ export function compileDiagramDoc(
   }
 
   const layout = layoutDiagram(ast);
-  const Dt = 48; // Frame internal padding
+  const Dt = 36; // Frame internal padding
   const scale = (d as any).scale ?? 1;
 
   d.dsl = src;
@@ -482,7 +482,118 @@ export function compileDiagramDoc(
     }
   }
 
-  validEdges.forEach(({ edge, fromEl, toEl, edgeKey, key, startAnchor, endAnchor }) => {
+  // Pre-compute compiled node boxes to detect skip-rank obstacles and staggered corridors
+  const allCompiledShapes = [...upserts.values()].filter(
+    (e) => e.type === "shape",
+  );
+
+  // Detect crossing orthogonal edges in the same horizontal corridor so their vertical legs & labels stagger cleanly
+  // Group by target column (bucketed to 80px) so nodes of slightly different widths in the same rank share a corridor
+  const corridorGroups = new Map<string, number[]>();
+  validEdges.forEach((info, i) => {
+    if (info.startSide === "right" && info.endSide === "left") {
+      const band = `${Math.round(info.fromEl.x / 80)}:${Math.round(info.toEl.x / 80)}`;
+      const arr = corridorGroups.get(band) || [];
+      arr.push(i);
+      corridorGroups.set(band, arr);
+    }
+  });
+
+  const edgeCustomRoute = new Map<
+    number,
+    { pts: { x: number; y: number }[]; labelT?: number }
+  >();
+
+  // 1) Skip-rank horizontal edges (e.g. User -> Load Balancer bypassing CDN underneath)
+  let skipCount = 0;
+  validEdges.forEach((info, i) => {
+    const { fromEl, toEl, startSide, endSide, startAnchor, endAnchor } = info;
+    if (startSide !== "right" || endSide !== "left") return;
+    if (toEl.x <= fromEl.x + fromEl.width + 20) return;
+
+    const p0 = {
+      x: fromEl.x + fromEl.width * startAnchor.x,
+      y: fromEl.y + fromEl.height * startAnchor.y,
+    };
+    const p1 = {
+      x: toEl.x + toEl.width * endAnchor.x,
+      y: toEl.y + toEl.height * endAnchor.y,
+    };
+
+    const yLo = Math.min(p0.y, p1.y) - 6;
+    const yHi = Math.max(p0.y, p1.y) + 6;
+    const blockers = allCompiledShapes.filter(
+      (s) =>
+        s.id !== fromEl.id &&
+        s.id !== toEl.id &&
+        s.x + s.width > p0.x + 8 &&
+        s.x < p1.x - 8 &&
+        s.y + s.height > yLo &&
+        s.y < yHi,
+    );
+    if (!blockers.length) return;
+
+    const maxBottom = Math.max(...blockers.map((s) => s.y + s.height));
+    const bypassY = Math.round(maxBottom + 14 + (skipCount++ % 3) * 14);
+    const xOut = Math.round(p0.x + 18);
+    const xIn = Math.round(p1.x - 18);
+    edgeCustomRoute.set(i, {
+      pts: [
+        p0,
+        { x: xOut, y: p0.y },
+        { x: xOut, y: bypassY },
+        { x: xIn, y: bypassY },
+        { x: xIn, y: p1.y },
+        p1,
+      ],
+      labelT: 0.45,
+    });
+  });
+
+  // 2) Stagger crossing diagonal-jogged edges in the same corridor (e.g. Shorten API -> URL DB vs Redirect API -> Redis)
+  for (const [, indices] of corridorGroups) {
+    const jogged = indices.filter((idx) => {
+      if (edgeCustomRoute.has(idx)) return false;
+      const { fromEl, toEl, startAnchor, endAnchor } = validEdges[idx];
+      const y0 = fromEl.y + fromEl.height * startAnchor.y;
+      const y1 = toEl.y + toEl.height * endAnchor.y;
+      return Math.abs(y1 - y0) > 12;
+    });
+    if (jogged.length < 2) continue;
+
+    // Sort by starting Y so upper-going-down and lower-going-up get cleanly separated tracks
+    jogged.sort((a, b) => {
+      const ya = validEdges[a].fromEl.y;
+      const yb = validEdges[b].fromEl.y;
+      return ya - yb;
+    });
+
+    jogged.forEach((idx, rankInCorridor) => {
+      const { fromEl, toEl, startAnchor, endAnchor } = validEdges[idx];
+      const p0 = {
+        x: fromEl.x + fromEl.width * startAnchor.x,
+        y: fromEl.y + fromEl.height * startAnchor.y,
+      };
+      const p1 = {
+        x: toEl.x + toEl.width * endAnchor.x,
+        y: toEl.y + toEl.height * endAnchor.y,
+      };
+      // Spread vertical turn X across the corridor (e.g. 0.72 and 0.38) so labels & lines never collide
+      const frac =
+        jogged.length === 2
+          ? rankInCorridor === 0
+            ? 0.72
+            : 0.38
+          : (rankInCorridor + 1) / (jogged.length + 1);
+      const mx = Math.round(p0.x + (p1.x - p0.x) * frac);
+      edgeCustomRoute.set(idx, {
+        pts: [p0, { x: mx, y: p0.y }, { x: mx, y: p1.y }, p1],
+        labelT: rankInCorridor === 0 ? 0.34 : 0.56,
+      });
+    });
+  }
+
+  validEdges.forEach(({ edge, fromEl, toEl, edgeKey, key, startAnchor, endAnchor }, edgeIdx) => {
     const hasPrev = existingMap.has(key);
     const prev = existingMap.get(key) || MAKE.arrow({ frameId: diagramId });
     const dash =
@@ -498,10 +609,25 @@ export function compileDiagramDoc(
         ? edge.route
         : "orthogonal";
 
-    const ax = Math.round(fromEl.x + fromEl.width / 2);
-    const ay = Math.round(fromEl.y + fromEl.height / 2);
+    const custom =
+      !hasPrev || prev.route !== "manual"
+        ? edgeCustomRoute.get(edgeIdx)
+        : undefined;
+
+    const ax = custom ? Math.round(custom.pts[0].x) : Math.round(fromEl.x + fromEl.width / 2);
+    const ay = custom ? Math.round(custom.pts[0].y) : Math.round(fromEl.y + fromEl.height / 2);
     const bx = Math.round(toEl.x + toEl.width / 2);
     const by = Math.round(toEl.y + toEl.height / 2);
+
+    const points = custom
+      ? custom.pts.map((pt) => ({
+          x: Math.round(pt.x - ax),
+          y: Math.round(pt.y - ay),
+        }))
+      : [
+          { x: 0, y: 0 },
+          { x: bx - ax, y: by - ay },
+        ];
 
     upserts.set(key, {
       ...prev,
@@ -511,7 +637,9 @@ export function compileDiagramDoc(
       endHead,
       routeMode: hasPrev && prev.routeMode ? prev.routeMode : routeMode,
       label: edge.label || (hasPrev && prev.label ? prev.label : ""),
-      labelT: hasPrev ? ((prev as any).labelT ?? (prev as any).labelRatio) : undefined,
+      labelT: hasPrev
+        ? ((prev as any).labelT ?? (prev as any).labelRatio ?? custom?.labelT)
+        : custom?.labelT,
       start: {
         elementId: fromEl.id,
         anchor: prev.start?.elementId === fromEl.id ? prev.start.anchor : null,
@@ -526,13 +654,10 @@ export function compileDiagramDoc(
         isExact: true,
         normalizedAnchor: endAnchor,
       },
-      route: prev.route === "manual" ? "manual" : "auto",
+      route: prev.route === "manual" || custom ? "manual" : "auto",
       x: ax,
       y: ay,
-      points: [
-        { x: 0, y: 0 },
-        { x: bx - ax, y: by - ay },
-      ],
+      points,
       frameId: diagramId,
       meta: {
         ...prev.meta,
